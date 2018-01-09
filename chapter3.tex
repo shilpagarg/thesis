@@ -1,0 +1,320 @@
+\chapter{Graph Algorithms}
+
+\section{Introduction}
+To determine the two genome sequences of dilpoid organisms is important to understand the biology related to diseases.
+This is required to correctly understand allele-specific expression and compound heterozygosity. 
+We refer the reader to \citep{tewhey2011importance, glusman2014whole} for more details. 
+Thanks to next-generation sequencing technologies that have the power to deliver the pieces of these genome sequences called as sequencing redas.
+The goal is to reconstruct the two underlying genome sequences from these reads. 
+The process of assemblying the two genome sequences from the reads is known as diploid genome assembly.
+Solving an error-free version of diploid genome assemblies is pretty straightforward.
+Due to the large amount of data, sequencing errors and genomics repeats, the diploid genome assemblies is a fundamental challenging problem.
+
+Since the era of Sanger and Illumina sequencing, denovo assembly of heterozygous diploid genomes have been a difficult problem \cite{vinson2005assembly}.
+There are several short-read assemblers using Illumina data for heterozygous genomes \cite{kajitani2014efficient, pryszcz2016redundans, safonova2015dipspades, bankevich2012spades}.
+The sequences delivered from these assemblers are short and contain gaps. 
+More recently, some assemblers \cite{koren2017canu, vaser2017fast, xiao2016mecat, berlin2015assembling, chin2013nonhybrid, hunt2015circlator, lin2016assembly} use the long PacBio sequencing data for denovo assembly 
+Most of the assemblers involve collapsing the two genome sequences into single haploid ``consensus'' sequence. See review paper for literature about denovo assembly approaches \citep{sovic2013approaches, myers1995toward, myers2005fragment, nagarajan2009parametric}.
+This is achieved by merging the distinct alleles at regions of heterozygosity into single allele, and therefore, loosing lot of information.
+Moreover, haploid sequence does not represent the true characteristics of the diploid genome. 
+
+On the other hand, there are two standard linear approaches to generate the diploid assemblies, one by using haploid sequences also known as contigs \cite{chin2016phased, pendleton2015assembly, seo2016novo, mostovoy2016hybrid} and another by using the reference genome \cite{glusman2014whole}.
+In both the approaches, first, the reads are aligned to the reference genome or contigs; second, we call variants such as SNVs from the short Illumina reads; 
+third, we phase the detected SNVs using reads from different sequencing technologies. To solve phasing problem, it is generally formulated as minimum error correction optimization problem \citep{cilibrasi2007complexity}. See review \citep{rhee2016survey} for details. 
+In the recent study by \citep{chin2016phased}, these diploid de novo assemblies have been demonstrated for small and
+mid-sized genomes using PacBio data. On the other hand, \citep{weisenfeld2017direct} et al. provides a scalable method for determining the actual diploid
+genome sequence in a sample using 10x Genomics microfluidic platform. 
+In both the studies, first, they generate linear contigs from the assembly graph; second, the reads are re-aligned to these contigs to detect the regions of heterozygosity and third, the phasing is performed to get haplotigs.
+
+In the reference guided assembly, the reads are first aligned to the reference genome and therefore contain the reference bias. They fail to see the sequences or variations that are unique to the genome.
+There are several reasons why the set of sequences/contigs is not ideal:
+First, the contigs produced by the assemblers ignore the variants in the complex regions.. Second, the contigs does not capture the whole information of the genome.
+Third, they are very fragmented and the storage of contigs is highly inefficient in both terms of storage and searching due to high similarity.
+
+Here, we propose an alternative approach to Falcon unzip to use the underlying assembly graph as reference when a fully assembled genome is not available.
+Our pipeline on diploid assembly can be integrated with any pre-existing denovo assembler.
+We develop a pipeline to perform haplotype-aware denovo assembly in order to generate diploid assemblies.
+Potentially, we are interested to generate longer assemblies from the reads that span the whole genome. It is hard to achieve longer diploid assemblies by using high coverage short Illumina reads only that results in more fragmented ones.
+Therefore, we augment the high quality short read Illumina data with third generation sequencing technologies data like Pacific Biosciences (PacBio) and Oxford Nanopore (ONT).
+These technologies deliver sequencing reads in the order of thousand to tens of thousands of nucloetides, and therefore, potentially contain more phase information, but their downside is the higher error rate compared to the Illumina data. 
+To this end, we provide an efficient automatic pipeline to obtain accurate and comprehensive phase information directly from the combined Illumina and PacBio readset for a single diploid organism.
+
+Our contribution is three fold: First, we generalise this problem to construct the diploid assemblies directly from the underlying assembly graph.
+The two genome sequences can be seen as the two optimal paths over the regions of heterozygosity in assembly graph.
+Second, we propose an hybrid approach to integrate accurate Illumina and long-read PacBio reads to generate diploid assemblies. 
+Illumina reads being accurate are used to generate an assembly graph as backbone for downstream steps.
+Further, we augment the assembly graph with long PacBio reads, that potentially connect the contigs to get longer assemblies (scaffolds) that helps to resolve more complex regions of the genome.
+Third, this work is one of the first step in the direction of performing read-based phasing on graphs, although we consider simple setting here.
+
+We demonstrate the feasibility of this approach by performing haplotype-aware de novo genome assembly of a whole pseudo-yeast (SK1+Y12) genome.
+We show that we generate more accurate, contiguous, and correctly phased diploid genomes compared to linear appraoch.
+\todo{Maybe try HUMAN SAMPLE NA12878 and mention results properly for real data.}
+
+
+\section{Diploid assembly pipeline}
+In this section, we describe our automatic ``push-button'' pipeline to obtain diploid assemblies by combining Illumina and PacBio data.
+\todo{add figure to describe all the steps.} 
+
+\subsection{Generation of assembly graph} We perform error-correction of Illumina reads from diploid organism using FermiKit \citep{ ...}.
+Then, the reads are denovo assembled to generate an assembly string graph. 
+\begin{definition}[Overlap Graph]
+Formally, Let $X$ be a string of symbols $x_1 \ldots x_l$ from an alphabet $\mathcal{A} = \{A,C,G,T\}$. 
+The length of string $X$ is denoted by $|X|$. A substring of $X$ is denoted by $X[i,j]$ where $1 \le i \le j\le |X|$. 
+A substring of the form $X[1, i]$ is a prefix of $X$ and a substring $X[k, |X|]$ is a suffix of $X$. We use $\overline{X}$ to denote the reverse complement of a string.
+An overlap graph is formed from a set of reads R by finding all pairwise overlaps of length at least $\tau$ between members of $R$.
+We say that two reads $X$ and $Y$ overlap when a suffix of $X$ matches a prefix of $Y$ or vice versa. Therefore, in the overlap graph $G(V,E), V = \{v_1, \ldots v_i\}$ be the set of reads $R$ and $E =\{e_{12}, \ldots e_{ij}\}$ be a set of directed edges  when a suffix of $v_i$ matches a prefix of $v_j$.
+\end{definition}
+
+Furthermore, the overlap graph $G$ can be reduced to the string graph by first removing duplicate reads (distinct elements of $R$ with the same or reverse-complemented sequence) and contained reads (elements in $R$ that are a substring of some element in $R$ or their reverse complements), then removing transitive edges from the graph.
+
+
+\subsection{Conversion to sequence graph} We convert the assembly string graph to sequence graph.
+\begin{definition}[Sequence Graph]
+We define a sequence graph $G_s (N_s, E_s)$ as a collection of nodes and egdes, in which each endpoint of every edge has an independent orientation (denoted either ``left`` or ''right``),  
+indicating if the endpoint is incident with the $left$ or $right$ \emph{side} of the given vertex. 
+The sides of $G_s$ are therefore the set $N_s \times \{ left, right \}$, and each edge in $E_s$ is  a pair set of two sides .
+We say for all $n_i \in N_s$, $(n_i, left)$ and $(n_i, right)$ are \emph{opposite sides}.
+The nodes $n_i$ are the sequences from an alphabet $\mathcal{A} = \{A,C,G,T\}$. Nodes may be traversed in either the forward or reverse direction, with the sequence being reverse-complemented in the reverse direction. 
+The edge $e_{ij}$ connect sides of the nodes $(n_i, left)$ to $(n_j, right)$ represent adjacencies between the sequences of the nodes they connect.
+Thus, the graph implicitly encodes longer sequences as the concatenated node sequences along walks through the graph.
+\end{definition}
+
+We perform \textit{bluntification} process to remove the overlaps between the nodes to generate sequence graph $G_s$.
+The bluntification step is implemented using pinch library, which is basically the transitive closure of the overlap relation.
+
+More precisely, if there is a directed edge from node $n_1 = X[1,|X|]$ to node $n_2 = Y[1,|Y|]$ in the string graph $G$, then the suffix $X[k,|X|]$ overlaps with prefix $Y[1,k]$.
+When we convert it into sequence graph $G_s$, the nodes are updated with $n_{s1} = X[1,k]$ and $n_{s2} = Y[k,|Y|]$ in the sequence graph $G_s$ and in addition, a new node is created based on an overlap $n_{s3} = X[k,|X|]$.   
+
+\subsection{Simple bubble detection in sequence graph} To account for heterozygosity in a diploid genome, we perform simple detection.  We define a simple bubble that has the following properties:
+\begin{itemize}
+ \item \textit{Disjoint paths.} A set of paths that start and end at common source and sink nodes but are otherwise disjoint. 
+ \item \textit{Similarity.} The path sequences differ from each other by a single allele base.
+ \item \textit{Directionality.} Consider simple paths that are all left-to-right ot right-to-left.
+ \item \textit{DAG.} Directed and acyclic.
+\end{itemize}
+
+In the context of sequence analysis, a bubble can represent a potential sequencing error or a genetic variation within a set of homologous molecules.
+Due to the sequencing errors, there could be complicated structures in the bubbles, in particular we focus on simple bubbles that may represent multi-allelic SNP sites.
+
+
+Formally, we represent ordering of bubbles as $locus$ records in the sequence graph .
+\begin{definition}[Locus]
+We define the set of loci $L=\{l_1, l_2, \ldots l_k\}$ as the simple bubbles (represent multi-allelic SNP sites) and its repective directed paths.
+Formally, one locus record is represeted as 
+\[l_k= \{p_1,p_2 \ldots\}\]
+
+\end{definition}
+
+\begin{definition}[Path] We define path $p_k$ as linear ordering of vertices, Formally,
+\[p_z=(n_1,right), \ldots (n_m,left) \ldots\] 
+
+\end{definition}
+
+\subsection{PacBio alignments} The next stage of the pipeline is to build the optimal genome paths in the sequence graph $G_s$ that are consistent with the aligned reads. 
+Here, we take advantage of third generation sequencing technologies that are long and have tendency to connect contigs to generate long assemblies.
+Therefore, we align the long PacBio reads to $G_s$ using Mikko's mapping algorithm \citep{ ...}. It is build on the ideas of V-ALIGN, in combination with the generalization of Myer's bit vector algorithm. 
+
+\begin{definition}[Alignment]
+We define read-alignments $R=\{r_1, r_2, \ldots r_h\}$ as a path of vertices through graph $G_s$ such that each vertex contains edit distances. We keep track of each read aligned to forward or reverse strand. Additionally, we keep the aligned read quality scores $q(r)$. 
+Formally, an alignment is represeted as 
+\[r_h=\{(n_1,left), \ldots (n_m,right) \ldots \}\] 
+ 
+\end{definition}
+
+\subsection{Bubble ordering}
+The next stage is to get the ordering of the bubbles. This is challenging due to the different type of repeats present in the genome. 
+The tandem repeats creates local cycles and interspersed repeats global cycles in the graph.
+There could be both inter and intra chromosomal repeats present in the genome.
+Therefore, the graph is cyclic and to get a linear ordering of bubbles is a challenging problem. 
+Solving the bubble ordering is equivalent to solving the assembly problem. The focus of this study is to provide the diploid assembly with the assumption that we know the ordering of the bubbles.
+There are many tools such as canu ... \citep{...} that can provide the single assembly for highly heterozygous genomes.
+
+\subsection{Generation of diploid assemblies} 
+\todo{Phasing repetitive bubbles by unfolding them and filtering the reads that could potentially come from other chromosomes based on the bubbles traversed by a read.}
+Given the bubble ordering and the PacBio alignments, the goal here is to generate the diploid assemblies for every connected component of alignments.
+The two genome sequences can be seen as two walks through the bubbles $L$ in the sequence graph $G_s$ that are consistent with the PacBio alignments $R$.
+The bubbles in the contigs can be phased by using PacBio reads aligned to them. This process is known as \textit{read-based phasing}.
+
+The read-based phasing is formulated as the Minimum Error Correction (MEC) problem \citep{ ...} and its weighted version (wMEC).
+Previously, wMEC is solved efficiently for bi-allelic variants \citep{ ...}, but here we now generalise it for simple bubbles. Solving phasing problem for simple bubbles is equivalent to phasing the multi-allelic SNP sites.
+
+\todo{add figure for wMEC on simple bubbles.}
+
+\textit{wMEC for simple bubbles.} First, we generate an association between simple bubbles $L$ and aligned PacBio reads $R$ in sequence graph $G_s$ in order to re-discover the bubbles in the aligned read. Additionally, we store the information about the path $p_i$ in a bubble $l_j$ that the read $r_k$ is aligned.
+We represent this association in the form of a  SNP matrix $\mathcal{F}\in\{0,1, \ldots a, -\}^{|R|\times |L|}$, where $|R|$ is the number of reads, $|L|$ is the number of bubbles along a chromosome, $a = |l_k|$ are the number of paths (or alleles) in a bubble $l_k$.
+Please note that the different paths in a bubble corresponds to possible alleles at a genetic variant. The entry $e_i \in \{0,1, \ldots a, -\}$ in $\mathcal{F}(j.k)$ represents the path in a bubble $l_k$ that a read $r_j$ is aligned. The ``$-$'' encodes missing information or internal segment of paired-end Illumina reads.
+
+\begin{definition}[Distance] 
+The quality of a solution relies on the measure $d(r_1,r_2)$ based on the Hamming distance between any two rows $r_1,r_2\in\{0,1, \ldots a, -\}^M$ in $\mathcal{F}$. Formally,
+\[d(r_1,r_2):=\sum_{k=1}^{|L|} \big|\big\{k\,\big|\,r_1(k)\neq -\ \wedge\ r_2(k)\neq -\ \wedge\ r_1(k)\neq r_2(k)\big\}\big|.\]
+\end{definition}
+
+\begin{definition}[Feasibility]
+A feasible solution to a SNP matrix $\mathcal{F}\in\{0,1, \ldots a, -\}^{|R|\times |L|}$ is a pair of haplotypes $h^0,h^1\in\{0,1, \ldots a\}^M$ such that 
+\[d(h_0,h_1):=\sum_{j=1}^{|R|} \min\{ d(\mathcal{F}(j), h_0), d(\mathcal{F}(j), h_1)\} \]
+and there exists a bi-partition of rows (i.\,e., reads) into two sets such that all pairwise distances of two rows within the same set are zero.
+\end{definition}
+
+Furthermore, we have ``phred-scaled'' quality score tuple for each entry in $\mathcal{F}$ that is stored in $\mathcal{W}(j,k) = \{0, q_1, \ldots, q_a\}$. The size of each tuple $|\mathcal{W}(j,k)|$ is equal to number of paths $a$ at bubble $l_k$.
+The quality score value ``0'' in tuple $\mathcal{W}(j,k)$ encodes that the aligned reads $r_j$ to the same path index $p_i$ in a bubble $l_k$. The remaining non-zero values stores the confidence scores of switching the aligned read $r_j$ to other branches/paths $\{p_i\}$ in a bubble.
+These phred scores can hence serve as costs of flipping a letter, allowing less confident base calls to be corrected at lower cost compared to high confidence ones.
+
+\begin{problem}[wMEC for simple bubbles]
+Given a matrix $\mathcal{F}\in\{0,1, \ldots a, -\}^{|R|\times |L|}$ and a weight matrix $\mathcal{W}\in\N^{|R|\times |L|}$, where each entry in $\mathcal{W}(j,k)$ is a tuple, thereby flipping entries in $\mathcal{F}$ to $i^{th}$ allele in order to obtain a feasible matrix, while minimizing the sum of incurred costs, where flipping entry $\mathcal{F}(j,k)$ incurs a corresponding cost from $i^{th}$ element of tuple $\mathcal{W}(j,k)$.
+For simplicity, we represent the $i^{th}$ element of tuple $\mathcal{W}(j,k)$ as $\mathcal{W}(j,k,i)$
+\end{problem}
+
+Therefore, wMEC for bi-allelic is a special case of multi-allelic with $a=\{0,1\}$.
+
+\textit{Algorithm}. In WhatsHap algorithm \citep{ ...}, wMEC is solved in an exact manner for bi-allelic variants using dynamic programming approach.
+It runs in $\mathcal{O}(2^c\cdot |L|)$ time, where $|L|$ is the number of variants to be phased and $c$ is the maximum physical coverage (which includes internal segments of paired-end reads).
+The general idea is to proceed column-wise from left to right while maintaining a set of active reads.
+Each read remains active from its first non-dash position to its last non-dash position in $\mathcal{F}$.
+Let the set of active reads in column $k$ be denoted by $A(k)$.
+Note that $c=\max_{k}\{|A(k)|\}$.
+For each column $k$ of $\mathcal{F}$, we fill a DP table column $C(k,\cdot)$ with $2^\abs{A(k)}$ entries, one entry for each bipartition $B$ of the set of active reads $A(k)$.
+Each entry $C(k,B)$ is equal to the cost of solving wMEC on the partial matrix consisting of columns $1$ to $k$ of $\mathcal{F}$ under the assumption that the sought bipartition of the full read set $A(1)\cup\ldots\cup A(k)$ \emph{extends} $B$ according to the below definition.
+\begin{definition}[Bipartition extension]
+For a given set $A$ and a subset $A'\subset A$, a bipartition $B=(P,Q)$ of $A$ is said to \emph{extend} a bipartition $B'=(P',Q')$ of $A'$ if $P'\subset P$ and $Q'\subset Q$, denoted by $B\simeq B'$.
+\end{definition}
+By this semantics of DP table entries $C(k,B)$, the minimum of the last column $\min_B\{C(|L|,B)\}$ is the optimal wMEC cost.
+
+\textit{Solving wMEC for simple bubbles}. The basic idea is to now extend the dynamic program to consider all possible path-pairs from a bubble. 
+In the bi-allelic case, we have only two paths in every bubble, therefore, the possible path-pairs is one. 
+In the multi-allelic case, we consider all possible path-pairs in a variant/bubble. The goal  is to find two optimal minimum cost paths from the simplified version of sequence graph $G_s$ based on bubble-pair phasing.
+In the algorithm, we move from left to right in DAG connected component, we find the two optimal paths of the first $m$ bubbles and then extend it to find it for $m+1$ bubbles, resulting optimal paths for first $m+1$ bubbles.
+At every step, we remember the set of haplotype pairs possible from previous step only.
+In this way, we do this till the last bubble $|L|$ and backtrace to get the two optimal paths.
+Now, we describe how to build the DP table.
+
+\textit{DP cell initialization}. Along the similar lines of \citep{ ...}, we compute $\Delta_C(k,B)$ for any column $k$ and bipartition $B$.
+We write $\mathcal{S}(k,B)$ to denote this set of sets of reads induced by bipartition $B$ in column $k$.
+The cost $W_{k,S}^i$ of flipping all entries in a read set $S\in \mathcal{S}(k,B)$ to the some allele $i\in\{0,1,\ldots a\}$ is given by 
+\[W_{k,S}^i = \sum_{j\in S}\iverl \mathcal{F}(j,k)\neq i\iverr\cdot\mathcal{W}(j,k,i),\]
+
+Now, we minimize the cost by considering all possibilities of pairs of alleles from a bubble. Formally, if we have $|a|$ as the number of possible alleles in a bubble, then the possibilities of heterozygous alleles are ${a \choose 2}$.
+The cost $\Delta_C(k,B)$ is computed using Algroithm~\ref{alg:dp-cell} as shown below:
+
+\begin{algorithm}
+    \caption{\label{alg:dp-cell}\textsc{DP CELL INITIALIZATION}}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{The column vectors of the SNP matrix $\mathcal{F}(k)$ and weight matrix $\mathcal{W}(k)$ of the bubble $k$ and the bipartition $S$ of active reads $R (k)$}
+    \Output{$\Delta_C(k,B)$}
+    \For{ all allele-pairs $(a_ia_j)$ from paths $a$ in bubble $k$}{
+	\[\Delta_C(k,B)= \min_{i\in {a \choose 2}^{\mathcal{S}(k,B)}}\left\{\sum_{S\in\mathcal{S}(k,B)}W_{k,S}^{i}\right\},\]
+    }
+\end{algorithm}
+
+\textit{DP column initialization}. Next, we initialize first DP column by $C(1,B):=\Delta_C(1,B)$ for all possible bipartitions $B$ over trying all possible allele-pairs.
+Next we enumerate all bipartitions in Gray code order, as done previously \citep{ ...}.
+This ensures that only one read is moved from one set to another in each step, facilitating constant time updates of the values $W_{k,S}^i$.
+
+\begin{algorithm}
+    \caption{\label{alg:dp-column}\textsc{DP COLUMN INITIALIZATION}}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{$\Delta_C(k,B)$ for all bipartitions of bubble $k$.}
+    \Output{$C(1,B)$}
+    \For{ all bipartitions $B$ of column $k$}{
+	Compute $\Delta_C(k,B)$ using Algorithm~\ref{alg:dp-cell} and store in $C(1,B)$.	
+    }
+\end{algorithm}
+
+Due to the ``algorithm engineering'' using Grey code, we can perform this operation for one DP column takes $\mathcal{O}( {a \choose 2} \cdot 2^{|A(k)|})$ time.
+
+\textit{DP column recurrence}.
+Note that $C(k,B)$ is the cost of an optimal solution for input matrices restricted to the first $k$ columns under the constraints that the sought bipartition extends $B$ at bubble $k$.
+Entries in column $C(k+1,\cdot)$ should hence add up local costs incurred in column $k+1$ and costs from the previous column. 
+To adhere to the semantics of $C(k+1,B)$, only entries in column $k$ whose bipartitions are \emph{compatible} with $B$ are to be considered as possible ``predecessors'' of $C(k+1, B)$.
+
+\begin{algorithm}
+    \caption{\label{alg:dp-table}\textsc{DP TABLE}}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{$C(1,B)$ for all bipartitions of bubble $k$.}
+    \Output{$C(k,B)$ for columns $k$ till last column $|L|$}
+    \For{ all columns $k \in \{2 \ldots |L|\}$}{
+	Compute $\Delta_C(k+1,B)$ using Algorithm~\ref{alg:dp-cell}. \\
+	Consider cost from the previous column computed using Algorithm~\ref{alg:dp-column}.\\
+	Compute for recurrence cost for column $k+1$
+	\[C(k+1,B)= \Delta_C(k+1,B) + \min_{\substack{B'\in\mathcal{B}(A(k)):B'\simeq B\}}}C(k,B')\]\\
+	where $\mathcal{B}\big(A(k)\big)$ denotes the set of all bipartitions of $A(k)$.
+    }
+\end{algorithm}
+
+\paragraph{Algorithm Engineering.}
+To ease computing $C(k+1,B)$ in Algorithm~\ref{alg:dp-table}, we use the same technique described by \cite{} and define intermediate \emph{projection columns} $C^\cap(k,\cdot)$.
+They can be thought of as being \emph{between} columns $k$ and $k+1$.
+Consequently, they are concerned with bipartitions of the intersection of read sets $A(k)\cap A(k+1)$ and hence contain $2^{|A(k)\cap A(k+1)|}$ entries, which are given by
+\begin{equation}\label{eqn:proj_col}
+C^\cap(k,B')=\min_{\mathcal{B}(A(k)):B\simeq B'}\{C(k,B)\}.
+\end{equation}
+These projection columns can be created while computing $C(k,\cdot)$ at no extra (asymptotic) runtime.
+Using these projection columns, Equation~\eqref{eqn:recurrence} becomes
+\begin{align}\label{eqn:recurrence_projcol}
+& C(k+1,B)= \Delta_C(k+1,B) + \min C^\cap(k,B\cap A(k)), \nonumber
+\end{align}
+where $B\cap A(k) := (P\cap A(k), Q\cap A(k))$ for $B=(P,Q)$.
+
+\textit{Running time.} To compute DP column takes time $\mathcal{O}( {a \choose 2} \cdot 2^{|A(k)|})$ and in total, the running time is $\mathcal{O}( {a \choose 2} \cdot 2^{|A(k)|} \cdot |L|)$ for $|L|$ bubbles.
+It is independent of read-length, and therefore, suitable for longer reads from upcoming technologies.
+
+\textit{Backtracing.} We can backtrace from the last bubble $C(|L|, \cdot)$ to compute haplotypes and optimal read bipartition $B^*_k = (P^*_k, Q^*_k)$ at each bubble $k$.
+The two haplotypes $(h_0, h_1)$ can be derived by the following equation
+\begin{equation}\label{eqn:haplo_c1}
+h_0(k)= i \quad if \min_{i\in \{0,1, \ldots a\}} W_{k,P*}^i, \nonumber
+\end{equation}
+\begin{equation}\label{eqn:haplo_c2}
+h_1(k)= j \quad if \min_{j\in \{0,1, \ldots a\}} W_{k,Q*}^j, \nonumber
+\end{equation}
+
+\subsection{Generation of final assemblies}
+Here, we consider the base sequence graph $G_s$ and $(h_0,h_1)$ to generate final assemblies for every connected component.
+For every connected component, it is trivial to construct the contig sequences by traversing the haplotype paths and considering the node sequences and its sides information stored in the based graph $G_s$.
+
+\section{Dataset}
+\subsection{The yeast pseudo-diploid genome}
+\subsection{The human genome}
+
+\section{Assembly performance assessment}
+To access the performace of our pipeline, we compared assemblies of yeast genome using our pipeline to FermiKit \citep{...} and Falcon unzip \citep{...}.
+
+\textit{Assembly contiguity}. We assessed the contiguity of the assemblies by calculating the contig alignment length N50. 
+By analyzing the contig alignment lengths, as opposed to the length of contigs themselves, we account for misassembled contigs that can inflate the assembly statistics.
+
+\textit{Assembly completeness}. The contigs assembled by our pipeline covered $?\%$ of the reference genome. We also argue from where the assemblies come in the reference gemome, in addition, where the ends of your ``haplotigs'' are.
+
+\textit{Phasing errror rate}. Over the yeast genome, we compare diploid assemblies with ``TRUTH'' haploid assemblies.
+
+\textit{Read partitioning accuracy}. Over the yeast genome, we compare reads that the haplotype they belongs to the ``TRUTH'' partitioning of the reads.
+
+\section{Result}
+\todo{Focus only on the haplotigs.}
+
+\subsection{Coverage Analysis of PacBio reads}
+We downsample the PacBio data to different coverages (2x, 3x, 4x, 5x, 10x, 15x, 30x).
+Table shows the following stats for both linear and graph version:
+\begin{enumerate}
+ \item Assembly size
+ \item Contigs
+ \item N50 size
+ \item N50 no.
+ \item N90 size
+ \item Max contig size
+ \item percent identity
+\end{enumerate}
+
+The plot shows the phasing error rate for both linear and graph version for different coverages.
+
+
+
+
+
+
+
+
+
+
+
+

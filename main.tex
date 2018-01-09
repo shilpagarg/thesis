@@ -1,0 +1,356 @@
+\documentclass[
+  % Replace twoside with oneside if you are printing your thesis on a single side
+  % of the paper, or for viewing on screen.
+%  oneside,
+  twoside,
+  11pt, a4paper, openright
+]{book}
+
+
+
+\usepackage[left=1in,right=1in,top=1in,bottom=1in]{geometry}
+\usepackage{microtype}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage[draft]{fixme}
+\fxusetheme{colorsig}
+\FXRegisterAuthor{tgm}{atgm}{TM}
+\FXRegisterAuthor{sg}{asg}{SG}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xspace}
+\usepackage{complexity}
+\usepackage{times}
+\usepackage{flafter}
+\usepackage{paralist}
+\usepackage{enumitem}
+\usepackage{amsthm}
+\theoremstyle{plain}
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{lemma}{Lemma}
+% \newtheorem{corollary}{Corollary}
+% \newtheorem{observation}{Observation}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{case}{Case}
+% \newtheorem{claim}{Claim}[lemma]
+% 
+% \theoremstyle{definition}
+% \newtheorem{definition}{Definition}
+
+\newenvironment{subproof}{%
+  \renewcommand{\qedsymbol}{$\Diamond$}%
+  \begin{proof}[Proof of Claim]%
+}{%
+  \end{proof}%
+}
+
+\def\DEBUG{true}
+
+\ifdefined\DEBUG
+ \newcommand{\tgm}[1]{\textcolor{blue}{#1}}
+ \newcommand{\sg}[1]{\textcolor{red}{#1}}
+\else
+  \newcommand{\tgm}[1]{#1}
+  \newcommand{\sg}[1]{#1}
+\fi
+
+
+
+\usepackage{enumitem}
+\setlist{nolistsep, noitemsep, topsep=0pt}
+
+\setcounter{secnumdepth}{2}
+
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{shapes.geometric,positioning}
+\usetikzlibrary{arrows}
+\usetikzlibrary{patterns}
+\tikzset{node/.style={minimum size=1.8mm,circle,fill=black,draw,inner sep=0pt},
+         decoration={markings,mark=at position .5 with {\arrow[black,thick]{stealth}}}}
+\tikzset{req/.style={minimum size=1.8mm,circle,fill=white,draw,inner sep=0pt},
+         decoration={markings,mark=at position .5 with {\arrow[black,thick]{stealth}}}}
+
+%Environment for restating lemmas
+\newcommand{\restated}[2]{
+\begin{trivlist}
+        \item[\hskip\labelsep {\bf #1} (Restated)] \emph{#2}
+\end{trivlist}}
+
+\usepackage[noblocks]{authblk}
+\title{A QPTAS for Gapless MEC\footnote{Research partially funded by Deutsche Forschungsgemeinschaft grant MO2889/1-1.}}
+\author{Shilpa Garg}
+\affil{Max Planck Institute for Informatics, Saarland Informatics Campus, Germany. \texttt{sgarg@mpi-inf.mpg.de}}
+\author{Tobias M\"omke}
+\affil{Saarland University, Saarland Informatics Campus, Germany. \texttt{moemke@cs.uni-saarland.de}}
+
+
+\renewcommand{\epsilon}{\varepsilon}
+\newcommand{\ie}{i.e.}
+\newcommand{\eg}{e.g.}
+\newcommand{\WLOG}{w.l.o.g.\xspace}
+\newcommand{\cost}{\ensuremath{\mathrm{cost}}\xspace}
+\newcommand{\MEC}{\textsc{MEC}\xspace}
+\newcommand{\GMEC}{\textsc{Gapless-MEC}\xspace}
+\newcommand{\BMEC}{\textsc{Binary-MEC}\xspace}
+\newcommand{\SEG}{\textsc{SEG}\xspace}
+\newcommand{\GSEG}{\textsc{Gapless-SEG}\xspace}
+\newcommand{\dist}{\ensuremath{\mathrm{dist}}\xspace}
+\newcommand{\gain}{\ensuremath{\mathrm{gain}}\xspace}
+\newcommand{\agree}{\ensuremath{\mathrm{agree}}\xspace}
+%\newcommand{\Pr}{\textrm{Pr}}
+\newcommand{\euler}{\textrm{e}}
+\newcommand{\SWC}{\textsc{SWC}_{\epsilon^3}}
+
+\renewcommand{\DP}[1]{\ensuremath{\mathrm{DP}(#1)}\xspace}
+%The following name is used, since \dp already has a meaning in latex.
+\newcommand{\CDP}[1]{\ensuremath{\mathrm{dp}(#1)}\xspace}
+\newclass{\opt}{opt}
+\newclass{\reference}{ref}
+\newclass{\UG}{UG}
+\usepackage{lipsum}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{acronym}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage[utf8]{inputenc}
+\usepackage{color}
+\usepackage{balance}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{arrows,calc,matrix,shapes,trees,positioning}
+\usepackage[boxed,vlined,linesnumbered]{algorithm2e}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{rotating}
+\usepackage{paralist}
+\usepackage{subfigure}
+\usepackage{datetime}
+\usepackage{multirow}
+\usepackage{tipa}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage{soul}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{url}
+\usepackage[font={bf}]{caption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{listings}
+\lstset{language=Java}
+\usepackage{moreverb}
+%\renewcommand*\ttdefault{lmvtt}
+\SetKwComment{Comment}{$\triangleright$\ }{}
+\usepackage[english]{babel}
+\usepackage{setspace}
+\usepackage[bookmarks]{hyperref}
+\usepackage{xcolor}
+\usepackage{mathtools}
+%\usepackage{natbib}
+\usepackage{enumitem}
+\usepackage{pdflscape}
+\usepackage{appendix}
+% \usepackage[object=vectorian]{pgfornament}
+
+\setlist[itemize]{leftmargin=*}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+
+%%Algorithm style
+\SetAlFnt{\sffamily}
+\setlength{\algoheightrule}{0.8pt} % thickness of the rules above and below
+\setlength{\algotitleheightrule}{0.8pt} % thicknes of the rule below the title
+%%
+
+
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+{\normalfont\bfseries}
+{{\LARGE {\it Chapter}~~}{\HUGE \thechapter}}
+{1ex}
+{\vspace{2ex}  \huge }
+[\vspace{1ex}]
+
+\usepackage{etoolbox}
+
+\makeatletter
+\patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+\patchcmd{\ttlh@hang}{\noindent}{}{}{}
+\makeatother
+
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={red!50!black},
+    urlcolor={blue!80!black}
+}
+
+%\usepackage{unicode-math}
+\usepackage{libertine}
+\usepackage[italic]{mathastext}
+\renewcommand{\ttdefault}{cmtt}
+%\renewcommand{\sfdefault}{lmss}
+%\usepackage{euler}
+
+
+\usepackage{bbm}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{url}
+
+
+
+\newcommand{\todo}[1]{\textbf{[TODO: #1]}}
+\newcommand{\N}{\mathbbm{N}}
+\newcommand{\cupdot}{\dot{\cup}}
+\newcommand{\iverl}{\llbracket}
+\newcommand{\iverr}{\rrbracket}
+\newcommand{\abs}[1]{{\left\lvert #1 \right\rvert}}
+\usepackage{amsfonts}
+
+%\setmathfont{Latin Modern Math}
+%\setmathfont[range=\mathit/{latin,Latin,num,Greek,greek}]{Linux Biolinum O Italic}
+%\setmathfont[range=\mathup/{latin,Latin,num,Greek,greek}]{Linux Biolinum O}
+%\setmathfont[range=\mathbfup/{latin,Latin,num,Greek,greek}]{Linux Biolinum O Bold}
+%\setmathfont[range={\mathrm,0048-0057}]{Linux Biolinum O}
+
+ \newtheorem{theorem}{\normalfont{\scshape Theorem}}[chapter]
+ \newtheorem{lemma}{\normalfont{\scshape Lemma}}[chapter]
+ \newtheorem{claim}{\normalfont{\scshape Claim}}[chapter]
+ \newtheorem{proposition}{\normalfont{\scshape Proposition}}[chapter]
+ \newtheorem{corollary}{\normalfont{\scshape Corollary}}[chapter]
+ \newtheorem{observation}{\normalfont{\scshape Observation}}[chapter]
+ \newtheorem{definition}{\normalfont{\scshape  Definition}}[chapter]
+ \newtheorem{example}{\normalfont{\scshape Example}}[chapter]
+ \newtheorem{problem}{\normalfont{\scshape Problem}}[chapter]
+ \newtheorem{weakness}{\normalfont{\scshape Weakness}}[chapter]
+  \newtheorem{gaps}{\normalfont{\scshape Open Problem}}[chapter]
+ 
+ 
+
+ \newcommand{\squishlist}{
+ \begin{list}{$\bullet$}
+  { \setlength{\itemsep}{0pt}
+     \setlength{\parsep}{1pt}
+     \setlength{\topsep}{1pt}
+     \setlength{\partopsep}{0pt}
+     \setlength{\leftmargin}{3em}
+     \setlength{\labelwidth}{1em}
+     \setlength{\labelsep}{0.5em} } }
+ \newcommand{\squishend}{\end{list}}
+
+ %%%% Tikz related libraries
+\usetikzlibrary{positioning,shapes,shadows,arrows}
+\usetikzlibrary{patterns}
+\usepgfplotslibrary{groupplots}
+\usetikzlibrary{trees}
+\setlength{\textfloatsep}{5pt}
+\setlength{\floatsep}{0pt}
+\setlength{\intextsep}{0pt}
+%%%%
+
+%%%% Misc
+%\newcommand{\verbatimfont}[1]{\def\verbatim@font{#1}}%
+%\verbatimfont{\sffamily}
+
+\def\CC{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
+\def\Giraphpp{{Giraph\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
+\def\vgap{\vspace*{0.3cm}}
+\def\sf{\sffamily}
+%%%%
+
+
+%%% bib
+% \usepackage[backref=true]{biblatex}
+% \usepackage{hyperref}
+% \DefineBibliographyStrings{english}{%
+%   backrefpage = {page},% originally "cited on page"
+%   backrefpages = {pages},% originally "cited on pages"
+% }
+
+ \usepackage{natbib}%
+% \hypersetup{urlcolor=blue, colorlinks=true}
+% \usepackage{backref}
+
+%%% 
+
+
+\setlength{\headheight}{15.2pt}
+
+%%% Header conf
+\fancypagestyle{fancybook}{%
+    \fancyhf{}%
+    % Note the ## here. It's required because \fancypagestyle is making a macro (\ps@fancybook).
+    % If we just wrote #1, TeX would think that it's the argument to \ps@fancybook, but
+    % \ps@fancybook doesn't take any arguments, so TeX would complain with an error message.
+    % You are not expected to understand this.
+    \renewcommand*{\sectionmark}[1]{ \markright{\thesection\ ##1} }%
+    \renewcommand*{\chaptermark}[1]{ \markboth{\chaptername\ \thechapter: ##1}{} }%
+    % Increase the length of the header such that the folios
+    % (typography jargon for page numbers) move into the margin
+    \fancyhfoffset[LE]{6mm}% slightly less than 0.25in
+    \fancyhfoffset[RO]{6mm}%
+    % Put some space and a vertical bar between the folio and the rest of the header
+    \fancyhead[LE]{\nouppercase{\sf \thepage~|~~{\slshape \leftmark}}}%
+    %\fancyhead[LE]{\thepage\hfill{\leftmark}}%
+    \fancyhead[RO]{\nouppercase{\sf {\slshape \rightmark}~~|~\thepage}}%
+%    \fancyfoot[C]{{\thepage}}
+}
+
+%% (more) Tikz definitions
+\input{tikz-meta}
+%%
+
+
+\usepackage{afterpage}
+
+\newcommand\blankpage{%
+    \null
+    \thispagestyle{empty}%
+%    \addtocounter{page}{-1}%
+    \newpage}
+
+\begin{document}
+
+
+
+%\pagenumbering{gobble}
+\pagenumbering{roman}
+\include{FrontBackMatter/cover}
+%\include{FrontBackMatter/committee}
+\pagestyle{fancybook}
+\include{FrontBackMatter/abstract}
+%\include{FrontBackMatter/dedication}
+\include{FrontBackMatter/acknowledgements}
+%\include{FrontBackMatter/declaration}
+\include{FrontBackMatter/contents}
+
+
+
+\pagenumbering{arabic}
+\setcounter{page}{0}
+\input{introduction}
+\input{background}
+\input{chapter1}
+ \input{chapter2}
+ \input{chapter3}
+ \input{chapter4}
+  \input{conclusions}
+ {
+%\bibliographystyle{unsrtnat}
+   \bibliographystyle{apalike}
+   \bibliography{main}
+ }
+\input{appendix}
+\listoffigures
+\listoftables
+\listofalgorithms
+\end{document}

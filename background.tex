@@ -1,0 +1,812 @@
+\chapter{Biological and Algorithmic background}
+% http://web.stanford.edu/group/hopes/cgi-bin/hopes_test/an-introduction-to-dna-and-chromosomes-text-and-audio/#what-is-dna-making-the-single-strand
+
+In the first part of this chapter we provide explanation of some of the biological concepts we introduced in the earlier chapter. This explanation is required for understanding the material presented later in the thesis.
+In the second part we provide types of algorithms used in computer science to solve biological problems that can be formulated as optimization problem.
+% formulation for the diploid assembly problem and describe briefly various methods to perform haplotyping including graph-based approaches.
+% Furthermore, we discuss about the challenges to solve the problem and provide the main contributions of this thesis.
+\section{Biological Background}
+\subsection{DNA structure}
+As we learnt in the previous section, the genetic information of different organisms is encoded in DNA.
+The DNA molecule is a chain on which many bases are ordered in a linear sequence, the bases --- A, T, G, and C --- as the letters of a genetic alphabet.
+The DNA sequence length can be short, for example, ~12 million nucleotides long for yeast genomes, or long in the order of approximately 3 billion nucleotides for humans.
+One can think of DNA as a “genetic database” for organisms.
+% If we think of these four bases --- A, T, G, and C --- as the letters of a genetic alphabet, we have the building blocks necessary to encode lots of information within these relatively compact DNA molecules.
+
+DNA stands for deoxyribonucleic acid. 
+By breaking the name itself suggests the structure of the molecule, which consists of three components: 1) a sugar molecule, 2) a phosphate group, and 3) a nitrogenous base.
+The nitrogenous bases are what make DNA variable. 
+There are 4 different types of bases in DNA:adenine, guanine, thymine, and cytosine. 
+Biologists commonly abbreviate these bases as the letters A, G, T, and C, respectively. 
+Each one of the bases is chemically distinguishable from the others, it is the variability of these bases that constitutes the genetic code.
+
+Futhermore, a double helix of DNA is composed of two spiraling, complementary strands of DNA. 
+Each strand is composed of a sugar and phosphate backbone with varying nitrogenous bases sticking in towards the center. 
+The two strands are joined together at the center by pairing bases lined up with one another. 
+DNA is often described structurally as a \textit{twisting ladder}. 
+In this ladder, the “rungs” are the pairs of bases linked together, and the “sides” are the two separate sugar and phosphate backbones.
+The double helix is important because it preserves all of the information-carrying features of a single DNA strand 
+while at the same time introducing elements that make it easier for living cells to make copies of their DNA. 
+Because every base pair in the double helix must match its pairing partner (A with T, C with G), 
+we can easily determine the sequence of an unknown strand of DNA if its matching strand is known. 
+For example, if one strand of a double helix has the nucleotide sequence GATTCGTACG, then its complementary strand will be CTAAGCATGC.
+
+\subsubsection{Chromosomes} 
+DNA is divided into bundles known as chromosomes.
+Chromosomes have several important features. 
+First of all, the DNA packs so tightly that one can see it under a simple light microscope. 
+Secondly, recall that because the cell is getting ready to divide in two, the DNA of a visible chromosome has already been duplicated, so that each successor cell will have its own copy. 
+This means that, on close inspection, a cell that is ready to divide will have four strands of DNA, two helices of two strands each. 
+Each of these double strands of DNA condenses into a single rod called a sister chromatid. 
+The two chromatids are therefore exact replicas of one another, and the center of each is joined together prior to the division of the cell. 
+As a result, most chromosomes take on the appearance of the letter X.
+
+The human genome is composed of 23 kinds of chromosomes. 
+However, because humans conceive through sexual reproduction, every child receives two sets of 23 chromosomes – one from mother and the other from father. 
+As a result, every individual has 23 pairs of chromosomes, for a total of 46. Of these 23 pairs, one pair is responsible for determining sex. 
+The chromosomes in this pair are therefore called sex chromosomes. The chromosomes in the remaining 22 pairs are called autosomes.
+The two chromosomes in a pair of autosomes are called homologues, or a “homologous pair,” meaning that they contain corresponding sequences of DNA given in Figure~\ref{fig:background1}. 
+These two chromosomes come from separate parents. The homologous chromosomes contain DNA sequences that are similar, but they are not identical copies of each other.
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{background1}.pdf}
+\caption{Homologous chromosomes, sister chromatids.}
+\label{fig:background1}
+\end{figure}
+
+\subsection{Diploid nature of organisms}
+The diploid nature of organisms occur due to the process of mitosis.
+\paragraph{Concept of Mitosis}
+Figure~\ref{fig:mitosis1} is a simplified diagram illustrating the overall process of mitosis and the detailed phases are in given in Figure~\ref{fig:mitosis}.
+In the first step, called interphase, the DNA strand of a chromosome is copied (the DNA strand is replicated) and this copied strand is attached to the original strand at a spot called the centromere. 
+This new structure is called a bivalent chromosome. 
+A bivalent chromosome consists of two sister chromatids (DNA strands that are replicas of each other). 
+When a chromosome exists as just one chromatid, just one DNA strand and its associated proteins, it is called a monovalent chromosome.
+The second and third steps of mitosis organize the newly created bivalent chromosomes so that they they can be split in an orderly fashion.
+In the second step, prophase, the bivalent chromosomes condense into tight packages. 
+In the third step of mitosis, called metaphase, each chromosome lines up in a single file line at the center of the cell.
+In the fourth step, anaphase, the mitotic spindles pry each chromatid apart from its copy, and drag them to the opposite side of the cell. Four bivalent chromosomes become two groups of 4 monovalent chromosomes. 
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{mitosis1}.pdf}
+\caption{Overview of Mitosis.}
+\label{fig:mitosis1}
+\end{figure}
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{mitosis}.pdf}
+\caption{Phases of cell cycle and mitosis}
+\label{fig:mitosis}
+\end{figure}
+
+\paragraph{Concept of Meiosis}
+The purpose of meiosis is to make haploid gametes. In order to explain the difference between mitosis and meiosis quickly and easily, consider the following analogy: 
+You own a restaurant, and you keep 46 cookbooks on hand, to store all the recipes you need to make the food you sell. 
+If you opened a new restaurant that you wanted to make the same food as the one that already exists, what would you do? Copy all 46 cookbooks, and take them to the new restaurant. 
+That's like what happens in mitosis. Consider that the cookbooks are chromosomes, each containing lots of recipes that cells use to make “dishes,” called proteins.
+When cell division occurs, each cell wants to ensure that each new cell can make the same proteins as the original. So each of the chromosomes are copied and evenly distributed to both new cells—both cells get a copy of each “cookbook.”
+Meiosis is different. Whereas as mitosis makes a new cell with the same number of chromosomes, meiosis is a reductive type of cell division: it results in cells with fewer chromosomes. 
+
+Figure~\ref{fig:meiosis1} is a simplified diagram illustrating the overall process and products of meiosis.
+
+Meiosis is split into two separate parts, called meiosis I and meiosis II.
+Meiosis I starts with the copying of chromosomes and their condensation into compact forms (just like mitosis). 
+The metaphase of meiosis I is different, though: Instead of lining up in single file, the bivalent chromosomes line up two-by-two. 
+These groups, called homologous chromosomes, are what separate during the anaphase of meiosis I (compare this to the anaphase of mitosis, where chromatids separate). 
+
+If we look at the anaphase of meiosis I in nematodes (diploid number 4), the result is two groups of two bivalent chromosomes, rather than two groups of four monovalent ones. 
+This difference in chromosome number in the post-anaphase groupings is really the only big difference between meiosis I and mitosis. 
+Membranes form around the two groups, during telophase, and then the cell splits down the middle creating two non-clones. 
+Each clone has half the number of chromosomes as the initial cell.
+
+Meiosis II applies the process of mitosis to the two cells created by meiosis I. Since the chromosomes already exist in the bivalent form, interphase is skipped. The result is four cells, called gametes, each with two monovalent chromosomes.
+% http://bio1510.biology.gatech.edu/module-4-genes-and-genomes/4-1-cell-division-mitosis-and-meiosis/
+Meiosis sets the stage for Mendelian genetics. Students need to know that most of the genetics action occurs in the first meiotic division:
+\begin{enumerate}
+ \item homologous chromosomes pair up and align end-to-end (synapsis) in prophase I
+ \item crossing over occurs between homologous chromosomes in prophase I, before chromosomes line up at the metaphase plate
+ \item homologous chromosomes separate to daughter cells (sister chromatids do not separate) in the first division, creating haploid (1N) cells
+ \item the separation of each pair of homologous chromosomes occurs independently, so all possible combinations of maternal and paternal chromosomes are possible in the two daughter cells – this is the basis of Mendel’s Law of Independent Assortment
+ \item the first division is when daughter cells become functionally or genetically haploid
+\end{enumerate}
+
+Let's discuss the last point more in detail. Consider the X and Y chromosomes. They pair in prophase I, and then separate in the first division. The daughter cells of the first meiotic division have either an X or a Y; they don’t have both. Each cell now has only one sex chromosome, like a haploid cell.
+
+One way of thinking about ploidy is the number of possible alleles for each gene a cell can have.  
+Right after meiosis I, the homologous chromosomes have separated into different cells.  
+Each homolog carries one copy of the gene, and each gene could be a different allele, but these two homologs are now in two different cells.  
+Though it looks like there are two of each chromosome in each cell, these are duplicated chromosomes; ie, it is one chromosome which has been copied, so there is only one possible allele in the cell (just two copies of it).
+
+The second meiotic division is where sister (duplicated) chromatids separate. 
+It resembles mitosis of a haploid cell. At the start of the second division, each cell contains 1N chromosomes, each consisting of a pair of sister chromatids joined at the centromere.
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{meiosis1}.pdf}
+\caption{Overview of Meisosis.}
+\label{fig:meiosis1}
+\end{figure}
+\paragraph{Genetic recombination}
+Recombination occurs during meiosis and is a process that breaks and recombines pieces of DNA to produce new combinations of genes.
+Recombination scrambles pieces of maternal and paternal genes, which ensures that genes assort independently from one another. 
+It is important to note that there is an exception to the law of independent assortment for genes that are located very close to one another on the same chromosome because of genetic linkage.
+
+% https://www.sciencelearn.org.nz/resources/208-meiosis-inheritance-and-variation
+During fertilisation, 1 gamete from each parent combines to form a zygote. Because of recombination and independent assortment in meiosis, each gamete contains a different set of DNA. This produces a unique combination of genes in the resulting zygote.
+
+Recombination or crossing over occurs during prophase I. Homologous chromosomes – 1 inherited from each parent – pair along their lengths, gene by gene. 
+Breaks occur along the chromosomes, and they rejoin, trading some of their genes. The chromosomes now have genes in a unique combination.
+
+Independent assortment is the process where the chromosomes move randomly to separate poles during meiosis. 
+A gamete will end up with 23 chromosomes after meiosis, but independent assortment means that each gamete will have 1 of many different combinations of chromosomes.
+
+This reshuffling of genes into unique combinations increases the genetic variation in a population and explains the variation we see between siblings with the same parents.
+
+
+
+% \subsection{Haplotyping and its importance}
+% As we also saw above, humans are diploid organisms and there are two copies of chromosome -- one inherited from father and other inherited from mother.
+% Each of those copies are called \textit{homologous}
+% chromosomes or \textit{haplotypes} and the DNA sequences for these homologous chromosomes is known as \textit{diploid assemblies}. 
+% The organisms that have this arrangement are called
+% diploid organisms or \textit{diploids}. 
+% 
+% \todo{write importance of haplotyping.}
+% Haplotype-resolved genetic data can be used, for instance, for population genetic analyses of admixture, migration, and selection, but also to study allele-specific gene regulation, compound heterozygosity, and their roles in human disease.
+% We refer the reader to \cite{Tewhey2011} and \cite{Glusman2014} for detailed reviews on the relevance of haplotyping.
+% 
+% \paragraph{Genetic variants and the reference genome}
+% During reproduction, specialized cells recombine the pairs of
+% chromosomes generating gametes: cells that have only one copy of each
+% chromosome and that later can combine with a gamete from another individual
+% to create a new individual. These replication and recombination
+% processes are not exact, and sometimes an “error” occurs, generating genetic
+% variations that can be later inherited by the offspring. The genetic variations represents the genetic uniqueness for every organism present on this planet.
+% Because most of the genetic content is the same among individuals
+% within the same species, it is possible to define a \textit{reference genome} for a
+% population of species. For example, the Human Reference Genome \todo{HGD} and \todo{SGD} are available for yeast and humans.
+% \todo{write how these reference genomes are constructed.}
+% 
+% \todo{structural variations, genotypes and haplotypes.}
+% New developments in genome-scanning technologies and computational methodologies, and the availability of a reference sequence for comparison, have made possible the large-scale discovery of structural variants.
+% Then, we can characterize the genetic variations of each individual
+% in terms of how they differ from the reference genome. A variant that
+% occurs in a single nucleotide, where, for instance a specific T in the reference
+% genome is replaced by a G, is called single nucleotide polymorphism (SNP),
+% 1.2 NGS and variation calling 3
+% or single nucleotides variants (SNV). Those account for a large amount
+% of the known variations in human genomes, however there are also more
+% complex variants such as (large) insertions, deletions, inversions, among
+% others. When a variant is present in only one of the chromosome copies,
+% it is said to be a heterozygous variant. A variant that is present in both
+% copies is known as a homozygous variant. 
+% 
+% % https://www.nature.com/articles/nrg1767
+% % http://www.mi.fu-berlin.de/wiki/pub/ABI/GenomicsLecture10Materials/structural-variation.pdf
+% \todo{figures for SVs}
+% Structural variants are operationally defined as genomic alterations that involve segments of DNA that are larger than 1 kb, and can be microscopic or submicroscopic. 
+% Different structural variants are thought to be disease causing or is discovered as part of a disease study. 
+% Here we generally refer to smaller (<1 kb) variations or polymorphisms that involve the copy-number change of a segment of DNA as insertions or deletions (indels).
+% 
+% Below are the following types of structural variant.
+% \begin{enumerate}
+%  \item Copy-number variant (CNV). A segment of DNA that is 1 kb or larger and is present at a variable copy number in comparison with a reference genome. 
+%  Classes of CNVs include insertions, deletions and duplications. 
+%  This definition also includes large-scale copy-number variants, which are variants that involve segments of DNA $\geq 50$ kb.
+%  \item Segmental duplication or low-copy repeat. A segment of DNA $\ge 1$ kb in size that occurs in two or more copies per haploid genome, with the different copies sharing >90\% sequence identity. 
+%  They are often variable in copy number and can therefore also be CNVs.
+%  \item Inversion. A segment of DNA that is reversed in orientation with respect to the rest of the chromosome. Pericentric inversions include the centromere, whereas paracentric inversions do not.
+%  \item Translocation. A change in position of a chromosomal segment within a genome that involves no change to the total DNA content. Translocations can be intra- or inter-chromosomal.
+% \end{enumerate}
+
+
+\subsection{The Era of NGS}
+% Next-Generation Sequencing (NGS) is an expression that refers to many
+% technologies that have parallelized the sequencing process, producing vast
+% amounts of sequences concurrently.
+% What these have in common is that
+% they cut DNA molecules from the donor into small pieces, known as reads,
+% which are what is actually sequenced in great amounts. Reads length can
+% range from about a hundred to a couple of thousands nucleotides. When
+% reads are sequenced there is no information about their original position in
+% the genome, so the output is essentially a large set of small pieces of the
+% genome.2 The problem of reconstructing a genome starting from this set of
+% reads is known as de novo genome assembly. This is known to be a hard
+% problem, and its simplest mathematical formulation is NP-Hard [67].
+% When we already posses a reference genome of the same species as the
+% donor, the enterprise to sequence the donor genome is much more accessible
+% through what is known as variation calling. A simplified summary of
+% this process is as follows: Starting from a biological sample from the donor,
+% NGS technology is used to obtain a massive set of reads. A read aligner
+% maps the reads to the reference genome, ideally to positions with a high
+% similarity score with the read. The number of reads whose alignment covers
+% a position is known as the coverage. As the number of NGS reads is large,
+% the ideal situation is to have high coverage through the genome, so that
+% any position on the reference genome will have many reads piled up. This
+% pile-up is analyzed, typically using statistical methods [59, 36] that can
+% discover variations in the donor genome. With this process SNPs are relatively
+% easy to detect, but more complex variants pose a bigger challenge.
+% Nowadays, variation calling is routinely performed to sequence genomes,
+% using a wide variety of methods [4, 59, 85, 74]. However, their results are
+% not always consistent [74]. This in itself is motivation enough to study
+% possible improvements for variation-calling mechanisms.
+% 
+% When variation-calling tools report a variant, they will indicate whether
+% it is homozygous or heterozygous. However, this is not enough to completely
+% reconstruct the donors genome: we still do not know to which of
+% the two copies of each chromosome each variant belongs to. The problem of
+% deciding whether two variants belong to the same copy of the chromosome
+% or not is called haplotype phasing. There is a wide repertoire of methods
+% to address this problem
+
+% \paragraph{Different types of sequencing datasets and their protocols (also figures).}
+% can try even writing from this: https://en.wikipedia.org/wiki/DNA_sequencing 
+% https://www.ncbi.nlm.nih.gov/pubmed/19246620 
+% https://www.sciencedirect.com/science/article/pii/B9780128006818000037
+Since the completion of the human genome project in 2003, extraordinary progress has 
+been made in genome sequencing technologies, which has led to a decreased cost per megabase 
+and an increase in the number and diversity of sequenced genomes. An astonishing complexity of 
+genome architecture has been revealed, bringing these sequencing technologies to even greater 
+advancements. Some approaches maximize the number of bases sequenced in the least amount 
+of time, generating a wealth of data that can be used to understand increasingly complex 
+phenotypes. Alternatively, other approaches now aim to sequence longer contiguous pieces of 
+DNA, which are essential for resolving structurally complex regions. These and other strategies 
+are providing researchers and clinicians a variety of tools to probe genomes in greater depth, 
+leading to an enhanced understanding of how genome sequence variants underlie phenotype 
+and disease.
+
+The different advancements come with their own limitations.
+As new technologies emerge, existing problems are exacerbated or new problems arise.
+NGS platforms provide vast quantities of data, but with associated error rates (~0.1-15\%)
+are higher and the read-lengths generally shorter (35-700) bps for short-read approaches, 
+than those of traditional \textit{Sanger} sequencing platforms, require careful 
+examination of the results, particularly for variant discovery and clinical applications.
+Although long-read sequencing overcome the length limitation of other NGS platforms,
+it remains considerably more expensive and has lower throughput than other platforms,
+limiting the wide-spread adoption of this technology in favour of less-expensive approaches.
+% Finally, NGS is also competing with alternative technologies that can carry 
+% out similar tasks, shown in figure; it is not clear how these disparate approaches to genomics, 
+% medicine and research will interact in the years to come.
+% % https://www.nature.com/articles/nrg.2016.49.pdf
+% \todo{make figure from BOX 1 }
+
+\subsubsection{Short Read NGS}
+Illumina's suite of instruments for short-read sequencing range from small, low-throughput benchtop units 
+to large untra-high through instruments dedicated to population-level whole genome sequencing.
+dNTP identification is achieved through total internal reflection flourescence microscopy using two or four laser channels.
+In most Illumina platforms, each dNTP is bound to a single flourescence that is specific to that base type and requires four different
+imaging channels, whereas NextSeq and Mini-Seq systsme use a two-fluorophone system.
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{ngs1}.pdf}
+\caption{Overview of 454 pyrosequencing.}
+\label{fig:ngs1}
+\end{figure}
+The first NGS instrument developed was the 454 pyrosequencing \citep{margulies2005genome} device. This SNA system distributes template-bound beads into a PicoTiterPlate along with 
+beads containing an enzyme cocktail. As a dNTP is incorporated into a strand, an enzymatic cascade occurs, resulting in a bioluminescence signal. Each burst of light, 
+detected by a charge-coupled device  (CCD) camera, can be attributed to the incorporation of one or more identical dNTPs at a particular bead (Figure~\ref{fig:ngs1}).
+
+The Ion Torrent  was the first NGS platform without optical sensing \citep{rothberg2011integrated}. Rather than using an enzymatic cascade to generate a signal, the Ion Torrent platform 
+detects the H + ions that are released as each dNTP is incorporated. The resulting change in pH is detected by 
+an integrated complementary metal-oxide- semiconductor (CMOS) and an ion-sensitive field-effect transistor (ISFET) (Figure~\ref{fig:ngs2}).  The  pH  change  detected  by  the  sensor  is  
+imperfectly proportional to the number of nucleotides detected, allowing for limited accuracy in measuring homopolymer lengths.
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{ngs2}.pdf}
+\caption{Overview of Ion Torrent sequencing.}
+\label{fig:ngs2}
+\end{figure}
+The Illumina CRT system (Figure~\ref{fig:ngs3}) accounts for the largest market share for sequencing instruments compared to other platforms. 
+Illumina’s suite of instruments for short-read sequencing range from small, low-throughput benchtop units to large ultra-highthroughput instruments dedicated to population-level
+whole-genome sequencing (WGS). dNTP identification is achieved through total internal reflection fluorescence (TIRF) microscopy using either two or four laser
+channels. In most Illumina platforms, each dNTP is bound to a single fluorophore that is specific to that base type and requires four different imaging channels, whereas the NextSeq and Mini-Seq systems use a two-fluorophore system.
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{ngs3}.pdf}
+\caption{Overview of Illumina sequencing.}
+\label{fig:ngs3}
+\end{figure}
+
+\paragraph{Comparison of short-read platforms.}
+Individual short-read sequencing platforms vary with respect to throughput, cost, error profile and read structure (\todo{TABLE 1}). 
+Despite the existence of several NGS technology providers, NGS research is increasingly being conducted within the Illumina suite of instruments. Although 
+this implies high confidence in their data, it also raises concerns about systemic biases derived from using a single sequencing approach. As a consequence, new 
+approaches are being developed and researchers increas-ingly have the choice to integrate multiple sequencing methods with complementary strengths.
+The SBL technique used by both the SOLiD and Complete Genomics systems affords these technologies a very high accuracy (~99.99\%)\citep{liu2012comparison, drmanac2010human}, as each base is probed 
+multiple times. Although accurate, both platforms also show evidence of a trade-off between sensitivity and specificity, such that true variants are missed while 
+few false variants are called. There is also evidence that the platforms share some under- representation of AT-rich regions, and the SOLiD platform displays 
+some substitution errors and some GC-rich under-representation. Perhaps the feature most limiting to the widespread adoption of these technologies is the very 
+short read lengths. Although both platforms can generate single-end and paired-end sequencing reads, the maximum read length is just 75 bp for SOLiD and 28–100 bp for Complete Genomics, limiting their use for genome 
+assembly and structural variant detection applications. Unfortunately, owing to these limitations, along with runtimes on the order of several days, the SOLiD system has been relegated to a small niche within the industry. 
+Illumina  dominates  the  short-read  sequencing industry owing, in part, to its maturity as a technology, a high level of cross-platform compatibility and 
+its wide range of platforms. The suite of instruments available ranges from the low-throughput MiniSeq to the ultra-high-throughput HiSeq X, which is capable 
+of sequencing ~1,800 human genomes to 30$\times$ coverage per year. Further diversification is derived from the many options available for runtime, read structure and 
+read length (up to 300 bp). As the Illumina platform relies on a CRT approach, it is much less susceptible to the homopolymer errors observed in SNA platforms. 
+Although it has an overall accuracy rate of >99.5\%,the platform does display some under-representation in AT-rich and GC-rich regions, as well as a tendency towards substitution errors. In 2008, \cite{bentley2008accurate} reported a very high concordance rate between human  single-nucleotide  polymorphisms  (SNPs)  identified with Illumina and SNPs identified from genotyping  microarrays. 
+However, this high sensitivity came with a false-positive rate of around 2.5\%, leading this and other groups to consider using Sanger
+sequencing to resequence the called SNPs in order to distinguish between true SNPs and false positives. With all of the possible options available, the Illumina 
+suite allows for a wide range of applications: genome sequencing through WGS or exome sequencing; epi-genomics applications, such as 
+ChIP–seq (chromatin immunoprecipitation followed by sequencing), ATAC –seq (assay for transposase- accessible chromatin using sequencing) or DNA methylation sequencing (methyl-seq); and transcriptomics applications through 
+RNA sequencing (RNA-seq), to name a few. HiSeq X is currently the highest 
+throughput instrument available; however, as a consequence of its optimization, it is limited to just a few applications, such as WGS and whole-genome bisulfite 
+sequencing. HiSeq X is further limited as an all-purpose instrument owing to a required initial purchase of five or ten instruments (additional single instruments can 
+be purchased after the initial commitment), placing this system out of reach of most facilities.
+
+Both the 454 and the Ion Torrent systems offer superior read lengths compared to other short-read sequencers with reads up to an average of 700 
+bp and 400 bp, respectively, providing some advantages for applications that focus on repetitive or complex DNA. However, as 
+both of these platforms rely on SNA, they share many of the same drawbacks. Insertion and deletion (indel) errors dominate, although the overall error rate is on par with other NGS platforms in non-homopolymer regions. 
+Homopolymer regions are problematic for these platforms, which lack single-base accuracy in measuring homopolymers larger than 6–8 bp \citep{forgetta2013sequencing, loman2012performance}. Unfortunately, whereas the Ion Torrent platform has kept pace with the 
+rapidly evolving NGS field, the 454 platform has been unable to complete with other platforms in terms of yield or cost. 
+
+\subsubsection{Long-read sequencing}
+ It has become apparent that genomes are highly complex with many long repetitive elements, copy number alterations and structural variations that are relevant to evolution, adaptation and disease \citep{mccarroll2007copy, stankiewicz2010structural}. 
+However, many of these complex elements are so long that short-read paired-end technologies are insufficient to resolve them. Long-read sequencing delivers reads in 
+excess of several kilobases, allowing for the resolution of these large structural features. Such long reads can span complex or repetitive regions with a single continuous 
+read, thus eliminating ambiguity in the positions or size of genomic elements. Long reads can also be useful for 
+transcriptomic research, as they are capable of spanning entire mRNA transcripts, allowing researchers to identify the precise connectivity of exons and discern gene isoforms.
+
+Currently, there are two main types of long-read technologies: single-molecule real-time sequencing approaches and synthetic approaches that rely on existing short-
+read technologies to construct long reads in silico. The single-molecule  approaches  differ  from  short-read  approaches in that they do not rely on a clonal population of amplified DNA fragments to generate detectable 
+signal, nor do they require chemical cycling for each dNTP added. Alternatively, the synthetic approaches do not generate actual long-reads; rather, they are an approach to library preparation that leverages 
+barcodes to allow computational assembly of a larger fragment.
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{ngs4}.pdf}
+\caption{Overview of long-read sequencing and synthetic long reads.}
+\label{fig:ngs4}
+\end{figure}
+
+\paragraph{Single-molecule long-read sequencing (PacBio and ONT)}
+Currently, the most widely used long-read platform is the single-molecule real-time (SMRT) sequencing approach used by Pacific Biosciences (PacBio) \citep{eid2009real} (Figure~\ref{fig:ngs4}a). The instrument uses a specialized flow cell
+with many thousands of individual picolitre wells with transparent bottoms — zero-mode waveguides (ZMW) \citep{levene2003zero}. Whereas short-read SBS technologies bind the DNA 
+and allow the polymerase to travel along the DNA template, PacBio fixes the polymerase to the bottom of the well and allows the DNA strand to progress through the 
+ZMW. By having a constant location of incorporation owing to the stationary enzyme, the system can focus on a single molecule. dNTP incorporation on each single-
+molecule template per well is continuously visualized with a laser and camera system that records the colour and duration of emitted light as the labelled nucleotide 
+momentarily pauses during incorporation at the bottom of the ZMW. The polymerase cleaves the dNTP-bound 
+fluorophore during incorporation, allowing it to diffuse away from the sensor area before the next labelled 
+dNTP is incorporated. The SMRT platform also uses a unique circular template that allows each template to be 
+sequenced multiple times as the polymerase repeatedly traverses the circular molecule. Although it is difficult 
+for DNA templates longer than ~3 kb to be sequenced multiple times, shorter DNA templates can be sequenced 
+many times as a function of template length. These multiple passes are used to generate a consensus 
+read of insert , known as a circular consensus sequence (CCS).
+
+
+In 2014, the first consumer prototype of a nanopore sequencer — the MinION from Oxford Nanopore Technologies (ONT) — became available. Unlike other 
+platforms, nanopore sequencers do not monitor incorporations or hybridizations of nucleotides guided by a template DNA strand. Whereas other platforms use a 
+secondary signal, light, colour or pH, nanopore sequencers directly detect the DNA composition of a native ssDNA molecule. To carry out sequencing, DNA is 
+passed through a protein pore as current is passed through the pore \citep{clarke2009continuous}(Figure~\ref{fig:ngs4}b). As the DNA translocates through the action of a secondary motor protein, a voltage blockade occurs that modulates the current passing 
+through the pore. The temporal tracing of these charges is called squiggle space, and shifts in voltage are characteristic of the particular DNA sequence in the pore, which can then be interpreted as a 
+k-mer. Rather than having 1–4 possible signals, the instrument has more than 1,000 — one for each possible k-mer, especially when modified bases present on native DNA are taken into account. The current MK1 MinION flow cell structure is composed of an application-specific integrated 
+circuit (ASIC) chip with 512 individual channels that are capable of sequencing at ~70 bp per second, with an expected increase to 500 bp per second in 2016. The upcoming PromethION instrument is intended to be an ultra-high-throughput platform reported to include 
+48 individual flow cells, each with 3,000 pores running at 500 bp per second. This works out to ~2–4 Tb for a 2-day run on a fully loaded device, placing this device in potential competition with Illumina’s HiSeq X. Similar to 
+the circular template used by PacBio, the ONT MinION uses a leader-hairpin library structure. This allows the forward DNA strand to pass through the pore, followed by a hairpin that links the two strands, and finally the 
+reverse strand. This generates 1D and 2D reads in which both ‘1D’ strands can be aligned to create a consensus sequence ‘2D’ read.
+
+\paragraph{Synthetic long reads.}
+Unlike true sequencing platforms, synthetic long-read technology relies on a system of barcoding to associate fragments that are sequenced on existing short-read sequencers. These approaches partition large DNA fragments into either microtitre wells 
+or an emulsion such that very few molecules exist in each partition. Within each partition the template fragments are sheared and barcoded. This approach allows for sequencing on existing short-read instrumentation, 
+after which data are split by barcode and reassembled with the knowledge that fragments sharing barcodes are derived from the same original large fragment \citep{mccoy2014illumina}. Similar to an earlier technology, 
+BAC-by-BAC sequencing, synthetic barcoded reads provide an association among small fragments derived from a larger one. By segregating the fragments, repetitive or complicated regions can be isolated, allowing each to be assembled locally. 
+This prevents unresolvable branch points in the assemblies, which lead to breaks (gaps) and shorter assembled contiguous  sequences.
+
+There are currently two systems available for generating synthetic long-reads: the Illumina synthetic long-read sequencing platform (Figure~\ref{fig:ngs4}c) and the 10X Genomics emulsion-based system (Figure~\ref{fig:ngs4}d). The Illumina 
+system (formerly Moleculo) partitions DNA into a microtitre plate and does not require specialized instrumentation. However, the 10X Genomics instruments (GemCode and Chromium) use emulsion to partition DNA and require the use of a microfluidic instrument 
+to perform pre-sequencing reactions. With as little as 1 ng of starting material, the 10X Genomics instruments can partition arbitrarily large DNA fragments, up to ~100 kb, into micelles called ‘GEMs’, which typically contain $\leq 0.3\times$ copies of the genome and one unique 
+barcode. Within each GEM, a gel bead dissolves and smaller fragments of DNA are amplified from the original large fragments, each with a barcode identifying the source GEM. After sequencing, the reads are aligned and linked together to form a series of anchored 
+fragments across the span of the original fragment. Unlike the Illumina system, this approach does not attempt gapless, end-to-end coverage of a single DNA fragment. Instead it relies on linked reads, in which dispersed, small fragments that are derived from a single long molecule 
+share a communal barcode. Although these fragments leave segments of the original large molecule without any coverage, the gaps are overcome by ensuring that there are many long fragments from the same genomic region in the initial preparation, thus generating a 
+read cloud wherein linked reads from each long fragment can be stacked, combining their individual coverage into an overall map(Figure~\ref{fig:ngs4}d).
+
+\paragraph{Comparison of single-molecule and synthetic long-read sequencing.}
+There is growing interest in the field of long-read sequencing, and each system has its own advantages and drawbacks (\todo{TABLE 1}).
+Currently, the most widely used instrument in long-read sequencing is the PacBio RS II instrument. This device is capable of generating single 
+polymerase reads in excess of 50 kb with average read lengths of 10–15 kb for a long-insert library. Such properties are ideal for 
+de novo genome assembly applications, for revealing complex long-range genomic structures and for full-length transcript sequencing. There are, however, several notable limitations. The 
+single- pass error rate for long reads is as high as 15\% with indel errors dominating, raising concerns about the utility of the instrument. Fortunately, these 
+errors are randomly distributed within each read and hence sufficiently high coverage can overcome the high error rate. The use of a circular template by PacBio also 
+provides a level of error correction. The more frequently a single molecule is sequenced, the higher the resulting accuracy — up to ~99.999\% for insert sequences 
+derived from at least 10 subreads.This high accuracy rivals that of Sanger sequencing, leading researchers to speculate that this technology can be used in a manner analogous to Sanger-based SNP validation. The 
+runtimes and throughput of this instrument can be tuned by controlling the length of time for which the sensor monitors the ZMW; longer templates require longer times. For example, a 1 kb library that is run for 
+1 hour will generate around 7,500 bases of sequence per molecule, with an average of 8 passes, whereas a 4-hour run will generate around 30,000 bases per molecule 
+and ~30 passes. Conversely, a 10 kb library requires a 4-hour run to generate ~30,000 bases with ~3 passes. The limited throughput and high costs of PacBio RS II 
+(around 1,000 per Gb), in addition to the need for high coverage, place this instrument out of reach of many small laboratories. However, in an attempt to ameliorate 
+these concerns, PacBio has launched the Sequel System, which reportedly has a throughput 7$\times$ that of the RS II, thus halving the cost of sequencing a human genome at 30$\times$ coverage.
+
+
+The ONT MinION is a small (~3 cm$\times$ 10 cm for the MK1) USB-based device that runs off a personal computer, giving it the smallest footprint of any current 
+sequencing platform. This affords the MinION superior portability, highlighting its utility for rapid clinical responses and hard-to-reach field locations. Although 
+substantial adjunct equipment is still required for library preparation (for instance, a thermocycler), improvements in library preparation and equipment optimization could conceivably reduce the space required for a 
+fully functional sequencing system to the size of a single bag of luggage. Unlike other platforms, the MinION has few constraints on the size of the fragments to be sequenced. In theory, a DNA molecule of any size can 
+be sequenced on the device, but in practice there are some limitations when dealing with ultra-long fragments. As a consequence of the unique nature of the ONT technology, in which there are more than 1,000 
+distinct signals, ONT MinION has a large error rate — up to 30\% for a 1D read — and is dominated by indel errors. Effective homopolymer sequencing also remains a challenge for ONT MinION. When a homopolymer 
+exceeds the k-mer length, it can be difficult to identify when one k-mer leaves the pore and another k-mer enters. Modified bases also pose a challenge to the device, as a modified base will alter the typical voltage 
+shift for a given k-mer. Fortunately, recent improvements in the chemistry and the base calling algorithms are improving accuracy.
+
+The Illumina synthetic long-read approaches are a direct response to the costs, error rates and throughput of true long-read sequencers. Relying on the existing 
+Illumina infrastructure affords researchers the ability to simply purchase a kit for long-read sequencing. Accordingly, the throughput and error profile are identical to those of current Illumina devices. However, 
+as  a  consequence  of  how  the  DNA  is  partitioned, the system requires more coverage than is required for a typical short-read project, thus increasing the costs associated with this technology relative to other 
+Illumina applications.
+
+
+Like  the  Illumina  synthetic  long-read  platform, the 10X Genomics emulsion-based platform relies on an existing short-read infrastructure to provide the 
+sequencing. The microfluidic instrument is a one-time additional equipment cost, and the emulsion approach used allows for as little as 1 ng of starting material, which 
+can be beneficial for situations in which the DNA is precious, such as biopsy samples. Currently, data output from the GemCode instrument is partially limited by 
+the number of barcodes used and the somewhat inefficient DNA partitioning. Inefficient partitioning can lead to a surplus of DNA fragments within a droplet, thus 
+complicating sequence deconvolution, which is further exacerbated by the limited number of barcodes. Both of these conditions lead to ambiguity regarding the 
+positional relationship between reads sharing the same barcode, making analysis more difficult.
+
+\subsubsection{Strand-Seq sequencing}
+% https://www.nature.com/articles/nprot.2017.029
+% https://www.nature.com/articles/nmeth.2206
+ Strandseq \citep{falconer2012dna, sanders2017single} is a  single ­cell sequencing technique that identifies the original parental DNA template  strands  in  daughter  cells  following  cell  division. 
+ The method  uses  bromodeoxyuridine  (BrdU)  incorporation  in  the nascent strand during DNA replication followed by selective degradation of the nascent strand to isolate the template strand for construction of directional sequencing libraries.
+
+Strand-seq is a single-cell template strand sequencing technology
+that generates directional genomic libraries that, when
+aligned to the reference genome, permits a clear distinction
+between the individual homologs of a chromosome. Homolog
+resolution allows diverse types of variants to be located in a single
+cell that would otherwise be very challenging to detect using
+conventional approaches. This includes inversions, translocations,
+copy-number changes, aneuploidy events and complex structural
+variants, with haplotype awareness. By pooling data from several
+dozen Strand-seq cells, each homologous chromosome can be
+uniquely characterized and analyzed. 
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{strandseq1}.pdf}
+\caption{Overview of Strand-Seq sequencing protocol.}
+\label{fig:strandseq1}
+\end{figure}
+
+
+In Strand-seq (Fig.~\ref{fig:strandseq1}), parental DNA template strands inherited by
+daughter cells are sequenced following construction of a modified
+Illumina genomic library20. The method takes advantage of the
+directionality of single-stranded DNA molecules, which are distinguished
+as either Crick (C; forward, or plus, strand of the reference
+assembly) or Watson (W; reverse, or minus, strand) based 
+on their 5\′–3\′ orientation (Fig.~\ref{fig:strandseq1}a). Daughter cells, generated following
+one mitotic division of a parental cell in the presence of
+BrdU, are isolated and deposited as single cells (or nuclei) into 
+single wells of a 96-well plate (Fig.~\ref{fig:strandseq1}b). Forgoing any whole-genome
+preamplification step, the genomic DNA is fragmented using
+micrococcal nuclease (MNase) to generate mononucleosomal
+fragments of ~150 bp in length. The MNase-digested chromatin
+is then blunt-ended and 5′-phosphorylated by an end repair reaction,
+and a single adenine is attached to the 3′ end of the fragment
+by an A-tailing reaction. This adenine serves as a substrate for
+standard Illumina forked adaptors, which have a single 3′ thymidine
+overhang. After adaptor ligation,
+the BrdU-substituted DNA strands are nicked by photolytic cleavage.
+This is accomplished by treating samples with Hoechst 33258,
+followed by UV radiation, which induces a single-stranded nick
+at sites of BrdU incorporation. Nicking the BrdU+ strand
+interferes with subsequent PCR amplification, and as a result, only
+the BrdU– (i.e., the original DNA template) strand is amplified to
+produce a directional single-cell library.
+During PCR amplification, a custom multiplexing PCR primer
+is added to the reaction, such that each
+cell receives a unique hexamer barcode. This barcode allows
+multiple cells to be pooled for gel size selection and sequencing.
+Following Illumina HTS, the template strands in each library are
+distinguished by the first sequencing read generated from the
+A2 Illumina adaptor, and the single-cell barcode is read using a
+custom sequencing primer generated by the second sequencing
+read. By demultiplexing and aligning sequencing data to a reference
+assembly, template strand identity is determined for each
+chromosome in the cell (Fig.~\ref{fig:strandseq1}b).
+
+The key difference between Strand-seq and other single-cell
+sequencing protocols is that it aims to sequence only one strand of
+DNA in each cell, by isolating daughter cells after one cell division.
+While many steps mirror other single-cell sequencing methodologies,
+the ability to produce directional single-strand libraries is
+dependent on nicking the BrdU-incorporated strands through incubation
+with Hoechst and subsequent UV irradiation. In addition
+to introducing a photolytic cleavage step, the Strand-seq protocol
+also bypasses any whole-genome amplification in order to preserve
+the specific labeling of the DNA strands. This means that genomic
+libraries are generated from only 6–10 pg of input DNA. Because
+of this, and the multiple enzymatic cleanup steps that are required
+during library preparation, we typically obtain genomic coverage
+in the range of a few percentage points (1–5\%)—depending on the
+number of libraries pooled and the depth of sequencing achieved.
+The Strand-seq technology sacrifices coverage (depth and breadth)
+for long-range structural information that offers many new applications
+for genome biology, as discussed below. Finally, because the
+resulting sequencing data are directional, bioinformatic analysis
+must consider whether output reads map to the plus or the minus
+strand of the reference genome, meaning most standard genomic
+analysis methods cannot be immediately applied to the data.
+
+
+% Now, we introduce some basic definitions that help in understanding the second part of this chapter.
+% \todo{define read-length, coverage, variants or other basic definitions.}
+% 
+% \begin{definition}[Read]
+%  The sequence of bases from a single molecule of DNA. Formally, it is a sequence of characters from alphabet $\{A, C, G, T\}$.
+% \end{definition}
+% 
+% \begin{definition}[Structural variants]
+%  A variation larger than single-nucleotide polymorphisms (SNPs). This can include the insertion or deletion of blocks of DNA, inversions or translocations of DNA segments, and copy-number differences.
+% \end{definition}
+% 
+% \begin{definition}[Single-end and pair-end sequencing]
+%  In single-end sequencing, a DNA template is sequenced only in one direction. In paired-end sequencing, a DNA template is sequenced in from both directions;
+%  the forward and reverse reads may or may not overlap. A deviation in the expected genome alignment between two ends of a paired-end reads can indicate a structural variation.
+% \end{definition}
+% 
+% \begin{definition}
+% Chromosome: A collection of DNA and protein which organizes the human genome. Each human cell contains 23 sets of chromosomes; 22 pairs of autosomes (non sex determining chromosomes) and one pair of sex determining chromosomes. The human genome within the 23 sets of chromosomes is made of approximately 30,000 to 100,000 genes which are built from over 3 billion base pairs. While eukaryotic chromosomes are complex sets of proteins and DNA, prokaryotic chromosomal DNA is circular with the entire genome on a single chromosome
+% \end{definition}
+% 
+% \begin{definition}
+%  Assembly: The process of placing fragments of DNA that have been sequenced into their correct position within the chromosome.
+% \end{definition}
+% 
+% \begin{definition}
+%  Allele: Different forms of a gene which occupy the same position on the chromosome.
+% \end{definition}
+% 
+% \begin{definition}
+%  Repeated sequences (also known as repetitive elements, or repeats) are patterns of nucleic acids (DNA or RNA) that occur in multiple copies throughout the genome. There are different types of repeats: tandem, interspersed repeats and others like inverted repeats.
+% \end{definition}
+% 
+% \begin{definition}[Genotype]
+%  
+% \end{definition}
+% 
+% \begin{definition}[Sequence alignment]
+%  
+% \end{definition}
+
+
+% http://www.pacb.com/products-and-services/pacbio-systems/sequel/
+% https://www.10xgenomics.com/technology/
+% https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3149993/
+% https://www.biorxiv.org/content/biorxiv/early/2016/11/27/090001.full.pdf
+% https://www.illumina.com/systems/sequencing-platforms/hiseq-x.html
+% (write from introduction of david williamson and scheduling jobs on parallel machines.)
+\section{Algorithmic Background}
+Broadly, the algorithms to solve different computational problems are categoried into the following categories based on the type of the solution.
+\begin{enumerate}
+ \item Parameterized or FPT algorithms
+ \item Approximation algorithms 
+ \item Randomized algorithms
+\end{enumerate}
+
+\subsection{Parameterized Algorithms}
+Imagine that you are an exceptionally tech-savvy security guard of a bar
+in an undisclosed small town on the west coast of Norway. Every Friday,
+half of the inhabitants of the town go out, and the bar you work at is well
+known for its nightly brawls. This of course results in an excessive amount
+of work for you; having to throw out intoxicated guests is tedious and rather
+unpleasant labor. Thus you decide to take preemptive measures. As the town
+is small, you know everyone in it, and you also know who will be likely to
+fight with whom if they are admitted to the bar. So you wish to plan ahead,
+and only admit people if they will not be fighting with anyone else at the
+bar. At the same time, the management wants to maximize profit and is not
+too happy if you on any given night reject more than  k  people at the door.
+Thus, you are left with the following optimization problem. You have a list
+of all of the  n  people who will come to the bar, and for each pair of people
+a prediction of whether or not they will fight if they both are admitted. You
+need to figure out whether it is possible to admit everyone except for at most
+k troublemakers, such that no fight breaks out among the admitted guests.
+Let us call this problem the Bar Fight Prevention problem. Figure~\ref{fig:parameter_dia1} shows an instance of the problem and a solution for
+ k = 3.  One can easily check that this instance has no solution with k = 2.
+ 
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{parameter_dia1}.pdf}
+\caption{An instance of the  Bar Fight Prevention problem with a solution for k = 3. An edge between two guests means that they will fight if both are admitted}
+\label{fig:parameter_dia1}
+\end{figure}
+ 
+\paragraph{Efficient algorithms for BAR FIGHT PREVENTION}
+Unfortunately, the bar fight prevention is a classic NP-Complete problem (the read might have heard it under the name VERTEX COVER),
+and so the best way to solve the problem is by trying all possibilties, right?
+If the problem instance is small, for example, $n=100$ people, then the number of possibilties are $2^{1000}$ in a brute-force manner.
+Unfortunately, this program would not finish before the guests arrive. 
+There is a good news that the number $k$ of guests that should be rejected is not that large, $k \le 10$.
+In this case, the total number of possibilties are $1000 \choose 10$. This is better compared to the earlier approach, but this infeasible to do it even on supercomputers.
+
+Let's try different way, how about we identify some peaceful souls to accept, and some troublemakers we need to refuse at the door for sure.
+Another cases could be identifying those persons who do not conflict.
+The other case could be identifying a person who fight with atleast $k+1$ other guests.
+If you identify such a person, for example,  person D in this example, we wanna strick him out, therefore, reducing the number $k$ of people you can reject by one.
+
+Proceeding based on above observation, if there is no such person left, then we know that each guest will fight at most $k$ other guests.
+Thus, rejecting any single guest will resolve at most $k$ potential conflicts.
+Also, if there are more than $k^2$ potential conflict, then there is no way to ensure a peaceful night at the bar by rejecting only $k$ guests at the door.
+So the guests belong to one of the two categories, one those participating in atleast one and other is at most $k$ potential conflicts,
+therefore there are at most $k^2$ potential conflicts, there are at most $2k^2$ guests whose fate is not yet decided.
+Now, if we try all the possibilties of $2k^2 \choose k$ also takes quite long time even on supercomputers.
+
+After all these cases, it turns out that a simple observation yields a feasible algorithm for BAR FIGHT PREVENTION.
+The crucial point is that every conflict has to be resolved, and the only way to resolve a conflict is to refuse at least one of the two participants.
+The way we can solve this problem is as follows. Let's say there is atleast one unresolved conflict between person X and Y.
+Trying moving X to the reject list and run the algorithm recursively by rejecting at most $k-1$ guests. If this succeeds, we are done.
+In case it fails, then move X back to the undecided list and move Y to the reject list and run the algorithm recursively to check
+whether the remaining conflicts can be resolved by rejecting  at most $k-1$ additional guests.
+If this recursion fails, then we can not solve this instance by rejecting at most $k$ guests.
+
+\textit{Time complexity.} There are a total of $2^k$ recursion calls and each recursion call can be solved in linear time $O(m+n)$, where $m$ is the total number of possible conflicts.
+The good news is that this algorithm is even feasible on a laptop.
+
+
+The above algorithm runs in time $O(2^k \cdot k \cdot n)$, while the brute-force takes $O(n^k)$ time.
+There is quite some drastic difference between the running times of both the algorithms.
+
+In $O(2^k \cdot k \cdot n)$--- time algorithm, the combinatorial explosion is restricted to the parameter $k$,
+the running time is exponential in $k$, but linear in $n$.
+Our goal is to find algorithms of this form.
+
+\begin{definition}[Parameterized algorithms]
+ Algorithms with running time $f(k)\cdot n^c$, for a constant $c$ independent of both $n$ and $k$, are called \textit{fixed-parameter algorithms} or FPT algorithms.
+ Typically, the goal in parameterized algorithms is to design FPT algorithms, trying to make both $f(k)$ factors and the constant $c$ in the bound on the running time as small as possible.
+ 
+ In parameterized algorithms, $k$ is simply a \textit{relevant secondary measurement} that encapsulates some aspect of the input instance, be it the size of the solution or the structure and other characterics of the input instance.
+\end{definition}
+
+\subsubsection{The art of parameterization}
+For most of the biological problems, we model them as combinatorial optimization problems.
+We frame an algorithm to solve them using relevant parameters as explained in previous section.
+For some examples, it is easy to find a parameters from the problem input instance, while it is very difficult for others and require some important insights.
+For example, consider the variant of BAR FIGHT PREVENTION problem where we want to reject at most $k$ guests
+such that the number of conflicts (as we believe that the bouncers at the bar can handle $l$ conflicts, but not more).
+Then we can parameterize either by $k$ or by $l$. We may even parameterize by both: then the goal is to find an FPT algorithm with running time $f(k,l) \cdot n^c$ for some computable function $f$
+depending only on $k$ and $l$. In this way, the theory of parameterization and FPT algorithms can be extended to considering a set of parameters at the same time.
+\begin{definition}[Parameterized algorithm (more than one parameter)]
+Formally, however, one can express parameterization by $k$ and $l$ simply by defining the value $k+l$ to be the parameter:
+an $f(k,l)\cdot n^c$ algorithm exists if and only if an $f(k+l) \cdot n^c$ algorithm exists.
+\end{definition}
+
+We can now formulate the extended BAR FIGHT PREVENTION in terms of parameters $k$ and $l$ as follows.
+These parameters are explicity given in the input, defining properties of the solution we are looking for.
+
+We can have more variants of BAR FIGHT PREVENTION problem, where we need to reject at most $k$ guests such that,
+say, the numbers of conflicts decreases by $p$, or such that each accepted guest has conflicts with at most $d$ other accepted guests,
+or such that the average number of conflicts per guest is at most $a$. Then the parameters $p, d, a$ are again explicity given in the input,
+telling us what kind of solution we need to find. 
+
+For the string or sequence problems related to genomics, one can parameterize by the maximum read-length, by the maximum coverage,
+by the size of alphabet, by the number of alleles in a variant.
+
+Parameterized complexity allows us to study how different parameters influence the complexity of the problem.
+A successful parameterization of a problem needs to satisfy two properties:
+First, there should be specific reason for the choice of parameters for different applications.
+Second, we need efficient algorithms where the combinatorial explosion is restricted to the parameter(s), that is, we want the problem to be in FPT with this parameterization.
+
+In conclusion, for the same problem, there can be multiple choices of parameters. 
+Selecting the right parameter(s) for a particular problem is an art.
+
+% \subsubsection{Formal definitions}
+We now introduce the formal foundation of parameterized complexity.
+
+\begin{definition}
+ A parameterized problem is a language $L \in \sum* \times N$, where $\sum$ is a fixed, finite alphabet. For an instance $(x,k) \in \sum* \times N$, $k$ is called the parameter.
+\end{definition}
+
+We define the size of an instance $(x,k)$ of a parameterized problem as $|x| + k$. 
+
+\begin{definition}
+ A parameterized problem $L \subset \sum* \times N$ is called \textit{fixed-parameter tractable} (FPT) if there exists an algorithm $\mathcal{A}$ (called a fixed-parameter algorithm),
+ a computable function $f: N \rightarrow N$ and a constant $c$ such that, given $(x,k) \in \sum* \times N$, the algorithm $\mathcal{A}$ correctly decides
+ whether $(x,k) \in L$ in time bounded by $f(x). |(x,k)|^c$.
+ The complexity class containing all fixed-parameter problems is called FPT.
+\end{definition}
+
+
+Observe that, given some parameterization problem $L$, the algorithm designer has essentially two different optimization goals when designing FPT algorithms for $L$.
+Since the running time has to be of the form of $f(k)\cdot n^c$, one can:
+
+\begin{enumerate}
+ \item optimize the \textit{paramteric dependence} of the running time, i.e., try to design an algorithm where function $f$ grows as slowly as possible; or
+ \item optimize the \textit{polynomial factor} in the running time, i.e. try to design an algorithm where constant $c$ is as small as possible.
+\end{enumerate}
+
+\subsection{Randomized Algorithms}
+We define a randomized algorithm as an algorithm that is allowed access to a source of independent, 
+unbiased, random bits; it is then permitted to use these random bits to influence its computation.
+It is easy to sample a random element from a set $S$ by choosing $O(log |S|)$ random bits and then using these
+bits to index an elememnt in the set. 
+
+There are two principal advantages to randomized algorithms. The first is performance --- for many problems, 
+randomized algorithms run faster than the best known deterministic algorithms.
+Second, many randomized algorithms are simpler to describe and implement than deterministic algorithms of
+comparable performance. 
+
+We define a very useful tool from probability theory that is used in the analysis of randomized algorithm:
+\textit{linear of expectation}. For random variable, $X_1, X_2 \ldots$
+
+\begin{equation}
+ E[\sum_i X_i] = \sum_i E[X_i].
+\end{equation}
+
+Let us consider the example of \textit{binary planar partition} of a set of $n$ disjoint line segments in the plane.
+A binary planar partition consists of a binary tree together with some additional information.
+Every internal node of a tree has two children. Associated with each node $v$ of a tree in a region $r(v)$ of the plane.
+Associated with each internal node $v$ of a tree is a line $l(v)$ that intersects $r(v)$.
+The region corresponding to the root is the entire plane.
+The region $r(v)$ is partitioned by $l(v)$ into two regions $r_1(v)$ and $r_2(v)$,
+which are the regions associated with the two children of $v$. Thus, any region $r$ of the partition
+is bounded by the partition lines on the path from the root to the node corresponding to $r$ in the tree.
+% \todo{think of better real-world example than in computer graphics.}
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{random_dia1}.pdf}
+\caption{An example of a binary planar partition for a set of segments (dark lines). Each leaf is labeled by the line segment it contains. The labels r(v) are omitted for clarity.}
+\label{fig:random_dia1}
+\end{figure}
+
+Given a set $S = \{s_1, s_2, \ldots, s_n\}$ of non-intersecting line segments in the plane,
+we wish to find a binary planar partition such that every region in the partition contains at most one line segment.
+Notice that the definition allows us to divide the input line segment $s_i$ into several segments $s_{i1}, s_{i2}, \ldots,$
+each of which lies in a different region. The example shows such a partition of a set into three line segments in Figure~\ref{fig:random_dia1}.
+
+For a line segment $s$, let $l(s)$ denote the line obtained by extending $s$ on both sides to infinity.
+For the set $S = \{s_1, s_2, \ldots, s_n\}$ of line segments, a simple and natural class of partition 
+is the set of autopartitions, which are formed by only using lines from the set $\{l(s_1), l(s_2), \ldots, l(s_n)\}$
+in constructing the partition. 
+
+In the algorithm, the input is the set $S = \{s_1, s_2, \ldots, s_n\}$ of non-intersecting line segments.
+The output is the binary autopartitions of $S$. To solve it, we pick a permutation $\pi$ of $\{1,2, \ldots, n\}$ uniformly
+at random from the $n!$ possible permutations. Then we cut it with $l(s_i)$ where $i$ is first in the ordering $\pi$
+such that $s_i$ cuts the region. We repeat this process till a region contains more than one segment.
+
+For the analysis of randomized algorithm, we show that the expected size of autopartitions produced by the algorithm is $O(n log n)$.
+We can easily show this using linear of expectation of the intersections.
+
+\subsection{Approximation Algorithms}
+
+Most of the real-world problems can be modelled as optimization problems and unfortunately, most interesting discrete optimization problems are NP-hard.
+Thus unless P=NP, there are no efficient algorithms to find optimal solutions to such problems. We define an efficient algorithm is the one that is solved in time polynomial in input size.
+What should we do next? How about we find a near-optimal solution which can be found in polynomial time? Furthermore, we focus on finding 
+polynomial-time algorithms for some special cases of the problem, instead of any instance.
+
+
+Here, we present the \textit{approximation algorithms} for discrete optimization problems.
+We try to find a solution that closely approximates the optimal solution in terms of its \textit{value}.
+We assume that there is some \textit{objective function} mapping each possible solution of an optimization problem 
+to some nonnegative value, and an \textit{optimal solution} to the optimization problem is the one 
+that either minimizes or maximizes the value of this objective function. We define an approximation algorithm as follows.
+
+\begin{definition}
+ An $\alpha$-approximation algorithm for an optimization problem is a polynomial-time algorithm that for all instances of the problem produces a solution whose value 
+ is within a factor $\alpha$ of the value of an optimal solution.
+ \end{definition}
+ 
+ For an $\alpha$-approximation algorithm, we will call $\alpha$ the \textit{performance guarantee} of the algorithm.
+ 
+ There are several advantages of devising approximation algorithm as follows.
+ \begin{enumerate}
+  \item An approximation algorithm provides a way to find the near-optimal solutions when the optimal solution is not required and NP hard to find.
+  \item It give us an idea about how to devise an heuristic that will perform well in practice for the actual problem.
+  \item It provides a mathematically rigorous basis on which to study heuristics.
+  \item The field of approximation algorithms gives us a means of distinguising between various optimization problems in terms of how well they can be approximated.
+ \end{enumerate}
+ 
+ \begin{figure}[t!]\centering
+\includegraphics[width=.9\columnwidth, height=.8\columnwidth]{{approx_dia1}.pdf}
+\caption{An instance of Vertex Cover problem. An optimal vertex cover is {b, c, e, i, g}.}
+\label{fig:approx_dia1}
+\end{figure}
+ 
+ The next question is about the quality of approximation algorithms, which means does the problems of our interest have \textit{polynomial-time approximation schemes}.
+ 
+ \begin{definition}
+  A polynomial-time approximation schemes (PTAS) is a family of algorithm $\{\mathcal{A_\epsilon}\}$,
+  where there is an algorithm for each $\epsilon > 0$, such that $A_\epsilon$ is a $(1+\epsilon)$-approximation
+  algorithm (for minimization problems) or a $(1-\epsilon)$-approximation algorithms (for minimization problems). 
+ \end{definition}
+ 
+ Let us consider an example of vertex cover in Figure~\ref{fig:approx_dia1} to explain approximation algorithm. 
+%  https://www.cs.dartmouth.edu/~ac/Teach/CS105-Winter05/Notes/wan-ba-scribe.pdf
+Given a $G= (V,E)$, find a minimum subset $C \subset V$, such that $C$ \textit{covers} all edges in $E$, i.e., 
+every edge $\in E$ is incident to at least one vertex in $C$.
+
+We consider the following steps to solve this problem. Let us consider set $C$ as empty. 
+We pick any edge $\{u,v\} \in E$ and add it to the set $C$. Afterwards we delete all the edges incident to either $u$ or $v$.
+We repeat this process till $E$ is not empty.
+
+The above algorithm is a 2-approximation for vertex cover problem.
+
+
+
+
+
