@@ -25,6 +25,12 @@
 \usepackage{paralist}
 \usepackage{enumitem}
 \usepackage{amsthm}
+\fxusetheme{colorsig}
+\usepackage{kbordermatrix}
+
+\renewcommand{\kbldelim}{(}% Left delimiter
+\renewcommand{\kbrdelim}{)}% Right delimiter
+
 \theoremstyle{plain}
 % \newtheorem{theorem}{Theorem}
 % \newtheorem{lemma}{Lemma}
@@ -46,18 +52,6 @@
   \end{proof}%
 }
 
-\def\DEBUG{true}
-
-\ifdefined\DEBUG
- \newcommand{\tgm}[1]{\textcolor{blue}{#1}}
- \newcommand{\sg}[1]{\textcolor{red}{#1}}
-\else
-  \newcommand{\tgm}[1]{#1}
-  \newcommand{\sg}[1]{#1}
-\fi
-
-
-
 \usepackage{enumitem}
 \setlist{nolistsep, noitemsep, topsep=0pt}
 
@@ -74,18 +68,8 @@
 \tikzset{req/.style={minimum size=1.8mm,circle,fill=white,draw,inner sep=0pt},
          decoration={markings,mark=at position .5 with {\arrow[black,thick]{stealth}}}}
 
-%Environment for restating lemmas
-\newcommand{\restated}[2]{
-\begin{trivlist}
-        \item[\hskip\labelsep {\bf #1} (Restated)] \emph{#2}
-\end{trivlist}}
-
 \usepackage[noblocks]{authblk}
-\title{A QPTAS for Gapless MEC\footnote{Research partially funded by Deutsche Forschungsgemeinschaft grant MO2889/1-1.}}
-\author{Shilpa Garg}
-\affil{Max Planck Institute for Informatics, Saarland Informatics Campus, Germany. \texttt{sgarg@mpi-inf.mpg.de}}
-\author{Tobias M\"omke}
-\affil{Saarland University, Saarland Informatics Campus, Germany. \texttt{moemke@cs.uni-saarland.de}}
+
 
 
 \renewcommand{\epsilon}{\varepsilon}
@@ -101,9 +85,11 @@
 \newcommand{\dist}{\ensuremath{\mathrm{dist}}\xspace}
 \newcommand{\gain}{\ensuremath{\mathrm{gain}}\xspace}
 \newcommand{\agree}{\ensuremath{\mathrm{agree}}\xspace}
-%\newcommand{\Pr}{\textrm{Pr}}
 \newcommand{\euler}{\textrm{e}}
 \newcommand{\SWC}{\textsc{SWC}_{\epsilon^3}}
+\renewcommand{\st}{\textrm{start}}
+\newcommand{\en}{\textrm{end}}
+\newcommand{\lev}{\mathcal{L}}
 
 \renewcommand{\DP}[1]{\ensuremath{\mathrm{DP}(#1)}\xspace}
 %The following name is used, since \dp already has a meaning in latex.
@@ -317,6 +303,11 @@
     \thispagestyle{empty}%
 %    \addtocounter{page}{-1}%
     \newpage}
+    
+\newcommand{\restated}[2]{
+    \begin{trivlist}
+    \item[\hskip\labelsep {\bf #1} (Restated)] \emph{#2}
+    \end{trivlist}}
 
 \begin{document}
 

@@ -1,601 +1,721 @@
-\chapter{Parameterized algorithm for pedigree-based phasing}
-Generalization to Pedigrees
+\chapter{A graph-based approach to diploid assembly}
+Constructing high-quality haplotype-resolved \textit{de novo} assemblies of diploid genomes is important to reveal the full extent of structural variation and its role in health and disease.
+Current assembly approaches often collapse the two sequences into one haploid consensus sequence and, therefore, fail to capture the diploid nature of the organism under study.
+Thus, building an assembler able to produce accurate and complete diploid assemblies, while being resource-efficient with respect to sequencing costs, is a key challenge to be addressed by the bioinformatics community.\\
 
-\textbf{Motivation:}
-Read-based phasing deduces the haplotypes of an individual from sequencing reads that cover multiple variants, while genetic phasing takes only genotypes as input and applies the rules of Mendelian inheritance to infer haplotypes within a pedigree of individuals.
-Combining both into an approach that uses these two independent sources of information -- reads and pedigree -- has the potential to deliver results better than each individually.\\
-\textbf{Results:}
-We provide a theoretical framework combining read-based phasing with genetic haplotyping, and describe a fixed-parameter algorithm and its implementation for finding an optimal solution.
-We show that leveraging reads of related individuals jointly in this way yields more phased variants and at a higher accuracy than when phased separately, both in simulated and real data.
-Coverages as low as 2$\times$ for each member of a trio yield haplotypes that are as accurate as when analyzed separately at 15$\times$ coverage per individual.
-\\
-\textbf{Availability:} \href{https://bitbucket.org/whatshap/whatshap}{https://bitbucket.org/whatshap/whatshap} \\
-\textbf{Contact:} \href{t.marschall@mpi-inf.mpg.de}{t.marschall@mpi-inf.mpg.de}\\
-% \textbf{Supplementary information:} Supplementary data are available at \textit{Bioinformatics} online.
+In this chapter, we present a novel graph-based approach to diploid assembly, which combines accurate Illumina data and long-read Pacific Biosciences (PacBio) data.
+We demonstrate the effectiveness of our method on a pseudo-yeast diploid genome and show that we require as little as 50$\times$ coverage Illumina data and 10$\times$ PacBio data to generate accurate and complete assemblies.
+Additionally, we show that our approach has the ability to detect and phase structural variants.\\
 
 
+\section{Introduction}
+Determining the two genome sequences per chromosome of diploid organisms is important.
+Separate determination of the two haplotype sequences can in principle avoid genotyping errors in complex regions of the genome caused by incorrect models of variants at nearby sites being independent.
 
+As introduced in Chapter 1, the process of assembling the two genome sequences from sequencing reads in a haplotype-aware manner is known as \textit{diploid} or \textit{haplotype-aware genome assembly} and the generated assemblies are known as ``haplotigs''.
+However, next generation sequencing (NGS) reads are generally of a variable, short length and contain errors; therefore, solving the diploid genome assembly problem is fundamentally challenging.
+Additional challenges inherent in the genome assembly problem include dealing with short and long genomic repeats, handling other rearrangements present in the genome, and scaling efficiently with input size, genome size, and hardware availability.
 
-\section{Introduction}\label{sec:intro}
-Humans are diploid and determining the sequences of both homologous copies of each chromosome is desirable for many reasons.
-These two sequences per chromosome are known as \emph{haplotypes}.
-The process of obtaining them is known as \emph{haplotyping} or \emph{phasing}, two terms that we will use interchangeably.
-Haplotype-resolved genetic data can be used, for instance, for population genetic analyses of admixture, migration, and selection, but also to study allele-specific gene regulation, compound heterozygosity, and their roles in human disease.
-We refer the reader to \cite{Tewhey2011} and \cite{Glusman2014} for detailed reviews on the relevance of haplotyping.
+Over the last decade, the development of various NGS technologies has impacted the assembly problem.
+In theory, the problem of \textit{de novo assembly}---computing the consensus of two or more sequences---is NP-hard, when the problem is modelled either as string graphs or de Bruijn graphs \citep{medvedev2007computability}. 
+There are several heuristic approaches to approximate the optimal de novo haploid assembly based on NGS datasets \citep{idury1995new, myers1995toward, myers2005fragment, pevzner2001eulerian, nagarajan2009parametric, nagarajan2013sequence, sovic2013approaches}.
 
-\paragraph{General Approaches for Haplotyping.}
-There are three major approaches to phasing.
-First, haplotypes can be inferred from genotype information of large cohorts based on the idea that common ancestry gives rise to shared haplotype tracts, as reviewed by \cite{Browning2011}.
-This approach is known as \emph{statistical} or \emph{population-based phasing}.
-It can be applied to unrelated individuals and only requires genotype data, which can be measured at low cost.
-While very powerful for common variants, this technique is less accurate for phasing rare variants and cannot be applied at all to private or \textit{de novo} variants.
-%
-Second, haplotypes can be determined based on genotype data of related individuals, known as \emph{genetic haplotyping} \citep{Glusman2014}.
-To solve the phasing problem, one seeks to explain the observed genotypes under the constraints imposed by the Mendelian laws of inheritance, while being parsimonious in terms of recombination events.
-For larger pedigrees, such as parents with many children, this approach yields highly accurate phasings \citep{Roach2011}.
-On the other hand, it is less accurate for single mother-father-child trios and has the intrinsic limitation of not being able to phase variants that are heterozygous in all individuals.
-%
-Third, the sequences of the two haplotypes can be determined experimentally, called \emph{molecular haplotyping}.
-Many techniques do not resolve the full-length haplotypes but yield blocks of varying sizes.
-Approaches furthermore largely differ in the amount of work, DNA, and money they require.
-On one end of the scale, next-generation sequencing (NGS) instruments generate local phase information of the length of a sequenced fragment at ever-decreasing costs.
-Another approach consists in breaking both homologous chromosomes into (larger) fragments and separating them into a number of pools such that each pool is unlikely to contain fragments from the same locus of both haplotypes.
-This can, for instance, be achieved by dilution followed by bar-coded short-read sequencing.
-To achieve molecular haplotyping over the range of a full chromosome, protocols have been invented to physically separate the two homologous chromosomes, for example by microscopy-based chromosome isolation, fluorescence-activated sorting, or microfluidics-based sorting.
-These and other experimental techniques for molecular haplotyping have been surveyed by \cite{Snyder2015}.
-They are of great interest because they facilitate phasing of rare variants for single individuals.
-Rare variants have been postulated to contribute considerably to clinical traits and are hence of major interest.
+However, even with Sanger (reads of the order of 800-1000 base pairs) and Illumina sequencing, which deliver short reads with low error rates, de novo assembly of heterozygous diploid genomes has been a difficult problem \citep{vinson2005assembly, levy2007diploid}.
+In practice, there are several short-read assemblers based on Illumina data for heterozygous genomes \citep{kajitani2014efficient, pryszcz2016redundans, simpson2012efficient, bankevich2012spades, li2015fermikit}.
+The assemblies that they produce are accurate, but contain gaps and are composed of relatively short contigs and scaffolds. 
+Third generation sequencing technologies such as methods available from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT) deliver much longer reads, but with high error rates.
+There are now several long-read assemblers \citep{koren2017canu, vaser2017fast, xiao2016mecat, berlin2015assembling, chin2013nonhybrid, hunt2015circlator, lin2016assembly} that use these long-read data for de novo assembly.
+The assemblies that are delivered from these assemblers are more contiguous, with longer contigs and scaffolds.
+Finally, there are hybrid assemblers that take advantage of long-read data (with its high error rate) and short-read data (with its low error rate) \citep{bashir2012hybrid, antipov2015hybridspades, zimin2017hybrid} and attempt to combine the best aspects of both.
+These hybrid assemblers have the power to deliver highly accurate, repeat-resolved assemblies.
 
-\paragraph{Haplotype Assembly.}
-When many haplotype fragments are available for one individual, for instance from sequencing, one can attempt to reconstruct the full haplotypes or at least to obtain larger blocks.
-This process is known as \emph{haplotype assembly}, \emph{single-individual haplotyping}, or \emph{read-based phasing} (in case the fragments indeed stem from sequencing reads).
-It requires reads that span two or more heterozygous variants.
-In order to be successful, reads covering as many pairs of consecutive heterozygous variants as possible are desirable.
-At present, third generation sequencing platforms, as marketed by Pacific Biosciences (PacBio) and Oxford Nanopore, become more widespread and offer reads spanning thousands to tens of thousands of nucleotides.
-Although error-rates are much higher than for common second generation technologies, the longer reads provide substantially more phase information and hence render them promising platforms for read-based phasing.
+However, across the short, long, and hybrid categories, most assemblers require collapsing the two genome sequences of a diploid sample into a single haploid ``consensus'' sequence (or primary contig). 
+The consensus sequence is obtained by merging the distinct alleles at regions of heterozygosity into a single allele, and therefore losing a lot of information.
+The resulting haploid de novo assembly does not represent the true characteristics of the diploid input genome. 
 
-We adapt the common assumption that all variants to be phased are bi-allelic and non-overlapping.
-Then, the input to the haplotype assembly problem can be specified by a matrix with entries from $\{0,1,-\}$, having one row per read and one column per variant.
-Entries of $0$ or $1$ indicate that the read in that row gives evidence for the reference or alternative allele for the variant in that column, respectively.
-An entry of ``$-$'' signifies that a variant is not covered by that read.
-In case all reads are error-free and mapped to correct positions, the set of rows in that matrix admits a bipartition such that each of the two partitions is \emph{conflict free}.
-Here, two rows are defined to be conflicting if they exhibit different non-dash values in the same column; that is, one entry is $0$ and the other one is $1$.
-If such a bipartition exists, the matrix is called \emph{feasible}.
+To generate diploid assemblies for heterozygous genomes, there are two standard linear approaches; one uses haploid contig sequences \citep{chin2016phased, pendleton2015assembly, seo2016novo, mostovoy2016hybrid}, while the other partitions the reads while using the reference genome as a backbone \citep{glusman2014whole, martin2016whatshap, chaisson2017multi}.
+% \todo{Maybe we should cite the HGSVC preprint. Tobi: I can insert this.}
+In both approaches, the reads are first aligned (either to the reference genome or the contigs). Second, variants such as SNVs are called based on the aligned reads. Finally, the detected variants are phased using long reads from a same or different sequencing technology.
 
-To formalize the haplotype assembly problem in the face of errors, we define \emph{operations} on the input matrix and ask for the minimum number of operations one needs to apply to render it feasible.
-Different such operations have been studied, in particular removal of rows, resulting in the \emph{Minimum Fragment Removal (MFR)} problem, removal of columns, resulting in the \emph{Minimum SNP Removal (MSR)} problem, and flipping of bits, resulting in the \emph{Minimum Error Correction (MEC)} problem.
-All three problems are NP-hard \citep{Lancia2001,Cilibrasi2007}.
-Flipping of bits corresponds to correcting sequencing errors and hence the MEC problem has received most attention in the literature and is most relevant in practice.
-A wealth of exact and heuristic approaches to solve the MEC problem exists.
-Exact approaches, which solve the problem optimally, include integer linear programming \citep{Fouilhoux2012,Chen2013}, and fixed-parameter tractable (FPT) algorithms \citep{He2010,Patterson2015,Pirola2015}.
-Refer to the reviews by \cite{Schwartz2010} and \cite{Rhee2015} for further related approaches.
+For both reference-guided and contig-based assembly, this third step---solving the phasing problem---has been formulated as the minimum error correction (MEC) optimization problem \citep{Lippert:2002ba,cilibrasi2007complexity}.
+There are several disadvantages to reference-guided assembly; for example, the reads are initially aligned to the reference genome and therefore the process contains a reference bias. This approach can fail to detect sequences or large structural variants that are unique to the genome being assembled.
 
-Here, we build upon our previous approach WhatsHap \citep{Patterson2014,Patterson2015} and generalize it to jointly handle sequencing reads of related individuals.
-WhatsHap is an FPT approach that solves the (weighted) MEC problem optimally in time exponential in the maximum coverage, but linear in the number of variants.
-In particular the runtime does not explicitly depend on the read length.
-These properties make it particularly apt for current long-read data. 
-This has also been observed by \citet{Kuleshov2014b}, who approached the weighted MEC problem in a message-passing framework and, by doing so, independently arrived at the same DP algorithm used in WhatsHap.
-The exponential runtime in the maximum coverage does not constitute a problem in practice because reads can be removed in regions of excess coverage without loosing much information.
-The evaluation by \cite{Patterson2015} suggests that pruning data to a maximum coverage of 15$\times$ yields excellent results while an even higher coverage does not deliver a big additional improvement.
+However, there are also several reasons why the set of sequences/contigs produced by contig-based assembly is not ideal.
+First, the contigs produced by assemblers ignore the heterozygous variants in complex regions, opting instead to break contiguity to express even moderate complexity. 
+Second, the contigs do not capture end-to-end information in the genome; the ordering or relationships between contigs are critical in order to generate end-to-end chromosomal-length assemblies.
+% \todo{TM: I do not understand this sentence. Can you explain / make this more clear?}
+% \sgnote{Done.}
 
-\paragraph{Hybrid Approaches.}
-The ideas underlying population-based phasing, genetic haplotyping, and read-based phasing have been combined in many ways to create hybrid methods.
-\cite{Delaneau2013a}, for instance, use local phase information provided by sequencing reads to enhance their population-based phasing approach SHAPEIT.
-Exploiting pedigree information for statistical phasing has also been demonstrated to significantly improve the inferred haplotypes \citep{Marchini2006,Chen2013a}.
-Using their heuristic read-based phasing approach HapCompass, \cite{Aguiar2013} note that combining reads from parent-offspring duos increases performance in regions that are identical by descent (IBD). 
-Beyond this approach, we are not aware of prior work to leverage family information towards read-based phasing.
-
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{Marschall.152.fig.1}.pdf}
-\caption{Seven SNP loci covered by reads (horizontal bars) in three individuals.
-Unphased genotypes are indicated by labels 0/0, 0/1, and 1/1.
-The alleles that a read supports are printed in white.}
-\label{fig:reason}
-\end{figure}
+Some newer diploid assembly methods include \cite{weisenfeld2017direct}, where 10x Genomics linked read data is used to determine the actual diploid genome sequence. 
+Their approach is based on de Bruijn graphs and applies a series of graph simplifications, where simple bubbles are detected and phased by using (short) reads that stem from the same (long) input molecule, which is determined through barcoding.
+There is also a recent study by \cite{chin2016phased}, who follow a linear phasing approach to generate diploid assemblies (\textit{haplotigs}) for diploid genomes by using PacBio reads.
 
 \paragraph{Contributions.}
-Here, we introduce a unifying formal framework to fully integrate read-based and genetic haplotyping.
-To this end, we define the Weighted Minimum Error-Correction on Pedigrees Problem, termed PedMEC, which generalizes the (weighted) MEC problem and accounts for Mendelian inheritance and recombination.
-This problem is NP-hard.
-We generalize the WhatsHap algorithm for solving this problem optimally and thereby show that PedMEC is fixed-parameter tractable.
-When the maximum coverage is bounded, the runtime of our algorithm is linear in the number of variants and does not explicitly depend on the read length, hence inheriting the favorable properties of WhatsHap.
+We propose a graph-based approach to generate haplotype-aware assemblies of single individuals.
+Our contribution is twofold. First, we propose a hybrid approach to integrate accurate Illumina and long PacBio reads to generate diploid assemblies. 
+The Illumina reads are used to generate an assembly graph that serves as a backbone for subsequent PacBio-based steps.
+Second, we generalize the diploid assembly problem to encompass constructing the diploid assembly directly from the underlying assembly graph.
+The two genome sequences can be seen as two paths over the regions of heterozygosity in the assembly graph.
+We make some first steps towards performing read-based phasing on graphs.
 
-We target an application scenario where related individuals are sequenced using error-prone long-read technologies such as PacBio sequencing.
-As a driving question motivating this research, we ask how much coverage is needed for resolving haplotypes in related individuals as opposed to single or unrelated individuals.
-Our focus is on phasing and we do not consider the genotyping step, which can either be done from the same data or from orthogonal and potentially cheaper data sources such as microarrays or short-read sequencing.
-On simulated and real PacBio data, we show that sequencing each individual in a mother-father-child trio to 5$\times$ coverage is sufficient to establish a high-quality phasing.
-This is in stark contrast to state-of-the-art single-individual read-based phasing, which yields worse results even for 15$\times$ coverage with respect to both error rates and numbers of phased variants.
-We furthermore demonstrate that our technique also exhibits favorable properties of genetic haplotyping approaches:
-Because of genotype relationships between related individuals, we are able to infer correct phases even \emph{between} haplotype blocks that are \emph{not connected} by any sequencing reads in any of the individuals.
+% Phasing using an assembly graph has several advantages over other approaches. For example, it is possible to phase larger blocks at once, because paths in an assembly graph can span multiple variants.
+% Moreover, it is easier to detect large structural variants, such as translocations and other rearrangements, in an assembly graph.
+% The structural variants are reflected by bubbles in an assembly graph. The bubbles are defined as a set of disjoint paths that share the same start and end nodes. 
+% Figure~\ref{fig:ex_sv} illustrates how such bubbles can represent both small variants (SNVs and indels up to 50 base pairs in length) and larger structural variants.
+% The graph-based approach provides a way to both accurately detect all types of structural variation and perform further downstream analyses.
+% Figure~\ref{fig:ex_graph_approach} shows the conceptual advantage of our graph-based approach over contig-based methods such as Falcon Unzip.
+% Consider four SNVs separated by two large SVs and there are four reads spanning these variants.
+% Out of those reads, the two reads $r_3$ and $r_4$ span the two SVs, but do not cover any of the two SNVs.
+% In this case, Falcon Unzip generates a primary contig that spans from one end to the other, but generates incomplete and fragmented haplotigs (phased primary contigs in the language of Falcon Unzip).
+% % Since we are interested in haplotypes, we talk in the language of \textit{haplotigs} in the rest of the article.
+% % \todo{Commented out a sentence that disrupted the flow. Better define ``haplotig'' already above?}.
+% % \sgnote{I added it in the second para of Introduction.}
+% In contrast, our graph-based approach attempts to phase across all types of variation, including SVs, in order to produce end-to-end haplotigs.
+% Therefore, the graph-based approaches are powerful to deliver more complete and contiguous haplotigs.
+% In Section~\ref{sec:phasing} we discuss in detail how we can phase these bubbles using graph-based approach. 
 
-
-\paragraph{Example.}
-Figure~\ref{fig:reason} shows seven SNP positions covered by reads in three related individuals.
-It illustrates how the ideas of genetic and read-based haplotyping complement each other.
-All genotypes at SNP~3 are heterozygous.
-Thus, its phasing cannot be inferred by genetic phasing, that is, using only the given genotypes and not the reads.
-SNP~4, in contrast, is not covered by any read in the child.
-When only using reads in the child (corresponding to single-individual read-based phasing), no inference can be made about the phase of SNP 4 and neither about the phase between SNP~3 and SNP~5.
-By observing that all seven child genotypes are compatible with the combination of brown and green haplotypes from the parents, however, these phases can be easily inferred.
-This example demonstrates that jointly using pedigree information, genotypes, and sequencing reads is very powerful for establishing phase information.
-
-\begin{table*}
-\caption{Overview of common notation.}\label{tab:notation}
-\begin{tabular}{l@{\hspace{3em}}l@{\hspace{3em}}l}
-\hline
-Notation & Meaning & Example \\\hline
-$\mathcal{I}$ & Set of individuals & $\{1,2,3,4\}$ \\
-$\mathcal{T}$ & Set of trio relationships & $\{(1,2,3),(1,2,4)\}$\\[.5em]
-$\mathcal{F}_i\in\{0,1,-\}^{R_i\times M}$ & Input SNP matrix for individual $i\in\mathcal{I}$ & $\left[ \begin{array}{p{1em}p{1em}p{1em}p{1em}p{1em}}
-- & - & 1 & 0 & 1 \\
-0 & 1 & 1 & 1 & - \end{array} \right]$\vspace{.5em}\\
-$\mathcal{W}_i\in\N^{R_i\times M}$ & Matrix of weights for individual $i\in\mathcal{I}$ & $\left[ \begin{array}{p{1em}p{1em}p{1em}p{1em}p{1em}}
-0 & 0 & 10 & 21 & 7 \\
-13 & 9 & 31 & 25 & 0 \end{array} \right]$\vspace{.5em}\\ 
-$\mathcal{X}\in\N^M$  & Recombination cost vector & $(5,20,12,23,11)$\\
-$g_i\in\{0,1,2\}^M$ & Input genotypes for individual $i$ & $(0,2,2,1,1)$ \\\hline
-$A(k)$ & Set of reads active in column $k$ & $\big\{[\,\text{-}\ \text{-}\ 1\ 0\ 1], [0\ 1\ 1\ 1\ \text{-}\,]\big\}$ \\ 
-$\Delta_C(k,B,t)$ & Local cost incurred for column $k$, bipartition $B$, and transmission tuple $t$ & 10 \\
-$C(k,B,t)$ & DP table entry for column $k$, bipartition $B$, and transmission tuple $t$ & 37 \\\hline
-$h_i^0, h_i^1\in\{0,1\}^M$ & Sought haplotypes for individual $i$ & $(0,1,1,1,0), (0,1,1,0,1)$ \\
-$t_{m\to c},t_{f\to c}\in\{0,1\}^M$ & Sought transmission vectors for trio $(m,f,c)\in\mathcal{T}$ & $(0,0,0,1,1)$\\
-\hline
-\end{tabular}
-\end{table*}
-
-\section{The Weighted Minimum Error Correction Problem on Pedigrees}
-Thus far, read-based phasing has predominantly been formulated as the Minimum Error Correction (MEC) problem \citep{Cilibrasi2007} and its weighted sibling wMEC \citep{Greenberg2004}.
-We first re-state these problems formally to introduce our notation and then proceed to generalizing them to pedigrees.
-
-The input to the MEC problem consists of a SNP matrix $\mathcal{F}\in\{0,1,-\}^{R\times M}$, where $R$ is the number of reads and $M$ is the number of variants along a chromosome.
-Each matrix entry $\mathcal{F}(j,k)$ is $0$ (indicating that the read matches the reference allele) or $1$ (indicating that the read matches the alternative allele) if the read covers that position and ``$-$'' otherwise.
-Note that the ``$-$'' character can also be used to encode the unsequenced ``internal segment'' of a paired-end read.
-
-\begin{definition}[Distance]
-Given two vectors $r_1,r_2\in\{0,1,-\}^M$, the \emph{distance} $d(r_1,r_2)$ between $r_1$ and $r_2$ is given by the number of mismatching non-dash characters. Formally,
-\[d(r_1,r_2):=\big|\big\{k\,\big|\,r_1(k)\neq -\ \wedge\ r_2(k)\neq -\ \wedge\ r_1(k)\neq r_2(k)\big\}\big|.\]
-\end{definition}
-
-\begin{definition}[Feasibility]
-A SNP matrix $\mathcal{F}\in\{0,1,-\}^{R\times M}$ is called \emph{feasible} if there exists a bi-partition of rows (i.\,e., reads) into two sets such that all pairwise distances of two rows within the same set are zero.
-\end{definition}
-Feasibility of a matrix $\mathcal{F}$ is equivalent with the existence of two haplotypes $h^0,h^1\in\{0,1\}^M$ such that every read $r$ in the matrix has a distance of zero to $h^0$ or to $h^1$ (or both).
-The MEC problem can now simply be stated in terms of flipping bits in $\mathcal{F}$, where entries that are $0$ or $1$ can be flipped and ``$-$'' entries are fixed.
-
-\begin{problem}[MEC]
-Given a matrix $\mathcal{F}\in\{0,1,-\}^{R\times M}$, flip a minimum number of entries in $\mathcal{F}$ to obtain a feasible matrix.
-\end{problem}
-
-The MEC problem is NP-hard \citep{Cilibrasi2007}.
-The weighted version of the problem associates a cost to every matrix entry.
-This is useful since each nucleotide in a sequencing read usually comes with a ``phred-scaled'' base quality $Q$ that corresponds to an estimated probability of $10^{-Q/10}$ that this base has been wrongly sequenced.
-These phred scores can hence serve as costs of flipping a letter, allowing less confident base calls to be corrected at lower cost compared to high confidence ones.
-
-\begin{problem}[wMEC]
-Given a matrix $\mathcal{F}\in\{0,1,-\}^{R\times M}$ and a weight matrix $\mathcal{W}\in\N^{R\times M}$, flip entries in $\mathcal{F}$ to obtain a feasible matrix, while minimizing the sum of incurred costs, where flipping entry $\mathcal{F}(j,k)$ incurs a cost of $\mathcal{W}(j,k)$.
-\end{problem}
-
-We now generalize wMEC to account for multiple individuals in a pedigree simultaneously while modeling inheritance and recombination.
-An overview of notation we use is provided in Table~\ref{tab:notation}.
-We assume our pedigree to contain a set of $N$ individuals $\mathcal{I}=\{1,\ldots,N\}$.
-Relationships between individuals are given as a set of (ordered) mother-father-child triples $\mathcal{T}$.
-For example, if $\mathcal{I}=\{1,2,3,4\}$, then $\mathcal{T}=\big\{(1,2,3),(1,2,4)\big\}$ corresponds to a pedigree where individuals $1$ and $2$ are the parents of individuals $3$ and $4$.
-% Refer to Figure~\ref{fig:notation} for an illustration.
-We only consider non-degenerate cases without circular relationships and where each individual appears as a child in at most one triple.
-Furthermore, we assume all considered variants to be non-overlapping and bi-allelic.
-Each individual $i$ comes with a \emph{genotype vector} $g_i\in\{0,1,2\}^M$, giving the genotypes of all $M$ variants.
-Genotypes $0$, $1$, and $2$ correspond to being homozygous in the reference allele, heterozygous, and homozygous in the alternative allele, respectively.
-In the context of phasing, we can restrict ourselves to the set of variants that are heterozygous in at least one of the individuals, that is, to variants $k$ such that $g_i(k)=1$ for at least one individual $i\in\mathcal{I}$.
-For each individual $i\in \mathcal{I}$, a number of $R_i$ aligned sequencing reads is provided as input, giving rise to one SNP matrix $\mathcal{F}_i\in\{0,1,-\}^{R_i\times M}$ and one weight matrix $\mathcal{W}_i\in\N^{R_i\times M}$ per individual.
-We seek to compute two haplotypes $h^0_i,h^1_i\in\{0,1\}^M$ for all individuals $i\in\mathcal{I}$.
-As before in the MEC problem, we want these haplotypes to be consistent with the sequencing reads.
-
-In addition, we want the haplotypes to respect the constraints given by the pedigree.
-Recall that in each parent, the two homologous chromosomes recombine during meiosis to give rise to a haploid gamete that is passed on to the offspring.
-Therefore, each haplotype of a child should be representable as a mosaic of the two haplotypes of the respective parent with few recombination events.
-To control the number of recombination events, we assume a per-site recombination cost of $\mathcal{X}(k)$ to be provided as input.
-Controlling the recombination cost per site is important because it is not equally likely to happen at all points along a chromosome.
-Instead, \emph{recombination hotspots} exist, where recombination is much more likely to occur (and should hence be penalized less strongly in our model).
-The cost $\mathcal{X}(k)$ should be interpreted as the (phred-scaled) probability that a recombination event occurs between variant $k-1$ and variant $k$.
-To formalize the inheritance process, we define \emph{transmission vectors} $t_{m\to c}, t_{f\to c}\in \{0,1\}^M$ for each triple $(m,f,c)\in T$.
-The values $t_{m\to c}(k)$ and $t_{f\to c}(k)$ tell which allele at site $k$ is transmitted by mother and father, respectively.
-The haplotypes we seek to compute have to be \emph{compatible} with transmission vectors, defined formally as follows.
-
-\begin{definition}[Transmission vector compatibility]
-For a given trio $(m,f,c)\in\mathcal{T}$, the haplotypes $h^0_m,h^1_m,h^0_f,h^1_f,h^0_c,h^1_c\in\{0,1\}^M$ are \emph{compatible} with the transmission vectors $t_{m\to c}, t_{f\to c}\in \{0,1\}^M$ if
-\[h^0_c(k)=
- \begin{cases}
-  h^0_m(k) & \text{if}\quad t_{m\to c}(k)=0 \\
-  h^1_m(k) & \text{if}\quad t_{m\to c}(k)=1 \\
- \end{cases}
-\]
-and
-\[h^1_c(k)=
- \begin{cases}
-  h^0_f(k) & \text{if}\quad t_{f\to c}(k)=0 \\
-  h^1_f(k) & \text{if}\quad t_{f\to c}(k)=1 \\
- \end{cases}
-\]
-for all $k\in\{1,\ldots,M\}$.
-\end{definition}
-With this notion of transmission vectors, recombination events are characterized by changes in the transmission vector, that is, by positions $k$ with $t_{m\to c}(k-1)\neq t_{m\to c}(k)$ or $t_{f\to c}(k-1)\neq t_{f\to c}(k)$.
-Given our recombination cost vector $\mathcal{X}$, the cost associated to a transmission vector can be written as follows (in slight abuse of notation).
-
-\begin{definition}[Transmission cost]
-For a transmission vector $t_{p\to c}\in\{0,1\}^M$ with $p\in\{m,f\}$ and a recombination cost vector $\mathcal{X}\in\N^M$, the \emph{cost} of $t_{p\to c}$ is defined as
-\[
-  \mathcal{X}(t_{p\to c}) := \sum_{k=2}^M\iverl t_{p\to c}(k-1)\neq t_{p\to c}(k)\iverr\cdot\mathcal{X}(k),
-\]
-where $\iverl S \iverr=1$ if statement $S$ is true and $0$ otherwise.
-\end{definition}
-
-To state the problem of jointly phasing all individuals in $\mathcal{I}$ formally, it is instrumental to consider the set of matrix entries to be flipped explicitly.
-We will therefore introduce a set of index pairs $E_i \subset \{1,\ldots,R_i\}\times\{1,\ldots,M\}$ where $(j,k)\in E_i$ if and only if the bit in row $j$ and column $k$ of matrix $\mathcal{F}_i$ is to be flipped.
-
-\begin{problem}[Weighted Minimum Error Correction on Pedigrees, PedMEC]\label{prob:pedmec}
-Let a set of individuals $\mathcal{I}=\{1,\ldots,N\}$, a set of relationships $\mathcal{T}$ on $\mathcal{I}$, recombination costs $\mathcal{X}\in\N^M$, and, for each individual $i\in I$, a sequencing read matrix $\mathcal{F}_i\in\{0,1,-\}^{R_i\times M}$ and corresponding weights $\mathcal{W}_i\in\N^{R_i\times M}$ be given.
-Determine a set of matrix entries to be flipped $E_i \subset \{1,\ldots,R_i\}\times\{1,\ldots,M\}$ to make $\mathcal{F}_i$ feasible and two corresponding haplotypes $h_i^0, h_i^1\in\{0,1\}^M$ for each individual $i\in\mathcal{I}$ as well as two transmission vectors $t_{m\to c},t_{f\to c}\in\{0,1\}^M$ for each trio $(m,f,c)\in\mathcal{T}$ such that
-\[\sum_{i\in\mathcal{I}}\sum_{(j,k)\in E_i}\mathcal{W}_i(j,k)+\sum_{(m,f,c)\in\mathcal{T}}\mathcal{X}(t_{m\to c}) + \mathcal{X}(t_{f\to c})\]
-takes a minimum, subject to the constraints that all haplotypes are compatible with the corresponding transmission vectors, if existing.
-\end{problem}
-
-Note that for the special case of $\mathcal{I}=\{1\}$ and $\mathcal{T}=\emptyset$, PedMEC is identical to wMEC.
-Therefore, the PedMEC problem is also NP-hard.
-As discussed in Section~\ref{sec:intro}, we are specifically interested in an application scenario were the genotypes are already known.
-By using genotype data, we aim to most beneficially combine the merits of genetic haplotyping and read-based haplotyping.
-We therefore extend the PedMEC problem to incorporate genotypes and term the resulting problem PedMEC-G.
-\begin{problem}[PedMEC with genotypes, PedMEC-G]
-Let the same input be given as for Problem~\ref{prob:pedmec} (PedMEC) and, additionally, a genotype vector $g_i\in\{0,1,2\}^M$ for each individual $i\in\mathcal{I}$. Solve the PedMEC problem under the additional constraints that $h^0_i+h^1_i=g_i$ for all $i\in\mathcal{I}$, where ``$+$'' refers to a component-wise addition of vectors.
-\end{problem}
-
-For the classical MEC problem, additionally assuming that all sites to be phased are heterozygous is common \citep{Chen2013}.
-This variant of the MEC problem is a special case of PedMEC-G with $\mathcal{I}=\{1\}$ and $\mathcal{T}=\emptyset$ and $g_1(k)=1$ for all $k$.
+We demonstrate the feasibility of our approach by performing a haplotype-aware de novo assembly of a whole pseudo-diploid yeast (SK1+Y12) genome.
+We show that we generate more accurate, more contiguous, and more correctly phased diploid genomes compared to Falcon Unzip.
+Through analysis of different coverage levels, we demonstrate that we require only 50$\times$ short-read coverage and as little as 10$\times$ long-read coverage data to generate diploid assemblies.
+This illustrates that our hybrid strategy is a cost-effective way of generating haplotype-resolved assemblies.
+% Our hybrid assembler, which operates on both long reads (with low coverage) and short reads (with higher coverage), has the potential to generate high-quality assemblies at reduced cost.
+Finally, we show that we successfully detect and phase large structural variants.
 
 
-\section{Algorithm}\label{sec:algorithm}
-\paragraph{Solving MEC and wMEC.}
-WhatsHap \citep{Patterson2015} is a dynamic programming (DP) algorithm to optimally solve the wMEC problem.
-It runs in $\mathcal{O}(2^c\cdot M)$ time, where $M$ is the number of variants to be phased and $c$ is the maximum physical coverage (which includes internal segments of paired-end reads).
-The general idea is to proceed column-wise from left to right while maintaining a set of active reads.
-Each read remains active from its first non-dash position to its last non-dash position in $\mathcal{F}$.
-Let the set of active reads in column $k$ be denoted by $A(k)$.
-Note that $c=\max_{k}\{|A(k)|\}$.
-For each column $k$ of $\mathcal{F}$, we fill a DP table column $C(k,\cdot)$ with $2^\abs{A(k)}$ entries, one entry for each bipartition $B$ of the set of active reads $A(k)$.
-Each entry $C(k,B)$ is equal to the cost of solving wMEC on the partial matrix consisting of columns $1$ to $k$ of $\mathcal{F}$ under the assumption that the sought bipartition of the full read set $A(1)\cup\ldots\cup A(k)$ \emph{extends} $B$ according to the below definition.
-\begin{definition}[Bipartition extension]
-For a given set $A$ and a subset $A'\subset A$, a bipartition $B=(P,Q)$ of $A$ is said to \emph{extend} a bipartition $B'=(P',Q')$ of $A'$ if $P'\subset P$ and $Q'\subset Q$.
-\end{definition}
-By this semantics of DP table entries $C(k,B)$, the minimum of the last column $\min_B\{C(M,B)\}$ is the optimal wMEC cost.
+% \begin{figure}[t!]\centering
+% \includegraphics[width=\columnwidth]{ex_sv.pdf}
+% \caption{Based on reads (middle) from the two sequences (top), the bubbles in the graph (bottom) show three different heterozygous variations; the first one is an SNV, the second one is an SV, and the third one is an indel. }
+% \label{fig:ex_sv}
+% \end{figure}
 
-\paragraph{Algorithm Overview: Solving PedMEC and PedMEC-G.}
-In the following, we will see how this idea can be extended for solving PedMEC and PedMEC-G.
-The basic idea is to use the same technique on the union of the sets of active reads across all individuals $i\in\mathcal{I}$, while adding some extra book-keeping to satisfy the additional constraints imposed by pedigree and genotypes.
-Let $A_i(k)$ be the set of active reads in column $k$ of $\mathcal{F}_i$.
-We now define $A(k)=\bigcup_{i\in\mathcal{I}}A_i(k)$.
-% For convenience, we write $i(r)$ to denote the individual where read $r\in A(k)$ originated from, i.e.\ $r\in A_{i(r)}(k)$ for all $r\in A(k)$.
-A bipartition $B=(P,Q)$ of $A(k)$ now induces bipartitions for each individual: $B_i=\big(P\cap A_i(k), Q\cap A_i(k)\big)$.
+% \begin{figure}[t!]\centering
+% \includegraphics[width=\columnwidth]{ex_graph_approach.pdf}
+% \caption{Input: an assembly graph (top) (consisting of four SNVs and two SVs) and the PacBio reads $r_1, r_2, r_3, r_4, r_5, r_6$ (gray). Output: the phased reads (colored in blue and red) and haplotigs (bottom) using Falcon Unzip and our graph-based approach. 
+% Our graph-based approach delivers end-to-end haplotigs. Contrarily, Falcon Unzip does not phase the central section, which does not contribute to the total haplotig size.}
+% \label{fig:ex_graph_approach}
+% \end{figure}
+% https://dl.acm.org/citation.cfm?id=322075
+% https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5411783/
+% http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0019175
+\section{Further related work}
+The assembly problem was initially formalized as the shortest common superstring problem \citep{maier1978complexity} to generate consensus sequence.
+The SCS problem turned out to be NP-hard, thus \cite{tarhio1988greedy} followed greedy approach to find approximate solution to solve assembly problem.
+The basic idea of this approach is to joining the two reads that overlap the best in terms of overlap length or base quality estimates.
+This process is repeated until a predefined minimum quality threshold is reached.
 
-As before, we consider all bipartitions of $A(k)$ for each column $k$, but now additionally distinguish between all possible transmission values.
-We assume the set of trio relationships $\mathcal{T}$ to be (arbitrarily) ordered and use a tuple $t\in\{0,1\}^{2|\mathcal{T}|}$ to specify an assignment of transmission values.
-Such an assignment $t$ can later (during backtracing) be translated into the sought transmission vectors:
-Assuming $t$ to be an optimal such tuple at column $k$, its relation to the transmission vectors is given by
-\[t=\big(t_{m_1\to c_1}(k),t_{f_1\to c_1}(k),t_{m_2\to c_2}(k),t_{f_2\to c_2}(k),\ldots\big).\]
+The first genome assemblers \citep{sutton1995tigr, Green99phrapdocumentation} were based on the greedy strategies and have been used during the Human Genome Project.
+Greedy approaches were also explored as a possible way to cope with the data generated by the initial set
+of second-generation DNA sequencing technologies \citep{warren2006assembling, jeck2007extending}.
 
-The transmission tuples give rise to one additional dimension of our DP table for PedMEC(-G), as compared to the DP table for wMEC.
-For each column $k$, we compute table entries $C(k,B,t)$ for all $2^\abs{A(k)}$ bipartitions of reads and all $2^{2|\mathcal{T}|}$ possible transmission tuples, for a total of $2^{\abs{A(k)}+2\abs{\mathcal{T}}}$ entries in this column.
+The major disadvantage of this approach is that the shortest common superstring problem ignores an important feature of complex (e.g.,
+vertebrate) genomes: repeats. This has led to the invention of graph-based models for sequence assembly to handle repeats and other complex genomes.
+Graph-based models forms the basis of all modern genome sequence assemblers. 
+As introduced in Chapter 1, there are basically two types of graph models such as de Bruijn and OLC-based string graphs.
+Over the last few years, a lot of efforts are devoted in improving the graph based assemblers. 
 
-\paragraph{Computing Local Costs.}
-Along the lines of \cite{Patterson2015}, we first describe how to compute the cost incurred by flipping matrix entries in each column, denoted by $\Delta_C(k,B,t)$, and then explain how to combine them with entries in $C(k-1,\cdot,\cdot)$ to compute the cost $C(k,B,t)$.
-The crucial point for dealing with reads from multiple individuals in a pedigree is to realize that matrix entries from haplotypes that are identical by descent (IBD) need to be identical (or need to be flipped to achieve this).
-For unrelated individuals (i.e. $\mathcal{T}=\emptyset$), none of the haplotypes are IBD, giving rise to $2|\mathcal{I}|$ sets of reads for the $2|\mathcal{I}|$ unrelated haplotypes.
-These $2|\mathcal{I}|$ sets of reads are given by $B$ and the cost $\Delta_C(k,B,t)$ can be computed by flipping all matrix entries of reads within the same set to the same value.
+The Edena assembler applied the string graph approach for use with
+early short-read sequencing data \citep{hernandez2008novo}. Subsequent theoretical work on efficiently constructing the
+string graph using the FM index \citep{simpson2010efficient} led to memory-efficient assemblers for large genomes \citep{li2012exploring, simpson2012efficient}.
+Several fast string graph construction algorithms were developed \citep{dinh2011memory, gonnella2012readjoiner, ben2014string}.
+ 
+Several efforts are devoted in the direction of de Bruijn graphs.
+The ABySS (Assembly by Short Sequences) assembler \citep{simpson2009abyss} introduced a representation of
+the graph that did not explicitly store edges. Rather, it represented the graph as a hash table of
+k-mers, with each k-mer storing a byte representing the presence or absence of its eight possible
+neighboring k-mers. This representation allowed the hash table to be distributed across a cluster
+of computers. In recent years, the use of Bloom filters \citep{bloom1970space} to represent a set of k-mers has gained popularity.
+The Bloom filter was first applied to k-mer counting by Melsted & Pritchard \citep{melsted2011efficient}. 
+The FM-index data structure developed by Ferragina & Manzini \citep{ferragina2000opportunistic}, which is extensively
+used for mapping reads to a reference genome sequence, has also been used for
+sequence assembly. An FM index constructed from a set of sequence reads can be queried for the
+presence or absence of any k-mer. This representation is independent of k; the FM index can
+simultaneously represent all de Bruijn graphs of order k up to the read length.
+\cite{ye2012exploiting} observed that only a fraction of k-mers need to be directly stored as vertices. A similar
+technique was used to improve the memory consumption of the popular SOAPdenovo assembler \citep{luo2012soapdenovo2}.
 
-For a non-empty $\mathcal{T}$, the transmission tuple $t$ tells which parent haplotypes are passed on to which child.
-In other words, $t$ identifies each child haplotype to be IBD to a specific parent haplotype.
-We can therefore merge the corresponding sets of reads since all reads coming from haplotypes that are IBD need to show the same allele and need to be flipped accordingly.
-In total, we obtain $2|\mathcal{I}| - 2|\mathcal{T}|$ sets of reads, since each trio relationship implies merging two pairs of sets.
-We write $\mathcal{S}(k,B,t)$ to denote this set of sets of reads induced by bipartition $B$ and transmission tuple $t$ in column $k$.
-The cost $W_{k,S}^a$ of flipping all entries in a read set $S\in \mathcal{S}(k,B,t)$ to the same allele $a\in\{0,1\}$ is given by 
-\[W_{k,S}^a = \sum_{(i,j)\in S}\iverl \mathcal{F}_i(j,k)\neq a\iverr\cdot\mathcal{W}_i(j,k),\]
-where we identify reads in $S$ by a tuple $(i,j)$, telling that it came from individual $i$ and corresponds to row $j$ in $\mathcal{F}_i$.
-For PedMEC, i.e.\ if no constraints on genotypes are present, every set $S$ can potentially be flipped to any allele $a\in\{0,1\}$.
-Hence, the cost is given by 
-\begin{equation}\label{eqn:delta_c}
-\Delta_C(k,B,t)= \min_{a\in \{0,1\}^{\mathcal{S}(k,B,t)}}\left\{\sum_{S\in\mathcal{S}(k,B,t)}W_{k,S}^{a(S)}\right\},
-\end{equation}
-that is, we minimize the sum of costs incurred by each set of reads $S\in\mathcal{S}(k,B,t)$ over all possible assignments of alleles to read sets.
-For PedMEC-G, this minimization is constrained to only consider allele assignments consistent with the given genotypes.
-To ensure that valid assignments exist, we assume the input genotypes to be free of Mendelian conflicts.
+Several algorithms have been developed that
+explicitly take mate-pair information into account during assembly.
+ In \citep{butler2008allpaths, bankevich2012spades}, the assembler attempts to enumerate all the paths connecting the endpoints of a mate pair.
+The paired de Bruijn graph \citep{medvedev2011paired} approaches modify the de Bruijn graph
+structure to implicitly encode the mate-pair information, thereby resolving segments of the graph
+that are consistent with the mate-pair information.
+\paragraph{Long-read assemblers}
+Although these short-read library preparation methods can extend scaffolds to span entire chromosomes, 
+they lack the finer resolution required to improve contig lengths. 
+Instead, the biggest gains in contig lengths have come from single-molecule sequencing. First from PacBio and most recently from Oxford Nanopore, these technologies can generate reads exceeding 10 kb, orders of magnitude longer than Illumina. 
+Critically, 10-kb reads are longer than the most common repeats in both microbial and vertebrate genomes and can therefore generate highly continuous assemblies. 
+In fact, the complete reconstruction of bacterial genomes—a process that used to require teams of people—is now automated and routine. 
+However, the massive read lengths and increased error rate of these new technologies have also required updated assembly methods. 
+This issue includes new assembly tools designed specifically for long-read PacBio and Nanopore data: Canu \citep{koren2017canu}, HINGE \citep{kamath2017hinge}, Racon \citep{vaser2017fast}, Falcon \citep{chin2016phased}, and Miniasm \citep{li2016minimap}.
 
-\paragraph{Computing a Column of Local Costs.}
-To compute the whole column $\Delta_C(k,\cdot,\cdot)$, we proceed as follows.
-In an outer loop, we enumerate all $2^{2\abs{\mathcal{T}}}$ values of the transmission tuple $t$.
-For each value of $t$, we perform the following steps:
-We start with bi-partition $B=(A(k),\emptyset)$ and compute all $W_{k,S}^a$ for all sets $S\in\mathcal{S}(k,B,t)$ and all $a\in\{0,1\}$, which can be done in $\mathcal{O}(\abs{A(k)}+|\mathcal{I}|)$ time.
-Next we enumerate all bipartitions in Gray code order, as done previously \citep{Patterson2015}.
-This ensures that only one read is moved from one set to another in each step, facilitating constant time updates of the values $W_{k,S}^a$.
-The value of $\Delta_C(k,B,t)$ is then computed from the $W_{k,S}^a$'s according to Equation~\eqref{eqn:delta_c}, which takes $\mathcal{O}(2^{2|\mathcal{I}|}\cdot |\mathcal{I}|)$ time.
-Computing the whole column $\Delta_C(k,\cdot,\cdot)$ hence takes 
-$\mathcal{O}\big(2^{2\abs{\mathcal{T}}}\cdot(2^{|A(k)|} +  2^{2|\mathcal{I}|}\cdot |\mathcal{I}|)\big)$
-time.
+Canu, a successor of Celera Assembler that is specifically designed for noisy single-molecule sequences. 
+Canu follows a new advanced overlapping and assembly algorithms, including an adaptive overlapping strategy based on tf-idf weighted MinHash and a sparse assembly graph construction that avoids collapsing diverged repeats and haplotypes. 
+Racon corrects assemblies by finding a consensus sequence between reads and the assembly through the construction of partial order alignment (POA) graphs. 
+After alignment of the reads by a mapper of choice (e.g. Minimap or Graphmap), 
+Racon segments the sequence and finds the best alignment between a POA graph of the reads and the assembly. 
+By default, the alignment is performed using the Needleman-Wunsch algorithm, which can align sequence and POA graph with little adaptation.
+The HGAP (Hierarchical Genome Assembly Process) pipeline
+was developed to assemble PacBio-generated data without requiring correction using short-read
+data \citep{chin2013nonhybrid}. HGAP is a hierarchical pipeline; it selects the longest PacBio reads to form the basis
+of the assembly and error-corrects this subset of reads using the remaining data. The corrected
+long reads are then assembled, and a consensus sequence is generated using the complete data
+set. This method often generates single-contig assemblies of bacterial genomes.
+The FALCON assembler follows the design of the hierarchical genome assembly process (HGAP) but uses more computationally optimized components.
+It uses string graph algorithm for genome assembly and best suited for PacBio reads.
+It includes several important steps: raw reads error correction, pre-assembly error correction, overlap filtering, construction of graph from overlaps and construction of contig from graph.
+\paragraph{Hybrid assemblers}
+Aside from mentioned methods, hybrid assembly approaches present another avenue to utilizing nanopore sequencing data. 
+\cite{liao2015completing} recently evaluated several assembly tools on PacBio data, including hybrid assemblers SPAdes \cite{bankevich2012spades} and ALLPATHS-LG \citep{gnerre2011high} 
+for which they reported good results. Both of these are DBG-based, use Illumina libraries for the primary assembly and then attempt to scaffold the assemblies using longer, less accurate reads. 
+Furthermore, SPAdes was recently updated and now officially supports nanopore sequencing data as the long read complement to NGS data. 
+Combining single-molecule sequencing with complementary technologies has also become a common strategy. \cite{fan2017hysa} demonstrates improved accuracy for human structural variant calling using a combination of PacBio and Illumina.
+\paragraph{Other technologies}
+An emerging trend is to combine cost-effective Illumina sequencing with clever library preparation techniques designed to improve assembly continuity. 
+One powerful example is chromatin conformation capture via proximity ligation and high-throughput sequencing (Hi-C) \citep{lieberman2009comprehensive}. 
+This family of methods generates a familiar paired-read data type (two reads separated by some distance) but from a distribution of sizes that can span megabases. 
+This data can be used to group contigs by chromosome, reconstruct chromosome-length scaffolds, and phase haplotypes \citep{burton2013chromosome, selvaraj2013whole}. 
+In this issue, \cite{rice2017improved} demonstrates a related approach, using in vitro reconstituted chromatin and Illumina sequencing to assemble the American alligator genome. 
+Another approach to boosting short reads uses high-throughput barcoding to tag groups of ``linked reads'' that all originate from a larger, single molecule of DNA. 
+For this new data type, \cite{weisenfeld2017direct} introduces a new assembler, Supernova, for the de novo assembly of diploid human genomes from linked reads. 
+Additionally, \cite{jackman2017abyss} describes a new version of the ABySS assembler and explores linked reads and optical mapping for improved scaffolding.
+\paragraph{Diploid assemblers}
+The pipeline for most popular diploid assembler, Falcon Unzip, is given in Figure~\ref{fig:falcon_unzip}.
+Falcon Unzip begins by using reads to construct a string graph that contains sets of ``haplotype-fused contigs'' , also called as ``primary contigs'', as well as bubbles representing divergent regions between homologous sequences (Fig.~\ref{fig:falcon_unzip}a). 
+Next, Falcon-Unzip identifies read haplotypes using phasing information from heterozygous positions that it identifies (Fig.~\ref{fig:falcon_unzip}b). 
+Phased reads are then used to assemble haplotigs and primary contigs (backbone contigs for both haplotypes) (Fig.~\ref{fig:falcon_unzip}c) 
+that form the final diploid assembly with phased single-nucleotide polymorphisms (SNPs) and structural variants (SVs).
 
-\paragraph{DP Initialization.}
-The first column of the DP table, $C(1,\cdot,\cdot)$, is initialized by setting $C(1,B,t):=\Delta_C(1,B,t)$ for all bipartitions $B$ and all transmission tuples $t$.
+\textit{Phasing using primary contigs.}
+In Falcon Unzip, the reads are aligned to primary contigs and heterozygous SNPs (het-SNPs) are called by analyzing the base frequency of the detailed sequence alignments.
+A simple phasing algorithm was developed to identify phased SNPs. 
+Along each contig, the algorithm assigns phasing blocks where ``chained phased SNPs'' can be identified. 
+Within each block, if a raw read contains a sufficient number of het-SNPs, it assigns a haplotype phase for the read unambiguously. 
+Combined with the block and the haplotype phase information, it assigns a ``block-phase'' tag for each phased read in each phasing block.
+Some reads might not have enough phasing information. For example, if there are not enough het-SNP sites covered by a read, it assigns a special 'un-phased tag' for each un-phased read.
+The initial assembly graph is fused using phased reads and the haplotigs are generated in a greedy manner using local conservative approach.
+% \todo{maybe add example how haplotigs from haplotype fused assembly graph works?}
 
-\paragraph{DP Recurrence.}
-Recall that $C(k,B,t)$ is the cost of an optimal solution for input matrices restricted to the first $k$ columns under the constraints that the sought bipartition extends $B$ and that transmission happened according to $t$ at site $k$.
-Entries in column $C(k+1,\cdot,\cdot)$ should hence add up local costs incurred in column $k+1$ and costs from the previous column. 
-To adhere to the semantics of $C(k+1,B,t)$, only entries in column $k$ whose bipartitions are \emph{compatible} with $B$ are to be considered as possible ``predecessors'' of $C(k+1,B,t)$.
-\begin{definition}[Bipartition compatibility]
-Let $B=(P,Q)$ be a bipartition of $A$ and $B'=(P',Q')$ be a bipartition of $A'$.
-We say that $B$ and $B'$ are \emph{compatible}, written $B\simeq B'$, if
-$P\cap(A\cap A') = P'\cap(A\cap A')$
-and
-$Q\cap(A\cap A') = Q'\cap(A\cap A')$.
-\end{definition}
-Two bipartitions are therefore compatible when they agree on the intersection of the underlying sets.
-Besides ensuring that bipartitions are compatible, we need to incur recombination costs in case the transmission tuple $t$ changes from $k$ to $k+1$.
-Formally, entries in column $k+1$ are given by
-\begin{align}\label{eqn:recurrence}
-& C(k+1,B,t)= \Delta_C(k+1,B,t)\\
-& \quad + \min_{\substack{B'\in\mathcal{B}(A(k)):B'\simeq B\\t'\in\{0,1\}^{2\abs{\mathcal{T}}}}}\big\{C(k,B',t')+d_H(t,t')\cdot\mathcal{X}(k+1)\big\}, \nonumber
-\end{align}
-where $\mathcal{B}\big(A(k)\big)$ denotes the set of all bipartitions of $A(k)$ and $d_H$ is the Hamming distance.
-The distance $d_H(t,t')$ hence gives the number of changes in transmission vectors and thus the term $d_H(t,t')\cdot\mathcal{X}(k+1)$ gives the recombination cost to be added.
-
-\paragraph{Projection Columns.}
-To ease computing $C(k+1,B,t)$ via Equation~\eqref{eqn:recurrence}, we use the same technique described by \cite{Patterson2015} and define intermediate \emph{projection columns} $C^\cap(k,\cdot,\cdot)$.
-They can be thought of as being \emph{between} columns $k$ and $k+1$.
-Consequently, they are concerned with bipartitions of the intersection of read sets $A(k)\cap A(k+1)$ and hence contain $2^{|A(k)\cap A(k+1)|+2|\mathcal{T}|}$ entries, which are given by
-\begin{equation}\label{eqn:proj_col}
-C^\cap(k,B',t)=\min_{\mathcal{B}(A(k)):B\simeq B'}\{C(k,B,t)\}.
-\end{equation}
-These projection columns can be created while computing $C(k,\cdot,\cdot)$ at no extra (asymptotic) runtime.
-Using these projection columns, Equation~\eqref{eqn:recurrence} becomes
-\begin{align}\label{eqn:recurrence_projcol}
-& C(k+1,B,t)= \Delta_C(k+1,B,t)\\
-& \quad + \min_{t'\in\{0,1\}^{2\abs{\mathcal{T}}}}\big\{C^\cap(k,B\cap A(k),t')+d_H(t,t')\cdot\mathcal{X}(k+1)\big\}, \nonumber
-\end{align}
-where $B\cap A(k) := (P\cap A(k), Q\cap A(k))$ for $B=(P,Q)$.
-We have therefore reduced the runtime of computing this minimum to $\mathcal{O}(2^{2|\mathcal{T}|})$.
-
-\paragraph{Runtime.}
-Computing one column of local costs, $\Delta_C(k,\cdot,\cdot)$, takes $\mathcal{O}\big(2^{2\abs{\mathcal{T}}}\cdot(2^{|A(k)|} +  2^{2|\mathcal{I}|}\cdot |\mathcal{I}|)\big)$ time, as discussed above.
-For each entry, we use Equation~\eqref{eqn:recurrence_projcol} to compute the aggregate value of cost incurred in present and past columns.
-Over all columns, we achieve a runtime of 
-$\mathcal{O}\big(M\cdot \big(2^{2|\mathcal{T}|+c+|\mathcal{I}|}|\mathcal{I}|+2^{4|\mathcal{T}|+c}\big)\big)$, where $c=\max_k\{\abs{A(k)}\}$ is the maximum coverage.
-
-\paragraph{Backtracing.}
-An optimal bipartition and transmission vectors can be obtained by recording the indexes of the table entries that gave rise to the minima in equations \eqref{eqn:recurrence_projcol} and \eqref{eqn:proj_col} when filling the DP table and then backtracing starting from the optimal value in the last column.
-Optimal haplotypes are subsequently obtained using the bipartition and transmission vectors.
-
-
-\section{Experimental Setup}
-To evaluate the performance of our approach, we considered both real and simulated datasets.
-
-\subsection{Real Data}
-The Genome in a Bottle Consortium (GIAB) has characterized seven individuals extensively using eleven different technologies~\citep{giab}.
-The data is publicly available.
-Here we consider the Ashkenazim trio, consisting of three related individuals: NA24143 (mother), NA24149 (father) and NA24385 (son).
-We obtained a consensus genotype call set (NIST\_CallsIn2Technologies\_05182015) provided by GIAB, containing variants called by two independent technologies.
-For our benchmark, we consider all bi-allelic SNPs on Chromosome~1 called in all three individuals, amounting to 141,256 in total, and use the provided (unphased) genotypes.
-
-\paragraph{Ground Truth via Statistical Phasing.}
-To generate a ground truth phasing for comparison, we used the population-based phasing tool SHAPEITv2-r837~\citep{shapeit} with default parameters.
-The program was given the 1000 Genomes reference panel\footnote{\scriptsize{\url{https://mathgen.stats.ox.ac.uk/impute/1000GP_Phase3.tgz}}}, the corresponding genetic map\footnote{\scriptsize{\url{http://www.shapeit.fr/files/genetic_map_b37.tar.gz}}}, and the unphased genotypes as input.
-SNPs present in the GIAB call set but absent in the reference panel were discarded, resulting in 140,744 phased SNPs, of which 58,551 were heterozygous in mother, 57,152 in father and 48,023 in child.
-We refer to this set of phased SNPs as \emph{ground truth phased variants}.
-We emphasize that this phasing is solely based on genotypes and does not use phase information present in the reads in any way and hence is completely independent.
-In the following, we refer to the original genotypes from the GIAB call set (without phase information) restricted to this set of SNPs as \emph{ground truth unphased genotypes}, which we use as input for read-based phasing experiments described below.
-
-\paragraph{PacBio Data.} For each individual, we downloaded aligned Pacific Biosciences (PacBio) reads\footnote{\scriptsize{\url{ftp://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/data/AshkenazimTrio/(HG002_NA24385_son|HG003_NA24149_father|HG004_NA24143_mother)/PacBio_MtSinai_NIST/MtSinai_blasr_bam_GRCh37/}}},  
-which had an average coverage of 42.3$\times$ in mother, 46.8$\times$ in father and 60.2$\times$ in child, respectively.
-The average mapped read length across mother was 8,328 bp, father was 8,471 bp and child was 8,687 bp.
-For each individual, we separately downsampled the aligned reads to obtain data sets of 2$\times$, 3$\times$, 4$\times$, 5$\times$, 10$\times$, and 15$\times$ average coverage.
-
-\paragraph{10XGenomics Data.}
-The GemCode platform marketed by 10XGenomics uses a barcoding technique followed by pooled short-read sequencing and data analysis through a proprietary software solution to resolve haplotypes.
-Data from this platform is available from the GIAB project and represents phase information obtained completely independently from either statistical phasing or PacBio reads.
-We downloaded the corresponding files\footnote{\scriptsize{\url{ftp://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/data/AshkenazimTrio/(HG002_NA24385_son|HG003_NA24149_father|HG004_NA24143_mother)/10XGenomics}}} for comparison purposes.
-
-\subsection{Simulated Data}
-Despite the high-quality data set provided by GIAB, we sought to complement our experiments by a simulated data set.
-While the population-based phasing we use as ground truth is arguably accurate due to a large reference panel and the high-quality genotype data used as input, it is not perfect.
-Especially variants with low allele frequency present challenges for population-based phasers.
-
-\paragraph{Virtual Child.}
-As basis for our simulation, we use the haplotypes of the two parents from our ground truth phased dataset.
-We generated two haplotypes of a virtual child by applying recombination and Mendelian inheritance to the four parent haplotypes.
-In reality, recombination events are rare: All of Chromosome~1 spans a genetic distance of approximately 292\,cM, corresponding to 2.9 expected recombination events along the whole chromosome.
-To include more recombinations in our simulated data set, we used the same genetic map as above, but multiplied recombination rates by 10.
-The recombination sites are sampled according to the probabilities resulting from applying Haldane's mapping function to the genetic distances between two variants.
-In line with our expectation, we obtained 26 and 29 recombination sites for mother and father, respectively. 
-The resulting child had 41,676 heterozygous variants.
-
-\paragraph{Simulating PacBio Reads.}
-We aimed to simulate reads that mimic the characteristics of the real PacBio data set as closely as possible.
-For this simulation, we incorporate the variants of each individual into the reference genome (hg19) to generate two true haplotypes for each individual in our triple.
-We used the PacBio-specific read simulator pbsim by \cite{pbsim} to generate a 30$\times$ data set for Chromosome~1.
-The original GIAB reads were provided to pgsim as a template (via option \texttt{--sample-fastq}) to generate artificial reads with the same length profile.
-Next, we aligned the reads to the reference genome using BWA-MEM 0.7.12-r1039 by \cite{bwa} with option \texttt{-x pacbio}.
-As before for the real data, the aligned reads for each individual were downsampled separately to obtain data sets of 2$\times$, 3$\times$, 4$\times$, 5$\times$, 10$\times$, and 15$\times$ average coverage.
-
-\subsection{Compared Methods}
-Our main goal is to analyze the merits of the PedMEC-G model in comparison to wMEC; in particular with respect to the coverage needed to generate a high-quality phasing.
-The algorithms to solve wMEC and PedMEC-G described in Section~\ref{sec:algorithm} have been implemented in the WhatsHap software package\footnote{\scriptsize{\url{https://bitbucket.org/whatshap/whatshap}}}, distributed as Open Source software under the terms of the MIT license.
-We emphasize that WhatsHap solves wMEC and PedMEC-G optimally.
-Since the focus of this paper is on comparing these two models, we do not include other methods for single-individual haplotyping.
-We are not aware of other trio-aware read-based phasing approaches that PedMEC-G could be compared to additionally.
-
-The runtime depends exponentially on the maximum coverage.
-Therefore we prune the input data sets to a \emph{target maximum coverage} using the read-selection method introduced by \cite{Fischer2016}, which is implemented as part of WhatsHap.
-This target coverage constitutes the only parameter of our method.
-For PedMEC-G, we prune the maximum coverage to 5$\times$ for each individual separately.
-For wMEC, we report results for 5$\times$ and 15$\times$ target coverage.
-The respective experiments are referred to as \mbox{PedMEC-G-5}, wMEC-5, and wMEC-15.
-For wMEC, we use the additional ``all heterozygous'' assumption (see Section~\ref{sec:algorithm}), to also give it the advantage of being able to ``trust'' the genotypes, as is the case for PedMEC-G.
-Both wMEC and PedMEC-G were provided with the ground truth unphased genotypes for the respective data set.
-PedMEC-G was additionally provided with the respective genetic map (original 1000G genetic map for real data and scaled by factor 10 for simulated data).
-
-
-As described above, the ground truth phased variants was generated by SHAPEIT with default parameters, implying that SHAPEIT treated the three samples as unrelated individuals.
-For comparison purposes, we re-ran SHAPEIT and provided it with pedigree information.
-We refer to the resulting phased data set as \emph{SHAPEIT-trio}.
-Moreover, we ran duoHMM (v0.1.7) by \cite{OConnell2014} on the resulting files to further improve the phasing.
-
-\subsection{Performance Metrics}\label{sec:metrics}
-We compare each phased individual to the respective ground truth haplotypes separately and only consider sites heterozygous in this individual.
-
-\paragraph{Phased SNPs.}
-For read-based phasing of a single individual (wMEC), we say that two heterozygous SNPs are directly connected if there exists a read covering both.
-We compute the connected components in the graph where SNPs are nodes and edges are drawn between directly connected SNPs.
-Each connected component is called a \emph{block}.
-For read-based phasing of a trio (PedMEC), we draw an edge when two SNPs are connected by a read in any of the three individuals.
-In both cases, we count a SNP as being \emph{phased} when it is not the left-most SNP in its block (for the left-most SNP, no phase information with respect to its predecessors exists).
-All other SNPs are counted as \emph{unphased}.
-Below, we report the average \emph{fraction of unphased SNPs} over all three family members.
-
-\paragraph{Phasing Error Rate.}
-For each block, the first predicted haplotype is expressed as a mosaic of the two true haplotypes, minimizing the number of switches.
-This minimum is known as the \emph{number of switch errors}.
-Note that the second predicted haplotype is exactly the complement of the first one, due to only considering heterozygous sites.
-When two switch errors are adjacent, they are subtracted from the number of switch errors and counted as one \emph{flip error}.
-The \emph{phasing error rate} is defined as the sum of switch and flip errors divided by the number of phased SNPs.
-
-\paragraph{Three-Way Phasing Comparison.}
-To simultaneously compare phasings from three different methods (e.g.\ SHAPEIT, 10XGenomics, and \mbox{PedMEC-G-5}), we proceeded as follows.
-For an individual, we considered all pairs of consecutive heterozygous SNPs that have been phased by all three methods.
-For each of these pairs, either all three methods agree or two methods agree (since only two possible phases exist).
-Below, we discuss the fraction of these different cases in relation to the total number of considered SNP pairs.
-
-\begin{figure}%
-\includegraphics[width=\columnwidth,height=\columnwidth,keepaspectratio]{{Marschall.152.fig.2a}.pdf}\\
-\includegraphics[width=\columnwidth,height=\columnwidth,keepaspectratio]{{Marschall.152.fig.2b}.pdf}%
-\caption{Simulated data set (top) and real dataset (bottom): phasing error rate ($x$-axis) versus completeness in terms of the fraction of unphased SNPs ($y$-axis) for \mbox{PedMEC-G-5} (solid line), wMEC-5 (dashed line), and wMEC-15 (dotted line).
-Average coverage (per individual) of input data is encoded by circles of different sizes.}\label{fig:main-results}%
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{cropped_falcon-unzip}.pdf}
+\caption{(a) An initial assembly is computed by FALCON, which error corrects the raw reads (not shown) and then assembles them using a string graph of the read overlaps. 
+The assembled contigs are further refined by FALCON-Unzip into a final set of contigs and haplotigs. 
+(b) Phase heterozygous SNPs and group reads by haplotype. (c) The phased reads are used to open up the haplotype-fused path and generate as output a set of primary contigs and associated haplotigs.}
+\label{fig:falcon_unzip}
 \end{figure}
+
+
+
+\section{Diploid assembly pipeline}
+Our assembly workflow uses short read (e.g.\ Illumina) and long read (e.g.\ PacBio) data combinedly, as illustrated in Figure~\ref{fig:pipeline}, and we describe the details of this process in the following.
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{pipeline.pdf}
+\caption{Overview of the diploid assembly pipeline. }
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Sequence graph} 
+As the first step, we construct a sequence graph using short read data with a low error rate as provided by the Illumina platform.
+% The diploid assembly problem can be modelled using a sequence graph (defined below). We construct the underlying sequence graph using Illumina data.
+\begin{definition}[Sequence Graph]
+We define a sequence graph $G_s (N_s, E_s)$ as a bidirected graph, consisting of a set of nodes $N_s$ and a set of edges $E_s$.
+The nodes $n_i$ are sequences over an alphabet $\mathcal{A} = \{A,C,G,T\}$.
+For each node $n_i \in N_s$, its reverse-complement is denoted by $n'_i$.
+An edge $e_{i'j}$ connects the nodes $n'_i$ to $n_j$. 
+Nodes may be traversed in either the forward or reverse direction, with the sequence being reverse-complemented in the reverse direction. 
+% \todo{There was a left/right in the definition at some point. Where did it go (and why)?} \sgnote{Richard and I prefer to write in the language of n and n', it is easier and more mathematical. What do you think? TM: That's ok with me. (Although I disagree that it's more mathematical.)}
+\end{definition}
+
+In words, edges represent adjacencies between the sequences of the nodes they connect.
+Thus, the graph implicitly encodes longer sequences as the concatenated node sequences along walks through the graph.
+
+To illustrate, we consider an example sequence graph $G_s$ in Figure~\ref{fig:wmec}. It consists of a node set $N_s = \{1, 1, 2, 2', 3, 3', \ldots\}$ 
+and an edge set $E_s = \{1 \rightarrow 2', 1 \rightarrow 3' \ldots\}$.
+
+To generate the sequence graph $G_s$, we first employ SPAdes \citep{bankevich2012spades}, which constructs a de Bruijn graph and simplifies it, and subsequently remove the overlaps between the nodes in the resulting graph in a process we call \textit{bluntification}.
+
+Overlap information from the assembler is first corrected to account for mismatches between the overlapping sequences. If the nominally overlapping sections of the overlapping nodes are not identical, then the nodes are aligned to each other. If the alignment indicates a perfectly-matching overlap between the appropriate ends of the nodes, then that overlap is used; otherwise, the edge between the nodes is discarded.
+
+After this preprocessing, the bluntification algorithm uses a data structure called a \textit{pinch graph} to transitively resolve overlaps between nodes. Used in the Cactus aligner \citep{paten2011cactus}, a pinch graph is essentially a union-find over oriented positions in a set of DNA sequences. Alternately, it can be thought of as a dynamic representation of a multiple sequence alignment with rearrangements. Two base-pair positions in the sequences that the graph is built on can be \textit{pinched} together, placing them into the same column of the multiple alignment. Bases can be pinched either in consistent orientations (in which case the forward strands of the two positions are aligned) or in opposing orientations (in which case the forward strand of one position is aligned to the reverse strand of the other position). If bases being pinched are already aligned to other bases, the relevant alignment columns are merged; as with a union-find data structure's union operation, pinching is transitive.
+
+Internally, the pinch graph data structure is implemented in terms of contiguous ranges of bases, and so the fundamental operation is to pinch together two equal-length ranges of bases in either consistent or opposing orientations. After a series of pinches, the graph consists of a set of \textit{blocks}, each of which contains a series of oriented \textit{segments}. The segments in a block are contiguous ranges of input sequence bases, and each segment in a block is aligned to all of the other segments in the block.
+
+The bluntification algorithm creates a pinch graph from the nodes that participate in overlaps, pinches together the overlapping regions of all pairs of overlapping nodes, and then converts the resulting pinch graph back into a sequence graph, creating a node for each block.
+
+
+\subsection{Bubble detection in sequence graph} To account for heterozygosity in a diploid genome, we perform bubble detection. The notion of \textit{bubble} we use is closely based on the \textit{ultrabubble} concept as defined by \cite{paten2017superbubbles}. Briefly, bubbles have the following properties:
+\begin{itemize}
+ \item \textit{2-node-connectivity.} A bubble is bounded by a fixed start node and an end node. If the graph is traversed in a forward direction, there exists a bubble that starts at a node $n_i$  and ends at a node $n'_j$, then it is given by a start node at $n_j$ and end node at $n'_i$ in a reverse direction. 
+ This indicates that a bubble can start and end from either direction.
+ \item \textit{Directed acyclicity.} A bubble is directed and acyclic.
+ \item \textit{Directionality.} All paths through the bubble flow from start to end.
+ \item \textit{Minimality.} No vertex in graph other than a start node $n_i$ (with proper orientation) forms a pair with an end node $n'_j$ (with proper orientation) that satisfy the above properties. 
+%  \todo{Reword to avoid ``Only the smallest possible bubble ... is a bubble'' (because larger structures are no bubbles)}
+\end{itemize}
+
+A bubble can represent a potential sequencing error or genetic variation within a set of homologous molecules.
+We represent bubbles as collections of alternative paths.
+
+\begin{definition}[Path] We define path $a_i$ as a linear ordering of nodes $a_i= n_1, \ldots n_m$. 
+% \todo{Why start from a complemented node $n'_1$?}
+\label{def:allele-path}
+\end{definition}
+
+A bubble is a collection of paths with the same start and end node and can be defined as follows:
+\begin{definition}[Bubble]
+Formally, one bubble is represented as a collection of allele paths as:
+ \[l_k= \{a_1,a_2 \ldots\}\]
+ 
+ where 
+ \[a_1=(n_1, n_2, \ldots n_m), a_2=(n_1, n_3 \ldots n_m)\] and so on. 
+\end{definition}
+
+
+For example, Figure~\ref{fig:wmec} shows a set of two bubbles $L=\{l_2, l_1\}$, and  the set of allele paths for a 
+% \todo{TM: did you define ``complex bubble'' already?} 
+bubble $l_2$ are $\{a_1, a_2, a_3\}$,
+where \[a_1 = (6, 7', 8', 11'), a_2 = (6, 9', 11'), a_3=  (6, 10, 11').\]
+
+\subsection{PacBio alignments} 
+For phasing bubbles, we consider long reads from third generation sequence technologies such as PacBio.
+We align these long reads to the sequence graph $G_s$ to generate paths through the graph.
+We perform graph alignment using a banded version of the algorithm described by \cite{rautiainen2017aligning}, which is a generalization of the Needleman-Wunsch algorithm to sequence-to-graph alignment\footnote{\url{https://github.com/maickrau/GraphAligner}}.
+
+There are several advantages of aligning PacBio reads to graphs instead of to a reference genome or contigs.
+SNPs often occur near larger variants such as insertions and deletions. SNPs are thus often missed in these regions when reads contain large mismatches. Graph alignment facilitates the alignment to in-phase variants, and other types of complex events.
+
+\begin{definition}[Alignment]
+We define a set of read-alignments as $R=\{r_1, r_2, \ldots, r_j\}$, where each read alignment $r_{j'}$ is given by a path of nodes and their orientations through graph $G_s$, written $r_{j'}=(n_1, \ldots, n_m)$.
+\end{definition}
+For example, in Figure~\ref{fig:wmec}, $R = \{r_1, r_2, r_3, r_4\}$ and the read alignment path $r_1$ can be written as:
+\[r_1 = (1, 2', 5', 6, 7', 8', 11' ) \]
+
+
+\subsection{Bubble ordering}
+The next stage is to obtain an ordering of the bubbles $L=(l_1, l_2, \ldots l_k)$, which we refer to as a \emph{bubble chain}. 
+For example, in Figure~\ref{fig:wmec}, a bubble chain is given by $L=(l_1, l_2)$.
+A general sequence graph $G_s$ is cyclic due to different types of repeats present in the genome that create both short and long cycles.
+Ordering bubbles is closely related to resolving repeats, which is a challenging problem.
+In this study, we rely on the Canu algorithm \citep{koren2017canu} to provide a bubble ordering by aligning Canu-generated contigs to our sequence graph.
+Furthermore, we detect repetitive bubbles---that is, bubbles that would need to be traversed more than once in a final assembly---based on the depth of coverage of aligned PacBio read and remove such bubbles.
+% \todo{Shilpa, please check these sentence. I reworded them a bit.}
+We deem a bubble repetitive if the number of PacBio reads aligned to its starting node is greater than a coverage threshold specified by users' over the genome.
+For example, given a 30$\times$ (=c) data set and a repeat that occurs 20 (=r) times in the genome, then the coverage at the bubble on average is 600 (=rc).
+
+\subsection{Graph-based phasing}
+\label{sec:phasing} 
+Given a sequence graph $G_s$, ordered bubbles $L$, and PacBio alignments $R$, the goal is to reconstruct two haplotype sequences $\{h_0, h_1\}$, called haplotigs, along each chain of bubbles.
+\begin{definition}[Haplotype path]
+Formally, a pair of haplotype paths $(h_0, h_1)$ can be defined as two paths through a bubble chain in the sequence graph and denoted as: 
+\[h_0=(n_1, n_2, \ldots n_m )\]  
+\[h_1=(n_1, n_3, \ldots n_m )\]
+
+where $h_0$ and $h_1$ may differ at the heterozygous regions defined by bubbles, and $n_1$ and $n_m$ are the start and end respectively of the bubble chain.
+% \todo{I'm really confused by these $n'$s. I think we can just use plain $n$s.}
+\end{definition}
+
+The two genome sequences can be seen as two walks through the bubbles $L$ in the sequence graph $G_s$ that are consistent with the PacBio alignments $R$.
+In maximum likelihood terminology, the goal is to find the most likely haplotype paths given the alignment paths traversing through the bubbles.
+For example, in Figure~\ref{fig:wmec}, given bubbles $(l_1, l_2)$ and PacBio alignments $R=\{r_1,r_2,r_3,r_4\}$, find two maximum likelihood haplotype paths $\{h_0, h_1\}$ such that each PacBio alignment is assigned to one of the haplotypes. 
+% \todo{continue with ``that...'', because you do not just want to find any two paths, but ML ones.}
+
+For a linear chain of bubbles $L$, the task of finding these two haplotype paths is equivalent to picking one allele path per haplotype for each bubble.
+% We generate an association between bubbles $L$ and aligned PacBio reads $R$ in the sequence graph $G_s$ in order to encode alignment paths in the form of an allele path in bubbles.
+To this end, we note that an alignment path $r_j$ for a given read can be viewed as a sequence of allele paths traversed in consecutive bubbles. 
+% stores the information about the allele path $a_i$ in a bubble $l_k$ that the read $r_j$ is aligned.
+We represent this association of reads to allele paths in the form of a \emph{bubble matrix} $\mathcal{F}\in\{0,1, \ldots m, -\}^{|R|\times |L|}$, where $|R|$ is the number of reads, $|L|$ is the number of bubbles along a chromosome, and $m = \max_k|l_k|$ is the maximum number of  paths (or alleles) in any bubble $l_k\in L$.
+% Please note that the different paths in a bubble corresponds to possible alleles at a genetic variant.
+The entry $\mathcal{F}(j,k) \in \{0, 1, \ldots m, -\}$ represents the allele path index in bubble $l_k$ that read $r_j$ is aligned to, where a value of ``$-$'' indicates that the read does not cover the bubble.
+% For example, in Figure~\ref{fig:wmec}, the read alignment path $r_1$ traverses an allele path $a_1$ in a bubble $l_1$ and $a_1$ in $l_2$. \todo{TM: The allele paths are not shown in that figure, right? Can we add them?}
+In Figure~\ref{fig:wmec}, note that the read alignment path $r_4$ does not cover all the nodes in any of the allele paths in $l_2$ and hence we set the corresponding value $\mathcal{F}(4,2)$ to ``$-$''.
+As a result, this read covers only one bubble and we do not consider it for phasing.
+The remaining phase-informative reads in Figure~\ref{fig:wmec} are represented as:
+
+\begin{equation}\label{eq:bubble_matrix}
+  \mathcal{F}  = \kbordermatrix{
+     & l_{1}       & l_{2}  \\
+    r_{1}       & 0 & 0 \\
+    r_{2}       & 2 & 2 \\
+    r_{3}       & 1 & 2 \\
+  }
+\end{equation}
+
+Corresponding to $\mathcal{F}$, we have a weight matrix $\mathcal{W}\in W^{|R|\times |L|\times m}$. %, where $|R|$ is the number of reads, $|L|$ is the number of bubbles and $m$ is the maximum number of alleles in a bubble $l_k$.
+Each entry in $\mathcal{W}(j,k)$ is a tuple to store the ``phred-scaled'' quality scores.
+The quality score value ``0'' at $i^\text{th}$ entry in tuple $\mathcal{W}(j,k)$ encodes that the read $r_j$ is aligned to allele path index $i$ in bubble $l_k$.
+The remaining non-zero values in tuple $\mathcal{W}(j,k)$ store the confidence scores of switching the aligned read $r_j$ to other alleles in bubble $l_k$.
+
+For example, the corresponding weight matrix $\mathcal{W}(j,k)$ for $\mathcal{F}$~\eqref{eq:bubble_matrix} is given by:
+\begin{equation}\label{eq:weight_matrix}
+  \mathcal{W}  = \kbordermatrix{
+     & l_{1}       & l_{2}  \\
+    r_{1}       & [0,q_1,q_2] &  [0,q_3,q_4]\\
+    r_2 & [q_9,q_8,0] & [q_{11},q_5,0] \\
+    r_3 & [q_{10},0,q_7] & [q_5,q_6,0] \\
+  }
+\end{equation}
+where the entry $\mathcal{W}(1,1)$ value $[0,q_1,q_2]$ means that the read $r_0$ is aligned to allele $a_0$ at bubble $l_1$.
+Additionally, the cost of flipping it to other alleles is $q_1$ for $a_1$ and $q_2$ for $a_2$.
+% \todo{We should use different $q$s for each entry.}
+
+Finally, we are now ready to present the problem formulation.
+The main insight is that solving phasing for bubble chains is similar to solving the phasing problem for multi-allelic SNVs in reference-based haplotype reconstruction.
+Therefore, we build on the previous formulation of the Minimum Error Correction (MEC) problem \citep{Lancia2001} and its weighted version (wMEC) \citep{Lippert:2002ba,patterson2014whatshap} and further adapt it to work on a subgraph consisting of a chain of bubbles termed as \emph{Minimum Error Correction for graphs} (gMEC).
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{wmecfig.pdf}
+\caption{For a subgraph of $G_s$, the example shows two bubbles $l_1$ and $l_2$, and their corresponding alleles. Reads $r_1,r_2,r_3,r_4$ traverses the bubbles.}
+\label{fig:wmec}
+\end{figure}
+
+% \begin{definition}[Distance] 
+% The quality of a solution relies on the measure $d(r_1,r_2)$ based on the Hamming distance between any two rows $r_1,r_2$. Formally,
+% \[d(p_1,p_2):=\sum_{k=1}^{|L|} \big|\big\{k\,\big|\,r_1(k)\neq -\ \wedge\ r_2(k)\neq -\ \wedge\ r_1(k)\neq r_2(k)\big\}\big|.\]
+% \end{definition}
+% 
+% \begin{definition}[Feasibility]
+% A feasible solution to a bubble matrix $\mathcal{F}\in\{a_0, a_1 \ldots a_m, -\}^{|R|\times |L|}$ is a pair of haplotypes $h^0,h^1\in\{a_0, a_1, \ldots a_m\}^M$ such that 
+% \[d(h_0,h_1):=\sum_{j=1}^{|R|} \min\{ d(\mathcal{F}(j), h_0), d(\mathcal{F}(j), h_1)\} \]
+% and there exists a bi-partition of rows (i.\,e., reads) into two sets such that all pairwise distances of two rows within the same set are zero.
+% \end{definition}
+
+\begin{problem}[wMEC for bubble chains (gMEC)]
+Assume we are given a bubble chain $L$ of bubbles $l_k$, and a set $R$ of reads $r_j$ that pass through these bubbles, with $\mathcal{F}(j,k)$ indicating the index of the allele in bubble $l_k$ that the alignment of read $r_j$ passes through, or ``$-$'' if it does not pass through $l_k$, and that $\mathcal{W}(j,k,i)$ is the cost of flipping $\mathcal{F}(j,k)$ to new value $i$.  
+We want to find two paths through $L$, each of which has a non-zero allele value at each $l_k$, and then to flip entries of $\mathcal{F}$ so as to obtain a feasible $\mathcal{F}$, 
+i.e. one in which each read is a subsequence of one of the paths, such that we minimize the sum of incurred costs.
+\end{problem}
+% For simplicity, we represent the $i^{th}$ element of tuple $\mathcal{W}(j,k)$ as $\mathcal{W}(j,k,i)$.
+Note that the wMEC problem constitutes a special case of gMEC, where the input graph is a linear chain of bi-allelic bubbles.
+% In its linear counterpart, wMEC with each entry in $\mathcal{F}(j,k) \in \{0,1\}$ works for bi-allelic cases.
+Next, we describe how to solve gMEC via dynamic programming (DP).
+
+\textit{Solving gMEC for bubble chains}. The basic idea is to now extend the dynamic program to consider all possible path-pairs from a bubble. 
+In the bi-allelic case, we have only two paths in every bubble and, therefore, there is only one pair of distinct paths.
+In the multi-allelic case, we consider all possible path pairs in each bubble.
+The goal is to find an optimal pair of paths from the sequence graph $G_s$.
+% \todo{what does ``simplified version'' refer to? After repeat removal?} 
+Analogously to the WhatsHap algorithm for wMEC, we proceed from left to right using dynamic programming.  
+% Assuming we have completed the process up to bubble $l_k$, at bubble $l_{k+1}$ we consider each possible bipartition of all the reads crossing that bubble into two groups.\todo{TM: unclear wording}
+% For each bipartition, we find the best pair of alleles and the best assignment at $l_k$.\todo{Can we be more precise here and mention costs in this column vs.\ costs from previous columns?}
+% We continue this way until the last bubble $|L|$ and then backtrace to get the two optimal paths.
+
+Now, we describe how to build the DP table.
+Let us take a toy example to understand the algorithm and consider some values in the weight matrix~\eqref{eq:weight_matrix}:
+\begin{equation}\label{eq:weight_matrix1}
+  \mathcal{W}  = \kbordermatrix{
+     & l_{1}       & l_{2}  \\
+    r_{1}       & [0,10,5] &  [0,5,8]\\
+    r_2 & [7,6,0] & [5,2,0] \\
+    r_3 & [2,0,4] & [4,3,0] \\
+  }
+\end{equation}
+
+\textit{DP cell initialization}. Along similar lines as \cite{patterson2014whatshap}, we first compute the local cost incurred by bipartition $B= (R,S)$ in column $k$, denoted $\Delta_C(k,B)$, and later combine it with the corresponding costs incurred in previous columns.
+% We write $\mathcal{S}(k,B)$ to denote this set of sets of reads induced by bipartition $B$ in column $k$.
+The cost $W_{k,R}^i$ of flipping all entries in a read set $R$ to an allele index $i\in\{0,1,\ldots |l_k|\}$ is given by 
+\[W_{k,R}^i = \sum_{j\in R}\iverl \mathcal{F}(j,k)\neq i\iverr\cdot\mathcal{W}(j,k,i),\]
+In the same manner, we can compute costs $W_{k,S}^i$ for read set $S$ to an allele index $i$.
+
+To compute the cost incurred by a bipartition in a particular column $k$, we minimize over all possible pairs of alleles in bubble $l_k$.
+There are ${|l_k| \choose 2}$ such pairs.
+So given the column vectors of the bubble matrix $\mathcal{F}(k)$, a weight matrix $\mathcal{W}(k)$ of the bubble $l_k$, and the bipartition $B=(R,S)$ of active reads $A(k)$, the cost $\Delta_C(k,B)$ is computed by minimizing over all pairs of alleles
+$A = \{(x,y) \in l_k \times l_k | x \ne y, x\textless y\}$:
+\begin{equation}\label{eq:dp-cell}
+  \Delta_C(k,B)= \min_{(p_0,p_1)\in {A}}\left\{\min\{W_{k,S}^{p_0} + W_{k,R}^{p_1}, W_{k,S}^{p_1} + W_{k,R}^{p_0}\}\right\},
+\end{equation}
+where the outer minimization considers all allele pairs and the inner minimization considers the two possibilities of assigning those two alleles to the two haplotypes.
+
+   
+
+% \begin{algorithm}
+%     \caption{\label{alg:dp-cell}\textsc{DP CELL INITIALIZATION}}
+%     \SetKwInOut{Input}{Input}
+%     \SetKwInOut{Output}{Output}
+%     \Input{The column vectors of the bubble matrix $\mathcal{F}(k)$ and a weight matrix $\mathcal{W}(k)$ of the bubble $k$, and the bipartition $S$ of active reads $R (k)$}
+%     \Output{$\Delta_C(k,B)$}
+%     All allele-pairs set $A = \{(x,y) \in l_k \times l_k | x \ne y, x\textless y\}$ from bubble $l_k = \{a_1, a_2, \ldots a_m\}$
+%     \[\Delta_C(k,B)= \min_{i\in {A}^{\mathcal{S}(k,B)}}\left\{\sum_{S\in\mathcal{S}(k,B)}W_{k,S}^{i}\right\},\]
+%     
+% \end{algorithm}
+
+\textit{DP column initialization}. 
+We initialize the first DP column by setting $C(1,B):=\Delta_C(1,B)$ for all possible bipartitions $B$.
+We enumerate all bipartitions in Gray code order, as done previously by \cite{patterson2014whatshap}.
+This ensures that only one read is moved from one set to another in each step, facilitating constant time updates of the values $W_{k,S}^i$.
+
+For variant matrix~\eqref{eq:bubble_matrix} and its corresponding weight matrix~\eqref{eq:weight_matrix1}, the DP column cell for bipartition $B=(R,S)$ is given by 
+\[\Delta_C(k,(R,S))= \min\big\{\mathcal{W}^0_{k,R} + \mathcal{W}^1_{k,S}, \mathcal{W}^1_{k,R} + \mathcal{W}^2_{k,S}, \]
+\[\mathcal{W}^0_{k,R} + \mathcal{W}^2_{k,S}, \mathcal{W}^1_{k,R} + \mathcal{W}^0_{k,S},\]
+\[\mathcal{W}^2_{k,R} + \mathcal{W}^1_{k,S}, \mathcal{W}^2_{k,R} + \mathcal{W}^0_{k,S} \big\}\]
+Now, putting values from~\eqref{eq:weight_matrix1} in the above equation for different bipartitions, $\Delta_C(1,.)$ can be filled as follows:
+\[C(1, (\{r_1,r_2,r_3\},\emptyset)) =\min\{9+0, 16+0, 9+0,16+0, 9+0, 9+0\} = 9\]
+% \[C(1, (\{r_1,r_2\},\{r_3\})) = \min\{7+2, 16+0, 5+4, 7+0, 16+4, 7+4\} = 7\]
+Similarly, we can compute $\Delta_C(1,.)$ for other bipartitions $(\{r_1,r_2\},\{r_3\}),$\\
+$(\{r_1,r_3\},\{r_2\}), (\emptyset,\{r_1,r_2,r_3\}), (\{r_3\},\{r_1,r_2\}), (\{r_2\},\{r_1,r_3\})$.
+
+\begin{algorithm}
+    \caption{\label{alg:dp-column}\textsc{DP COLUMN INITIALIZATION}}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{$\Delta_C(k,.)$ for all bipartitions $B$ of bubble $k$.}
+    \Output{$C(1,.)$}
+    \For{ all bipartitions $B$ of column $k$}{
+	Compute $\Delta_C(k,B)$ using Equation~\ref{eq:dp-cell} and store in $C(1,B)$.	
+    }
+\end{algorithm}
+Due to using the Gray code order, we can perform this operation for one DP column in $\mathcal{O}( {|l_k| \choose 2} \cdot 2^{|A(k)|})$ time.
+
+\textit{DP column recurrence}.
+Note that $C(k,B)$ is the cost of an optimal solution for input matrices restricted to the first $k$ columns under the constraints that the sought bipartition extends $B$ at bubble $k$.
+Entries in column $C(k+1,\cdot)$ should hence add up local costs incurred in column $k+1$ and costs from the previous column (see Algorithm~\ref{alg:dp-table}).
+To adhere to the semantics of $C(k+1,B)$, only entries in column $k$ whose bipartitions are \emph{compatible} with $B$ are to be considered as possible ``predecessors'' of $C(k+1, B)$.
+
+For example, consider the second column from~\eqref{eq:bubble_matrix} and~\eqref{eq:weight_matrix1}. Let us compute $C(2,.)$ for different bipartitions using recurrence in Algorithm~\ref{alg:dp-table}:
+\[C(2, (\{r_1,r_2,r_3\},\emptyset)) = \min\{9+0, 10+0, 9+0,10+0, 8+0, 8+0\} \]
+\[ + \min\{C(1, (\{r_1,r_2,r_3\},\emptyset)\} = 8+9 = 17 \]
+
+To fill DP column $C(2,.)$, we can analogously compute this for the remaining bipartitions $(\{r_1,r_2\},\{r_3\})$,
+$(\{r_1,r_3\},\{r_2\})$, $(\emptyset,\{r_1,r_2,r_3\})$, $(\{r_3\},\{r_1,r_2\})$, and $(\{r_2\},\{r_1,r_3\})$.
+
+\begin{algorithm}
+    \caption{\label{alg:dp-table}\textsc{DP TABLE}}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{$C(1,.)$ for all bipartitions of bubble $k$.}
+    \Output{$C(k,.)$ for all the columns $k$ till last column $|L|$}
+    \For{ all columns $k \in \{2 \ldots |L|\}$}{
+	Compute $\Delta_C(k+1,B)$ using Equation~\ref{eq:dp-cell}. \\
+	Combine it with cost from column $k$ to obtain cost for column $k+1$:
+	\[C(k+1,B)= \Delta_C(k+1,B) + \min_{\substack{B'\in\mathcal{B}(A(k)):B'\simeq B\}}}C(k,B')\]
+	where $\mathcal{B}\big(A(k)\big)$ denotes the set of all bipartitions of $A(k)$.
+    }
+\end{algorithm}
+
+\textit{Backtracing.} We can backtrace from the last bubble $C(|L|, \cdot)$ to compute an optimal bipartition $B=(R,S)$ of all input reads.
+Given this bipartition, we obtain minimum-cost haplotypes as follows:
+Let $P_k=P\cap A(k)$ and $Q_k=Q\cap A(k)$ be an optimal bipartition in column $k$.
+We then set
+\begin{equation}\label{eqn:haplo_c1}
+h_0(k)= a_i \quad \text{with } i:=\argmin_{i'\in \{0,1, \ldots |l_k|\}} W_{k,{P_k}}^{i'}, \nonumber
+\end{equation}
+\begin{equation}\label{eqn:haplo_c2}
+h_1(k)= a_j \quad \text{with } j:=\argmin_{j'\in \{0,1, \ldots |l_k|\}} W_{k,{Q_k}}^{j'}, \nonumber
+\end{equation}
+where $a_i$ and $a_j$ refer to the corresponding allele paths of bubble $k$ (see Definition~\ref{def:allele-path}).
+The full length haplotypes $(h_0, h_1)$ are then obtained by concatenating the bubble paths $\big(h_0(k), h_1(k)\big)$ over all bubbles.
+
+\textit{Time complexity.} 
+% As in the previous WhatsHap algorithm \citep{patterson2014whatshap}, we performed algorithm engineering to save the phase information from two consecutive bubbles.
+Computing one DP column takes $\mathcal{O}( {m \choose 2} \cdot 2^{|A(k)|})$ time, and the total running time is $\mathcal{O}( {m \choose 2} \cdot 2^{|A(k)|} \cdot |L|)$ for $|L|$ bubbles, where $m$ is the maximum number of alleles in any bubble from $L$. 
+It is independent of read-length and, therefore, suitable for increasing read lengths from upcoming technologies.
+
+
+
+\subsection{Generation of final assemblies}
+We consider the base sequence graph $G_s$ and the two optimal paths $(h_0,h_1)$ to generate final assemblies for every connected component.
+For every connected component, we traverse along the haplotype paths $(h_0,h_1)$ and consider the node sequences with their direction information from the base sequence graph $G_s$ in order to generate the final haplotig sequences.
+
+\section{Datasets and experimental setup}
+To evaluate the performance of our method, we consider the real data available from two haploid yeast strains SK1 and Y12 \citep{yue2017contrasting}, which we combine to generate a pseudo-diploid yeast.
+Both the SK1 and Y12 yeast strains are deeply sequenced using Illumina and PacBio sequencing.
+The Illumina dataset is sequenced to an average coverage of 469$\times$ with paired end 151bp reads. We randomly downsample the dataset to a lower average coverage of 50$\times$.
+The PacBio data is sequenced to an average coverage of 334$\times$ with an average read length of 4510 bp. 
+For coverage analysis, we randomly downsample the PacBio reads to obtain datasets of different coverages $10\times$, $20\times$ and $30\times$ with their average read-lengths of 4482, 4501 and 4516 bp respectively.
+
+\subsection{Pipeline implementation}
+\textit{Sequence graph.}
+The first step in our pipeline is to clean the data and, therefore, we perform an error correction on the Illumina data by using BFC \citep{li2015bfc}, which, in our experience, retains heterozygosities well for diploid genomes.
+BFC is used with default parameters and provided with a genome size of 12.16\,Mbp.
+The second step is to generate a sequence graph that includes heterozygosity information.
+To construct such a graph, we first construct the assembly graph by using a modified version of SPAdes v3.10.1 \citep{bankevich2012spades} with default parameters plus the \texttt{--only-assembler} option.
+It uses the short Illumina reads to generate a De~Bruijn-based assembly graph without any error correction.
+We modify the original SPAdes to skip the bubble removal step and retain the heterozygosity information in the graph.
+We then convert the assembly graph to a bluntified sequence graph using VG \citep{garrison2017sequence}.
+After graph simplification, the resulting sequence graph has 158,567 nodes and 190,767 edges.
+
+\textit{Bubble detection.} In the next stage, we use VG's snarl decomposition algorithm to detect the regions of heterozygosity, or \textit{snarls}, in the sequence graph. This results in 29,071 bubbles.
+% and 58,183 total alleles of bubbles. 
+% \todo{So there must be bubbles with only one allele since $29095\cdot 2= 58190$. How many multi-allelic bubbles are there?}.
+
+\textit{PacBio Alignments.} After bubble detection, we align the long read PacBio data at different coverages (10$\times$, 20$\times$ and 30$\times$) to the generated sequence graph using GraphAligner\footnote{\url{https://github.com/maickrau/GraphAligner}}.
+For efficient alignment of PacBio reads, we use a seed-based approach.
+This results in 21,868, 43,459 and 73,129 PacBio alignments for input coverages of $10\times$, $20\times$ and $30\times$, respectively.
+
+\textit{Bubble ordering.} To obtain an ordering of bubbles, we perform \textit{de novo} assembly using Canu v1.5 \citep{koren2017canu} on the PacBio datasets.
+As suggested by \cite{giordano2017novo}, we use Canu v1.5 with parameter values as: \texttt{corMhapSensitivity=high, corMinCoverage=2, correctedErrorRate=
+0.10, minOverlapLength=499,}\\
+\texttt{corMaxEvidenceErate=0.3}. Next, we align these Canu contigs to the sequence graph to obtain the bubble ordering, which we define as the sequence of bubbles encountered by each aligned contig.
+Note that we use Canu solely for bubble ordering.
+In this paper, we restrict ourselved to phasing bubbles only in the unique regions.
+We detect repetitive bubbles based on the coverage depth of the PacBio alignments and remove them from downstream analyses.
+This results in 148, 80, 71 bubble chains and in total, 26,576, 27,556 and 27,741 bubbles at coverages of $10\times$, $20\times$, and $30\times$ respectively.
+% \todo{What is the definition of ``ordered bubble''? How many bubble chains and how many bubbles per chain on average?} 
+
+\textit{Graph-based phasing.} For each of the coverage conditions, we take as input the ordered bubbles, the long-read PacBio alignments and the sequence graph, and we compute the final haplotigs using gWhatsHap. 
+In gWhatsHap, we solve the gMEC problem by assuming constant weights in the weight matrix $\mathcal{W}$.
+
+\textit{True reference alignments.}
+To evaluate the accuracy of the predicted haplotypes, we align reference assemblies of the two yeast strains SK1 and Y12 \citep{yue2017contrasting} to the sequence graph.
+% In doing so, first, we obtain the true references based on previously generated assemblies of two yeast strains SK1 and Y12 using high coverage PacBio data \citep{yue2017contrasting} and, second, we align these references to the sequence graph.
+We emphasize that these reference assemblies are only used for evaluation purposes and are not a part of diploid assembly pipeline.
+
+\subsection{Running Falcon Unzip}
+The main goal of this study is to measure the advantages of phasing using a graph based approach, 
+and, in particular, the quality of haplotypes at heterozygous sites achievable using the low coverage PacBio data.
+Therefore, we compared our graph-based approach to the state-of-the-art contig based phasing method Falcon Unzip, which also generates diploid assemblies.
+
+The Falcon Unzip \citep{chin2016phased} algorithm first constructs a string graph composed of 'haploid consensus' contigs together with bubbles representing structural variant sites between homologous loci. 
+Sequenced reads are then phased and separated for each haplotype on the basis of heterozygous positions. 
+Phased reads are finally used to assemble the backbone sequence (primary contigs) and the alternative haplotype sequences (haplotigs). 
+The combination of primary contigs and haplotigs constitutes the final diploid assembly with phased single-nucleotide polymorphisms and structural variants between the two haplotypes.
+
+We ran Falcon Unzip using the parameters given in the official parameter guide\footnote{http://pb-falcon.readthedocs.io/en/latest/parameters.html}.
+Primary contigs and haplotigs were polished using the Quiver algorithm and corrected for SNPs and indels using Illumina data via Pilon with parameters \texttt{--diploid} and \texttt{--fix all} \citep{walker2014pilon}.
+To compare the Falcon Unzip haplotigs to the true references, we align the haplotigs produced by Falcon Unzip to our sequence graph and then 
+compared these aligned haplotigs to the true reference alignments through the bubbles.
+
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{evaluation.pdf}
+\caption{For a subgraph of $G_s$, the example shows the two true and predicted haplotype alignments (blue and red) through bubbles at the top and bottom. On comparing the respective red and blue lines at the top and botton, we see one switch between SV1 and SV2, which accounts for one switch error. 
+The total number of phased bubbles are 5. Therefore, the phasing error rate is 1/5.}
+\label{fig:evaluation}
+\end{figure}
+
+\section{Assembly performance assessment}
+We use the following performance measures for the evaluation of diploid assemblies:
+
+\textit{Phasing error rate}. Over the yeast genome, we compare diploid assemblies with ``true'' haploid assemblies.
+For each block, the predicted haplotype is expressed as a mosaic of the two true haplotypes, minimizing the number of switches. 
+This minimum is known as the number of switch errors.
+% Note that the second predicted haplotype is exactly the complement of the first one, due to only considering heterozygous sites, and so does not have to be considered. \todo{But that's only true for bi-allelic loci, right? What happens at mulit-allellic loci?}
+The phasing error rate is defined as the number of switch errors divided by the number of phased bubbles.
+Figure~\ref{fig:evaluation} illustrates this calculation.  The top panel shows the true references aligned to the sequence graph. At the bottom, there are predicted haplotypes through the bubbles (using Falcon Unzip or our graph-based approach).
+On comparing the true and predicted haplotypes, we see one switch between SV1 and SV2, which accounts for one switch error. The number of phased bubbles are five, the first bubble is considered as phased.
+Therefore, the phasing error rate for this example is 1/5.
+
+\textit{Average Percent Identity}. We consider the best assignment of each haplotig to either of the two true references, obtained by aligning the haplotig to the references.
+For each whole diploid assembly, we compute the average of the best-alignment percent identities of all the haplotigs. 
+
+\textit{Assembly contiguity.} We assess the contiguity of the assemblies by computing the N50 of haplotig size. 
+
+\textit{Assembly completeness}. We considered two assembly completeness statistics: first, the total length of haplotigs assembled by each method, and second, the total number of unphased contigs.
+\begin{center}
+\begin{table}
+\centering
+\begin{tabular}{ |l|c|c|c| } 
+ \hline
+ Statistics & PacBio & Graph-based  & Falcon Unzip \\ 
+ & coverage &  approach &  \\ 
+  \hline
+  \multicolumn{4}{|c|}{Diploid assemblies Quality}\\
+  \hline
+ Average Identity[\%] & 10$\times$& 99.50 & \textemdash\\
+   & 20$\times$& 99.61  &\textemdash\\
+   & 30$\times$& 99.80 &99.4 \\
+ Phasing error rate[\%] & 10$\times$& 2.5 & \textemdash\\
+   & 20$\times$& 1.5  &\textemdash\\
+   & 30$\times$& 0.7 & 3.8 \\
+  \hline
+  \multicolumn{4}{|c|}{Contiguity}\\
+  \hline
+   N50 haplotig size [bp]& 10$\times$& 40k &\textemdash\\
+   & 20$\times$& 42k &\textemdash\\
+   & 30$\times$& 43k &32k\\ 
+     \hline
+  \multicolumn{4}{|c|}{Completeness}\\
+  \hline
+  Haplotig size [Mbp] & 10$\times$& 20.7 &\textemdash\\
+   & 20$\times$& 21.1 &\textemdash\\
+   & 30$\times$& 23.9 &16.6\\
+   \# Unphased contigs  & 10$\times$& 2 &\textemdash\\
+   & 20$\times$& 2 &\textemdash\\
+   & 30$\times$& 2 &77\\
+ \hline
+\end{tabular}
+\\[10pt]
+ \caption{Comparison of two phasing methods, Falcon Unzip and our graph-based approach, at different PacBio coverage levels. For computing the ``haplotig N50'', we only consider those portions of a contig for which two haplotypes are available, i.e.\ those regions where Falcon reports a primary contig and an alternative haplotig.
+ For ``haplotig size'', we sum the length of contigs on both haplotypes (``primary contigs'' plus ``haplotigs'' in terms of Falcon's output), so the target size is twice the genome size (24.3Mbp in case of yeast).}
+\label{table:graph_unzip}
+\end{table}
+\end{center}
 
 \section{Results}
-We report the results of  wMEC-5, wMEC-15, and \mbox{PedMEC-G-5} for both data sets, \emph{real} and \emph{simulated}.
-All combinations of the three methods, two data sets, and six different average coverages (2$\times$, 3$\times$, 4$\times$, 5$\times$, 10$\times$ and 15$\times$) were run.
-The predicted phasings are compared to the ground truth phasing for the respective data set.
-That is, for the real data set, we compare to the population-based phasing produced by SHAPEIT; for the simulated data set, we compare to the true haplotypes that gave rise to the simulated reads.
-Figure~\ref{fig:main-results} shows the fraction of unphased SNPs in comparison to the phasing error rate (see Section~\ref{sec:metrics}) for all conducted experiments.
-A perfect phasing would be located in the bottom left corner.
+In this section, we present the results of our analysis of the diploid assemblies generated by our method and by Falcon Unzip on the data sets described above.
 
-\paragraph{The Influence of Coverage.}
-Increasing the average coverage is beneficial for phasing.
-For all three methods (wMEC-5, wMEC-15, and \mbox{PedMEC-G-5}) and both data sets, the phasing error rate and the fraction of unphased SNPs decrease monotonically when the average coverage is increased, as is clearly visible in Figure~\ref{fig:main-results}.
-The effect is much more drastic for wMEC than for PedMEC, however.
-Apparently, wMEC needs more coverage to compensate for PacBio's high error rate while PedMEC can resort to exploiting family information to resolve uncertainty.
+\textit{Coverage analysis.} To discover a cost-effective method for assembling a diploid genome, we consider PacBio datasets that vary in terms of coverage---specifically, 10$\times$, 20$\times$ and 30$\times$ coverage are considered.
+One of the primary aims of our study is to compare two approaches---the graph-based approach we implemented and the contig-based-phasing Falcon Unzip. In doing so, we quantify the agreement between the diploid assemblies generated by both methods and the true references.
+Table \ref{table:graph_unzip} shows the assembly performance statistics for both of these methods.
+In order to assess the accuracy of the competing diploid assemblies, we compute the phasing error rate and the average percent identity at different PacBio coverages.
+For the graph-based approach, we observe that as we increase the coverage from 10$\times$ to 30$\times$, the average identity of haplotigs increases from 99.5\% to 99.8\% and 
+the phasing error rate decreases from 2.5\% to 0.7\%. In contrast, Falcon Unzip, which is not designed for lower coverages, produces haplotigs with an average identity of 99.4\% and phasing error rate of 3.8\% at 30$\times$ coverage.
+Overall, comparing the agreement between the graph-based approach (at 10$\times$ coverage) and Falcon Unzip (at 30$\times$ coverage) to the true references, our graph-based approach delivers better haplotigs.
+We believe that one reason for this is that we use an Illumina-based graph as a backbone.
+Furthermore, solving the gMEC formulation for phasing optimally certainly contributes to generating accurate haplotigs.
+Overall, our analysis supports the conclusion that gWhatsHap delivers accurate haplotype sequences even at a long read coverage as low as 10$\times$.
 
-\paragraph{The Value of Family Information.}
-When operating on the same input coverage, \mbox{PedMEC-G-5} clearly outperformed wMEC-5 and even wMEC-15 in all cases tested.
-This was true for phasing error rates as well as for the fraction of phased positions.
-On the real data set with average coverage 10$\times$, for instance, wMEC-5 and wMEC-15 reached an error rate of 2.9\% and 1.9\%, while it was 0.5\% for \mbox{PedMEC-G-5}.
+With an increase in average PacBio coverage to 30$\times$, the haplotype contiguity achievable by using our approach improves from 40 kbp to 43 kbp.
+By way of comparison, Falcon Unzip delivers haplotigs with a N50 length of 32 kbp at the same coverage level. This highlights the fact that our approach generates more contiguous haplotypes compared to Falcon Unzip.
+In terms of haplotypes completeness, our approach yields diploid assemblies of length 20.7 Mbp, 21.1 Mbp and 23.9 Mbp at average PacBio coverages of 10$\times$, 20$\times$ and 30$\times$ respectively.
+At coverage 30$\times$, Falcon Unzip delivers a total assembly size of 16.6 Mbp.
+% \todo{Does this take the primary contigs into account? I'm still puzzled that this is so low. Did you try higher coverages?}. 
+The total length of haplotigs of real pseudo-diploid yeast genome is 24.3 Mbp.
+We observe that our approach delivers more complete haplotypes at a low coverage of 10$\times$ compared to Falcon Unzip at a much higher coverage.
+There are 2 haplotigs that are not phased by our approach; this is due to the lack of heterozygosity over those regions.
+On the other hand, there are 77 (out of 123) contigs that are not phased by Falcon Unzip.
+% We believe that the haplotig completeness and contiguity using the graph-based approach is mainly derived from aligning PacBio reads to the sequence graph, and additionally performing bubble calling and phasing them (as illustrated in Figure~\ref{fig:ex_graph_approach}).
+In summary, the graph-based approach delivers complete and contiguous haplotype sequences even at a low coverage of 10$\times$.
 
-Most remarkingly, \mbox{PedMEC-G-5} delivers excellent results already for very low coverages.
-When working with an average coverage as low as 2$\times$ for each family member, it achieves an error rate of 1.4\% and a fraction of unphased SNPs of 1.8\% (on real data).
-In contrast, wMEC-15 needs 15$\times$ average coverage on each individual to reach similar values (1.4\% error rate and 1.3\% unphased SNPs).
-When running on 5$\times$ data, \mbox{PedMEC-G-5}'s error rate and fraction of unphased positions decrease to 0.75\% and 0.85\%, respectively.
-Therefore, it reaches better results while requiring only a third of the sequencing data, which translates into significantly reduced sequencing costs.
+\textit{Structural variations.} Our next aim is to discover both small and large structural variants phased using the 30$\times$ coverage PacBio dataset.
+In Figure~\ref{fig:sv_scatter}, the x-axis represents the edit distance between the two allele (haplotype) paths,
+% \todo{I wouldn't call this type and talk of edit distance right away. Confusing otherwise.} 
+and the y-axis represents the maximum length from these two haplotype sequences for each bubble.
+% The structural variant type for each bubble is determined by calculating the edit distance between the two allele (haplotype) paths, and the maximum variant size is calculated by considering the maximum length from these two haplotype sequences.
+The color of each point in the plot indicates the number of corresponding bubbles.
+Using gWhatsHap, in Figure~\ref{fig:sv_scatter}, we observe that 26,451 bubbles (out of 29,071) are at a bottom left corner with an edit distance of 1 bp, indicating that the bubbles describe SNVs and other 1 bps indels. 
+% shorter variants \todo{The only option are 1bp indels, right? I would say this here.}.
+There are a few points that lie on the diagonal (i.e. with one edit per base in the longest allele), which represent larger indels.
+% \todo{Also below 20bp, right?}.
+The points along the vertical line of the plot represent the bubbles containing variants with a maximum length of 250 and an edit distance of~1~-~4, 
+resulting from multiple SNPs or other small variants that are close to each other and that end up being contained in a single bubble.
+Furthermore, we see that there are some points above the diagonal, which represent larger and more complex variation.
+Overall, the distribution of phased bubbles in the plot indicates that the graph-based approach using both Illumina and PacBio data can phase both small and large structural variations.
 
+% Taken together, the above analysis shows that our graph-based approach delivers better diploid assemblies even at lower PacBio coverages.
+% In addition, the graph-based approach helps to detect and phase larger structural variations present in the diploid genomes.
 
-\paragraph{Comparison of Real and Simulated Data.}
-When comparing results for simulated and real data, i.e.\ top and bottom plots in Figure~\ref{fig:main-results}, the curves appear similar, with some important difference.
-In terms of the fraction of phased SNPs ($y$-axis), results are virtually identical.
-This indicates that our simulation pipeline establishes realistic conditions regarding this aspect.
-Differences in terms of error rates ($x$-axis) are larger.
-In general, error rates in the real data are larger than in the simulated data, which might be partly caused by a too optimistic error model during read simulation.
-On the other hand, the population-based phasing used as ground truth for the real data set will most likely also contain errors.
-Especially low-frequency variants present difficulties for population-based phasers.
-Next, we therefore compare our ground truth statistical phasing to the independent phasing provided by 10XGenomics.
-
-\begin{figure}[t]
-\begin{center}
-\includegraphics[width=.85\columnwidth]{{Marschall.152.fig.3}.pdf}
-\end{center}
-\caption{Three-way comparison of phasings provided by SHAPEIT, 10XGenomics, and \mbox{PedMEC-G-5} (on 15$\times$ coverage data). 
-Of all pairs of consecutive SNPs phased by all three methods, the percentages of cases where the phasing reported by one method disagrees with the other two are reported. 
-Missing to 100\%: cases where all three methods agree.
-Left: SHAPEIT run with default parameters, corresponding to our ``ground truth phasing''; right: SHAPEIT run with pedigree information.}\label{fig:threeway}
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{wh_bubbles.pdf}
+\caption{Structural variation analysis of phased bubbles from our graph-based approach. The x axis and y axis show edit distance and maximum size for the two haplotype paths going through each bubble. The color shows the number of corresponding bubbles.}
+\label{fig:sv_scatter}
 \end{figure}
 
-\paragraph{Three-Way Comparison with 10XGenomics.}
-Figure~\ref{fig:threeway}(left) shows the results of a three-way comparison of ground truth statistical phasing, 10XGenomics, and \mbox{PedMEC-G-5} on 15$\times$ coverage data.
-We observe that the total fraction of cases where there is disagreement between the three methods is below 1\%.
-Out of these, 10XGenomics and the statistical phasing agree in a sizeable fraction of cases, shown in blue.
-In these cases, the PacBio-based \mbox{PedMEC-G-5} is likely wrong.
-Given PacBio's high read error rate, the existence of such cases is not surprising.
-On the other hand, there also is a significant fraction of cases where \mbox{PedMEC-G-5} and 10XGenomics agree, shown in red, indicating likely errors in the statistical phasing.
-Cases where \mbox{PedMEC-G-5} and the statistical phasing agree but disagree with 10XGenomics are very rare, which is likely due to the low error rates of short-read sequencing underlying the 10XGenomics phasing and the resulting highly accurate phasing.
-
-\paragraph{SHAPEIT-trio and duoHMM.}
-Figure~\ref{fig:threeway}(right) shows the same three-way comparison, but uses the results obtained from SHAPEIT when run in trio mode.
-We see that this improved the phasing for the child but dramatically worsened the agreement for the parents, with more than 4\% of all phased SNP pairs for which 10XGenomics and \mbox{PedMEC-G-5} agreed but disagreed with SHAPEIT-trio.
-Running duoHMM \citep{OConnell2014} to improve the SHAPEIT-trio phasing did not lead to any changes, which might be related to that duoHMM is designed to be run for large cohorts of related individuals.
-
-\paragraph{Phase Information Beyond Block Boundaries.}
-Genetic phasing operates on genotypes of a pedigree, without using any sequencing reads.
-Figure~\ref{fig:genetic_molecular} illustrates a case where we have two blocks that are not connected by reads in any individual. 
-Nonetheless phase information can be inferred from the genotypes: Each block contains a SNP that is homozygous in both parents and heterozygous in the child, which immediately establishes which haplotype is maternal and which is paternal in both blocks.
-Note that this, in turn, also implies the phasing of the parents.
-By design, PedMEC-G implicitly exploits such information.
-To demonstrate this, we used the real data set and merged all blocks reported by PedMEC-G into one chromosome-wide block and determined the fraction of cases where phases were correctly inferred between blocks---and hence between two SNPs that are not connected by reads in any individual.
-This resulted in a fraction of 89.7\% correctly inferred phased (averaged over all individuals and coverages; standard deviation 1.4\%).
-Repeating the same for wMEC yielded 50.4\% correctly inferred phased, as expected equalling a coin flip.
-
-\paragraph{Runtimes.}
-All experiments have been run on a server with two Intel Xeon E5-2670 CPUs (10 cores each) running at 2.5GHz.
-The implementation in WhatsHap is sequential, i.e.\ only using one CPU core.
-In all cases, the time spent reading the input files dominated the time spent in the phasing routine itself.
-Processing all three individuals of the 5$\times$ coverage real data set took 31.1\,min, 31.2\,min, and 26.2\,min for wMEC-5, wMEC-15, and \mbox{PedMEC-G-5}, respectively.
-This time included all I/O and further processing.
-Of these times, 2.0\,s, 4.1\,s, and 101.0\,s were spent in the phasing routine, respectively.
-For input coverage 15$\times$, total processing took 89.3\,min, 93.9\,min, and 65.4\,min for wMEC-5, wMEC-15, and \mbox{PedMEC-G-5}, respectively.
-Of this, 2.5\,s, 149.9\,s, 321.5\,s were spent in the phasing routines, respectively.
-We conclude that the phasing algorithm presented here is well suited for handling current data sets swiftly.
-In the future, we plan to further optimize the implementation of I/O subroutines and provide automatic chromosome-wise parallelization of data processing.
-
-\begin{figure}[t]\centering
-\includegraphics[width=\columnwidth]{{Marschall.152.fig.4}.pdf}
-\caption{Two disjoint unconnected haplotype blocks for which phase information can be inferred from the genotypes.}
-\label{fig:genetic_molecular}
-\end{figure}
+% \begin{figure}[t!]\centering
+% \includegraphics[width=\columnwidth]{falcon_bubbles.pdf}
+% \caption{Structural variation analysis of phased bubbles from Falcon Unzip. The x axis and y axis show edit distance and maximum size for the two haplotype paths going through each bubble. The color shows the density of bubbles.}
+% \label{fig:sv_scatter_falcon}
+% \end{figure}
 
 \section{Discussion}
-We have presented a unifying framework for integrated read-based and genetic haplotyping.
-By generalizing the WhatsHap algorithm \citep{Patterson2015}, we provide a fixed-parameter tractable method for solving the resulting NP-hard optimization problem, which we call \emph{PedMEC}.
-When maximum coverage and number of individuals are bounded, the algorithm's runtime is linear in the number of phased variants and independent of the read length, making it well suited for current and future long-read sequencing data.
-This is mirrored by the fact that the runtime is dwarfed by the time required for reading the input files in practice.
-PedMEC can use any provided costs for correcting errors in reads as well as for recombination events.
-By using phred-scaled probabilities as costs, minimizing the cost can be interpreted as finding a maximum likelihood phasing in a statistical model incorporating Mendelian inheritance, read error correction, and recombination.
+The Falcon Unzip method \citep{chin2016phased} is purely based on PacBio data, which exhibits a high error rate, and is therefore not suitable for lower coverages.
+By using (costly) high coverage PacBio data, Falcon Unzip is able to generate good quality assemblies with an average haplotig identity of up to 99.99\% \citep{chin2016phased}.
+% \todo{I do not see this number in the table above}. %, which is not the cost-effective way to solve the problem.
+However, it follows a conservative approach for phasing genomic variants:
+As sketched in Figure~\ref{fig:ex_graph_approach}, Falcon Unzip generates long primary contigs, but tends to phase them only partially.
+In this example, the central section, which contains non-SNV variants, remains uphased.
 
-Testing the implementation on simulated and real trio data, we could show that the method is notably more accurate than phasing individuals separately, especially at low coverages.
-Beyond enhanced accuracy, our method is also able to phase a greater fraction of heterozygous variants compared to single-individual phasing.
+To address the above problems, we have provided a novel graph-based approach to diploid genome assembly by combining two different sequencing technologies.
+By using one technology producing shorter, more accurate reads, and a second technology delivering long reads, we jointly produce accurate, complete and contiguous haplotypes. 
+In doing so, we also provided a cost-effective way of generating high quality assemblies.
+Furthermore, by generalizing the diploid assembly problem to sequence graphs, we can detect and phase large structural variants, which was not possible by using linear approaches. 
+We have tested our approach using real data for a pseudo-diploid yeast genome, and we have shown that we deliver accurate and complete haplotigs.
+Furthermore, we have shown that we can detect and phase structural variants.
 
-Being able to phase more variants is a key benefit of the integrative approach.
-Whereas read-based phasing can in principle only phase variants connected by a path through the covering reads, adding pedigree information enables even phasing of variants that are not covered in all individuals since the algorithm can ``fall back'' to using genotype information.
-Figure~\ref{fig:reason} illustrates the increased connectivity while phasing a trio, resulting in more phased variants in practice.
+In this study, our main focus was to phase unique regions of the genome.
+As a next step, we plan look into repetitive regions and phase them as well.
+To this end, it is important to note that resolving repeats and polyploid phasing are closely related problems, as pointed out by \cite{Chaisson2017}.
+Therefore, we will aim to solve heterozygous variants and repeats in a joint phasing framework, in order to obtain even more contiguous diploid genome assemblies that include both types of features.
+That would also remove the need of running an external assembler (Canu) for bubble ordering.
+Finally, our framework allows, in principle, to incorporate more data from other sequencing technologies, like chromatin-conformation capture \citep{burton2013chromosome}, linked read sequencing \citep{weisenfeld2017direct}, and single-cell template strand sequencing (Strand-seq; \citealp{Porubsky2016}).
+In previous studies on reference-based haplotyping, we have shown such integrative approaches to be very powerful to obtain chromosome-scale haplotypes \citep{porubsky2017dense,chaisson2017multi}, which we believe can be lifted to \textit{de novo} diploid genome assemblies.
+Moreover, studying the biological implications of the phased structural variation we can now detect also constitute an exciting future research direction.
 
-Genetic haplotyping alone cannot phase variants that are heterozygous in all individuals, emphasizing the need for an integrative approach as introduced here.
-We demonstrate that such an approach indeed yields better result and recommend its use whenever both reads and pedigree information are available.
-Most remarkingly, the presented approach is able to deliver outstanding performance even for coverages as low as 2$\times$ per individual, on par with performance delivered by single-individual haplotyping at 15$\times$ coverage per individual.
-
-\paragraph{Future work.}
-We plan to implement phasing of \emph{de novo} variants observed in the child, which would be impossible with pure genetic haplotyping but is straightforward with our approach.
-
-Since runtime is exponential in the maximum physical coverage, pruning of datasets is required in practice.
-The read selection approach currently implemented in WhatsHap \citep{Fischer2016} aims to retain reads that both cover and connect many variants at the same time, in particular for heterogeneous combinations of datasets such as paired-end or mate-pair reads together with long reads.
-For pedigrees, each dataset is currently pruned individually, but results would likely improve if pedigree structure was taken into account in this step.
-Finally, since we show that it is possible and beneficial to integrate both read-based and genetic phasing, the next obvious question is whether it is possible to modify our unified theoretical framework to one that also includes statistical phasing.
-
-
-
-
-
-
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: "main"
-%%% End:

@@ -1,310 +1,1160 @@
-\chapter{Parameterized algorithms for individual genomes}
+\chapter{Approximation algorithm for phasing individual genome}
 
-We introduced parameterized algorithms in chapter\todo{chapter 1} with a real-world toy example, which provides a good basis for haplotype phasing problem.
-In this chapter, we provide a integrative framework based on parameterized algorithm for solving the phasing problem for individual genomes. 
-We apply parameterized algorithm on the combination of global, but sparse haplotypes obtained from strand-specific single cell sequencing (Strand-seq) with dense, yet local, haplotype information available through long-read or linked-read sequencing.
-This results in dense and accurate chromosome-length haplotypes at reasonable costs. 
-We provide comprehensive guidance on the required sequencing depths and reliably assign more than 95\% of alleles (NA12878) to their parental haplotypes using as few as 10 Strand-seq libraries in combination with 10-fold coverage PacBio data or, alternatively, 10X Genomics linked-read sequencing data.
+In this chapter, we study the approximation status of \GMEC, which is a variant of \MEC problem (see Problem~\ref{prob:mec}) introduced in Chapter 1.
+In other words, the minimum error correction problem (\MEC) is a segmentation problem where we have to partition a set of length $m$ strings into two classes.
+A \MEC instance is an $n \times m$ matrix $M$ with entries from $\{0,1,-\}$. 
+    Feasible solutions are composed of two binary $m$-bit strings, together with an assignment of each row of $M$ to one of the two strings.
+    The objective is to minimize the number of mismatches (errors) where the row has a value that differs from the assigned solution string.
+    The symbol ``$-$'' is a wildcard that matches both $0$ and $1$.
+    A \MEC instance is \textit{gapless}, if in each row of $M$ all binary entries are consecutive.
 
-\section{The power of combining different sequencing technologies for phasing}
-Constructing genome-wide chromosome-length haplotypes is important for different biological applications\todo{citation}.
-Currently, methods used to chart the unique variation of individual human genomes rely largely on 2nd and 3rd generation DNA sequencing and can include specialized experimental protocols\todo{citation}. 
-Sequencing technologies sample the human genome in the form of relatively short molecules (reads) and every read that spans at least two heterozygous variants 
-can essentially be considered as a 'mini haplotype' that can be assembled into longer haplotype segments by partially overlapping reads spanning the same variable locus\todo{citations}. 
-To this end, haplotype-informative reads need to be partitioned into two disjoint sets that represent the two haplotypes. 
-This process, however, is complicated by errors in sequencing as well as genotyping. 
-For these reasons assembling haplotypes directly from sequencing data is computationally challenging, and the resulting optimization problems are provenly hard\todo{citation}. 
-Notwithstanding, a number of computational approaches for read-based phasing have recently been developed\todo{citation} 
-and, particularly, progress on fixed-parameter tractable (FPT) algorithms has enabled solving read-based phasing in practice\todo{citation}, for instance through the implementations available in the software package WhatsHap\todo{citation}. 
-% Beyond phasing reads aligned to a reference genome, various approaches for haplotype-resolved de novo assembly have been explored21–25.	
-\todo{related work for MEC is missing.}
-However, all approaches to reconstruct haplotypes from sequencing reads, be it reference-based or reference-free, come with the intrinsic limitation that the distance between subsequent heterozygous markers can be larger than the read length itself. 
-While long-read sequencing (such as PacBio SMRT\todo{citation} and Oxford NanoPore MinION\todo{citation}), or linked read data (such as those provided by 10X Genomics\todo{citation}) help to mitigate this issue, 
-these technologies fail to phase over longer stretches of homozygosity, repeat-rich areas including segmental duplications, and centromeres. 
-Thus, specialized techniques that enable homologous chromosomes to be discriminated are required to physically connect alleles across whole chromosomes\todo{citation}. 
-As an alternative to whole chromosome separation, chromatin capture (Hi-C) methods\todo{citation} can be employed to infer long-range haplotype information, based on the assumption that a chromosome will be cross-linked to itself more often than to its homologue\todo{citation}.
-Recently, Hi-C data have been used in combination with other sequencing methods for long-range phasing\todo{citation}. 
-However, it has been shown that to generate a reliable long-range haplotype scaffold, relatively high sequence coverage (ideally ~90-fold) is needed to reduce bias caused by crosslinks between non-homologues chromosomes\todo{citation}. 
-In particular, because these haplotypes need to be inferred statistically, the probability that two heterozygous variants are correctly phased relative to each other deteriorates with increasing chromosomal distances.
+ \GMEC is a relevant problem in computational biology, and it is closely related to segmentation problems that were introduced by {[}Kleinberg--Papadimitriou--Raghavan STOC'98{]} in the context of data mining.
+ 
+     Without restrictions, it is known to be $\UG$-hard to compute an $O(1)$-approximate solution to \MEC. For both \MEC and \GMEC, the best polynomial time approximation algorithm has a logarithmic performance guarantee.
+    We partially settle the approximation status of \GMEC by providing a quasi-polynomial time approximation scheme (QPTAS).
+    Additionally, for the relevant case where the binary part of a row is not contained in the binary part of another row, we provide a polynomial time approximation scheme (PTAS).
+
+\section{Our results.}
+Our main result is the following theorem.
+\begin{theorem}\label{thm:qptas}
+    There is a quasi-polynomial time approximation scheme (QPTAS) for \GMEC.
+\end{theorem}
+We therefore partially settle the approximability for this problem: \GMEC is not $\APX$-hard unless $\NP \subseteq \QP$ (cf.~\cite{RS09_approximation}).
+Thus our result reveals a separation of the hardness of the gapless case and the case where we allow a single gap.
+Furthermore, already \BMEC is strongly $\NP$-hard since the input does not contain numerical values. 
+Therefore we can exclude the existence of an FPTAS for both $\BMEC$ and $\GMEC$ unless $\P = \NP$.
+
+Additionally, we address the class of \emph{subinterval-free} \GMEC instances where no string is contained in another string.
+More precisely, for each pair of rows from $M$ we exclude that the set columns with binary entries from one row is a strict subset of
+the set of columns with binary entries from the other row.
+
+\begin{theorem}\label{thm:ptas}
+    There is a polynomial time approximation scheme (PTAS) for $\GMEC$ restricted to instances such that no string is the substring of another string.
+\end{theorem}
+
+\section{Overview of our approach.}
+
+Our algorithm is a dynamic program (DP) that is composed of several levels.
+Given a general \GMEC instance, we decompose the rows of the instance into length classes according to the length of the contiguous binary parts of the rows.
+For each length class we consider a well-selected set of columns such that each row crosses at least one the columns and at most two.
+(We say that a row crosses a column if the binary part of the row contains that column.)
+
+We further decompose each length class into two sub-classes, one that crosses exactly one column and one that crosses exactly two columns.
+For the second class, it is sufficient to consider every other column, which leaves us with many \emph{rooted} instances.
+Thus for each sub-instance there is a single column (the root) which is crossed by all rows of the instance.
+
+We further decompose rooted sub-instances into the left hand side and the right hand side of the root.
+Since the two sides are symmetric, we can arrange the rows and columns of these sub-instances in such a way that all rows cross the first column.
+We order the rows from top to bottom by increasing length in order to be able to further decompose the instance.
+
+The first level of our DP solves these highly structured instances.
+The basic idea that we would like to apply is that we select a constant number of rows from the instance that represents the solution.
+Without further precautions, however, this strategy fails because of differing densities within the instance: 
+the selected rows have to represent both the entries of columns crossed by many short rows and entries of arbitrarily small numbers of rows crossing many columns.
+To resolve this issue, we observe that computing the solution strings $\sigma$ and $\sigma'$ is equivalent to finding a partition of $M$ into two row sets, one assigned to $\sigma$ and the other assigned to $\sigma'$.
+If we assume to have the guarantee that for both solution strings $\sigma$ and $\sigma'$ an $\epsilon$ fraction of rows of the matrix $M$ forms a \BMEC sub-instance, we show that the idea above works.
+
+This insight motivates to separate the instance from left to right into sub-problems with the required property and to assemble them from left to right using a DP.
+There are, however, several complications.
+In order to choose the right sub-instances, we have to take into account that the choice depends on which rows are assigned to $\sigma$ and which are assigned to $\sigma'$.
+Therefore the DP has to take special care when identifying the sub-instances.
+
+Furthermore, in order to stitch sub-instances together to form a common solution, the solution computed in the left sub-instance has to compute its solution oblivious of the choices of the right sub-instance.
+This means that we have to compute a solution to the left sub-instance without looking at a fraction of rows.
+We present an algorithm for these sub-instances in Section~\ref{sec:swc}.
+
+%\sgnote{sub-instances of?}
+In order to combine the sub-instances, we face further technical complications due to having distinct sub-instances for those rows assigned to $\sigma$ and those rows assigned to $\sigma'$.
+In Section~\ref{sec:second}, we introduce a DP whose DP cells are pairs of simpler DP cells, one of $\sigma$ and one for $\sigma'$.
+%In order to separate these complications from the actual combination of sub-problems, we first consider instances for which we only want to have one solution string, in Section~\ref{sec:single}.
+%We note that these instance would be easily solvable by simply selecting the majority value in each column, but our aim is something different.
+%As needed for the actual instances, in the DP we restrict our view and only considering constantly many rows at a time.
+%Afterwards, in Section~\ref{sec:second}, we show how to combine our insights with taking care of both $\sigma$ and $\sigma'$.
+
+Before we consider general instances, we first develop our techniques by considering subinterval-free instances which are easier to handle (Section~\ref{sec:subinterval-free}).
+Observe that the instances considered until now are special rooted sub-interval-free instances.
+We show how to solve arbitrary rooted sub-interval-free instances by combining the DP with additional information about the sub-problems that contain the root.
+We then introduce the notion of domination in order to combine rooted sub-interval-free instances with a DP proceeding from left to right.
+The main idea is that a dominant sub-problem dictates the solution.
+At the interface of two sub-instances, there can be a (contiguous) region where none of the two sub-problems is dominant.
+We show that these regions can be solved directly by considering a constant number of rows (using the results from Section~\ref{sec:swc}).
+
+Until this point, all parts of our algorithm run in polynomial time.
+%We lose this property when considering arbitrary rooted instances, in Section~\ref{sec:QPTAS}.
+We lose this property when considering length classes, in Section~\ref{sec:length-classes}.
+The length classes allow us to separate an instance into rooted sub-instances.
+%The reason is that the left hand side of the root may have a completely different structure than the right hand side of the root.
+The difficulty is that the left hand side of a separating column may have a completely different structure than the right hand side of that column.
+We do not know how to combining the two sides by considering only a polynomial number of possibilities.
+If we allow, however, quasipolynomial running time, we can solve the problem. 
+We use that each of the two sub-instances (the one on the left and the one on the right) is composed of at most logarithmically many parts.
+Considering all parts simultaneously allows us to take care of dependencies between the left hand side and the right hand side and still solve them as if they were separate instances.
+%
+%We next consider \GMEC instances where all strings are in the same length class, \ie, the longest binary part is at most twice as long as the shortest binary part of a row (Section~\ref{sec:length-classes}).
+%As described earlier, we consider two sets of rows such that for each of these sets there is a sequence of columns such that each row crosses exactly one of the columns.
+Combining such rooted instances from left to right then can be done in the same spirit as combining rooted sub-interval-free instances.
+% \sgnote{why quadruples? DP cells from sub-internal free?}
+To solve the entire length-class, we combine both solutions by running a new DP that considers quadruples of DP cells.
+
+Finally, in Section~\ref{sec:generalQPTAS}, we are able to handle all length classes simultaneously. 
+We solve general instances in the same spirit as the combined sub-instances of a single length class.
+Instead of considering quadruples of cells, however, we form collections of quadruples that are -- figuratively speaking -- stacked on top of each other.
+The key insight is that there are only $O(\log(n))$ different length classes and each collection has at most one quadruple of each length class.
+Considering all possible collections adds another power of $\log(n)$ to the running time, which is still quasi-polynomial.
+
+\section{Further related work.}
+Binary-MEC is a variant of the Hamming $k$-Median Clustering Problem when $k = 2$ and there are PTASs known~\cite{JXL04_k, OR02_polynomial}. 
+\cite{LMW02_finding} provided a PTAS for the general consensus pattern problem which is closely related to \MEC.
+Additionally, they provided a PTAS for a restricted version of the star alignment problem aligning with at most a constant number of gaps in each sequence.
+More recently, ~\cite{BDK+16_minimum} showed that it is unique games hard to approximate \MEC with constant performance guarantee, whereas it is approximable within a logarithmic factor in the size of the input. 
+\GMEC was shown to be $\NP$-hard by ~\cite{CIKT07_complexity}.\footnote{Their result predates the hardness result of ~\cite{Fei14_np} for H2S. The proof of the claimed $\NP$-hardness of H2S by ~\cite{KPR98_segmentation} was never published.}
+Additionally, they showed that allowing a single gap in each string renders the problem $\APX$-hard.
 
 
-Here, we introduce a strategy to obtain dense and global haplotypes that span centromeres, homozygosity regions and genome assembly gaps, while keeping error rates, costs and labor at minimum. 
-To this end, we harness the long-range phasing information provided by single cell template strand sequencing (Strand-seq)\todo{citation}. Strand-seq is an effective method to assemble highly 
-accurate chromosome-length haplotypes, albeit with lower density of phased alleles in comparison to read-based phasing\todo{citation}. 
-Unlike other haplotyping methods, Strand-seq by design distinguishes parental homologues based on the directionality of single-stranded DNA. 
-Therefore, Strand-seq is able to deliver global haplotypes, and its capability to correctly phase two variants with respect to each other does not depend on their distance. 
-To fully exploit this advantage, while at the same time generating dense haplotypes that contain virtually all heterozygous SNVs, we designed a novel unified statistical framework to combine 
-Strand-seq data with short-read, long-read, or linked-read sequencing data. 
-Previously, Strand-seq data had only been used on its own, resulting in global yet sparse haplotypes\todo{citation}. 
-We demonstrate how the long range phase information inherent to Strand-seq data can be leveraged to bridge phased segments obtained from Illumina, PacBio or 10X Genomics sequencing data into contiguous and global haplotypes that span whole chromosomes.
-We further offer extensive experimental guidance on favorable combinations of the number of used Strand-seq libraries and the depth of PacBio or Illumina coverage, 
-and thus enable considerable reductions in costs and labor – yielding a novel, affordable and scalable approach for reconstruction of haplotype-resolved individual genomes.
+~\cite{AS99_two} provided a PTAS for H2S, the maximization version of \BMEC and ~\cite{WUB13_monochromatic} showed that there is also a PTAS for the maximization version of \MEC.
+For \GMEC, ~\cite{HCP+10_optimal} studied the fixed-parameter tractability in the parameter of fragment length with some restrictions.
+These restrictions allow their dynamic programming algorithm to focus on the reconstruction of a single haplotype and, hence, to limit the possible combinations for each column.
+There is an FPT algorithm parameterized by the coverage~\cite{PMP+15_whatshap,garg2016read} (and some additional parameters for pedigrees). 
+~\cite{BDK+16_minimum} provided FPT algorithms parameterized by the fragment length and the total number of corrections for Gapless-MEC.
+There are some tools which can be used in practice to solve Gapless-MEC instances~\cite{PZD+15_hapcol, PMP+15_whatshap}.
 
-\todo{different examples of the genomics regions to show the importance of combining technologies.}
-\section{Integrative phasing framework}
-We present the integrative phasing method that is a framework to solve phasing jointly using different sequencing datasets presented in Section\todo{citation}.
-To solve it, we generalize the input instances given in \todo{Definiton?} to jointly include the read alignment or initial haplotypes from different technologies.
-For example, the haplotypes are generated using strand-specific cells or 10x Genomics, are added to the matrix $\mathcal{F}$. Furthermore, the read-alignments over the variants using different technologies such as PacBio or Illumina are then additionally incorporated in $\mathcal{F}$.
-The goal is to partition the rows in $\mathcal{F}$ into two non-conflicting sets.
-The input matrix and the bipartition of the rows is illustrated in Fig.~\ref{fig:fig2}.
+Most research in haplotype phasing deals with exact and heuristic approaches to solve \BMEC.
+Exact approaches, which solve the problem optimally, include integer linear programming~\cite{FM12_solving} and fixed-parameter tractable algorithms~\cite{HCP+10_optimal, PZD+15_hapcol}.
+There is a greedy heuristic approach proposed to solve Binary-MEC~\cite{BB08_hapcut}. 
 
-Mathematically, aligned reads from Illumina or PacBio (or pre-phased 10X Genomics haplotype segments) and sparse Strand-seq haplotypes are jointly represented in the form of a fragment matrix, where each  row represent either one reads (in case of Illumina and PacBio), 
-one pre-phased haplotype segment (in case of 10X Genomics) or one sparse global haplotype (in case of StrandSeq data) and columns represent the variant sites (Fig.~\ref{fig:fig2}). 
-The matrix is filled with 0, 1 and ‘-’ entries, where 0 and 1 indicate that the corresponding read supports the reference or alternative allele, respectively,  and ‘-’ means the information is missing 
-(e.g. because a read does not cover this variant site). WhatsHap selects a subset of rows and solves the wMEC problem optimally on these rows. 
-The result is a maximum likelihood bipartition of rows, which corresponds to the two sought haplotypes.
-For all analyses, whatshap was provided with a reference genome (option --reference) to enable re-alignment-based allele detection when constructing the fragment matrix from sequencing reads. 
-This has been shown to significantly improve performance for PacBio reads\todo{citation}.
+~\cite{LBI+01_snps} obtained a network-flow based polynomial time algorithm for Minimum Fragment Removal (MFR) for gapless fragments.
+Additionally, they found the relation of Minimum SNPs Removal (MSR) to finding the largest independent set in a weakly triangulated graph.
 
-The definitions \todo{conflict-free, bipartition} are analogous. 
+\section{Preliminaries and notation.}\label{sec:prelim}
 
-The goal is the bipartition of the rows and generate two haplotypes for diploid genomes.
+We consider a \GMEC instance, which is a matrix $M \in \{0,1, -\}^{n \times m}$.
+The $i$th row of $M$ is the vector $M_{i,*} \in \{0,1, -\}^{1 \times m}$ and the $j$th column is the vector $M_{*,j} \in \{0,1, -\}^{n \times 1}$.
+The length of the binary part in $M_{i,*}$ is $|M_{i,*}|$. 
+We say that the $i$th row of $M$ \emph{crosses} the $j$th column if $M_{i,j} \in \{0,1\}$.
 
-\todo{explain MEC matrix and its goal using example above.}
+For each feasible solution $(\sigma,\sigma')$ for $M$, we specify an assignment of rows $M_{i,*}$ to solution strings.
+The default assignment is specified as follows.
+For a row $M_{i,*}$, we assign $M_{i,*}$ to $\sigma$ if $\dist(\sigma,M_{i,*}) \le \dist(\sigma',M_{i,*})$.
+Otherwise we assign $M_{i,*}$ to $\sigma'$.
+For the rows of $M$ assigned to $\sigma$ we write $\sigma(M)$ and for the rows assigned to $\sigma'$ we write $\sigma'(M)$.
+For a given instance, $\Opt = (\tau, \tau')$ denotes an optimal solution.
+Observe that knowing $\Opt$ allows us to obtain an optimal assignments $\tau(M)$ and $\tau'(M)$ by assigning each row to the solution string with fewest errors and knowing $\tau(M)$ and $\tau'(M)$ allows us to obtain an optimal solution by selecting the column-wise majority values.
 
-\todo{1. present MEC matrix example for different technologies like pacbio, illumina, 10xG haps, SS haps. 2. Now state the common observation from all the examples. 3. Then provide a intuition to solve it. 
-4. Finally provide the DP algorithm like in book DPChange of chapter 6.}
-\subsection{StrandPhaseR pipeline}
-	To build whole genome haplotypes from Strand-seq data we developed a new sorting-based pipeline, called StrandPhaseR. 
-	StrandPhaseR implements an improved phasing algorithm based on a binary sorting strategy of two parallel matrices, storing haplotype information obtained from single cell Strand-seq libraries. 
-	Haplotype informative WC regions were localized in every Strand-seq library  by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads in equally sized regions (default 1 Mb). 
-	We used Fisher's exact test to calculate the probability that a region contained approximately equal numbers of Crick and Watson reads and agreed with the expected 50:50 ratio of a WC region\todo{citation}. 
-	Alleles at variable positions (supplied as set of SNVs obtained from Illumina platinum haplotypes) were identified separately for W and C reads in every informative region to generate low density single cell haplotypes 
-	that are then sorted by the phasing algorithm. 
-	The partial single cell haplotypes are used to fill two matrices, where rows represent cells and columns represent covered variable positions (SNVs) in any given cell (\todo{Supplementary \todo{fig}S1}). 
-	Initially, one matrix stores all variable positions found within the Watson templates, and a second matrix stores all variable positions found within the Crick templates. 
-	Cells in the matrices are sorted in decreasing order based on the number of covered variants (i.e. depth of coverage). 
-	Initially, a score of each column is calculated as the sum of all covered variants minus the most abundant variant. 
-	This represents the level of disagreement across all cells for the given SNV in the column. 
-	The sum of scores for each column represents the overall score of the matrix, and a lower matrix score represents a higher level of concordance across all SNV positions. 
-	Once the score of both matrices is determined, all SNVs in the first row (i.e. those belonging to the first cell) are swapped between the two matrices. 
-	In essence, this exchanges the Watson and Crick template strands of the cell within the matrix, to test whether there is a higher level of agreement across the phased SNVs found for all the cells. 
-	To determine this, the matrix scores are recalculated and if the scores are lower than the previous scores the change is kept, otherwise the change is reversed. 
-	The algorithm continues with the second row. Again, the covered variants of the second cell are swapped between matrices, the matrix score are recalculated and the decision to preserve or reverse the change is made. 
-	This is repeated through all rows (cells) of the matrix, sorting the single cell haplotypes within both matrices to reduce the number of conflicting alleles within each column. 
-	We repeated sorting process twice, after which we did not observe any further changes. 
-	The resulting haplotypes are reported as the consensus allele found across all the cells for each column of the matrices. 
-	Ideally, there is only one allele present for every variable site in each matrix, however sporadic sequencing errors or cell-specific artefacts can introduce discrepancies. 
-	Lastly, any missing alleles at heterozygous sites are rescued by searching within the 'uninformative' reads (i.e. those from WW and CC regions) present in Strand-seq libraries and filled in. 
-	
-\section{Algorithm}\label{sec:algorithm}
-\paragraph{Solving MEC and wMEC.}
-WhatsHap \citep{Patterson2015} is a dynamic programming (DP) algorithm to optimally solve the wMEC problem.
-It runs in $\mathcal{O}(2^c\cdot M)$ time, where $M$ is the number of variants to be phased and $c$ is the maximum physical coverage (which includes internal segments of paired-end reads).
-Since it is independent of the read-length, so it is suitable for even long sequencing technologies.
-The general idea is to proceed column-wise from left to right while maintaining a set of active reads.
-Each read remains active from its first non-dash position to its last non-dash position in $\mathcal{F}$.
-Let the set of active reads in column $k$ be denoted by $A(k)$.
-Note that $c=\max_{k}\{|A(k)|\}$.
-For each column $k$ of $\mathcal{F}$, we fill a DP table column $C(k,\cdot)$ with $2^\abs{A(k)}$ entries, one entry for each bipartition $B$ of the set of active reads $A(k)$.
-Each entry $C(k,B)$ is equal to the cost of solving wMEC on the partial matrix consisting of columns $1$ to $k$ of $\mathcal{F}$ under the assumption that the sought bipartition of the full read set $A(1)\cup\ldots\cup A(k)$ \emph{extends} $B$ according to the below definition.
-\begin{definition}[Bipartition extension]
-For a given set $A$ and a subset $A'\subset A$, a bipartition $B=(P,Q)$ of $A$ is said to \emph{extend} a bipartition $B'=(P',Q')$ of $A'$ if $P'\subset P$ and $Q'\subset Q$.
+\section{Simple instances with wildcards.}\label{sec:swc}
+In this section, we consider instances of \GMEC where all entries of column one in $M$ are zero or one, i.e., $M_{i,1} \in \{0,1\}$ for each index $i$.
+Observe that the wildcards now have a simple structure which we refer to as SWC-structure (for ``simple wildcards'').
+An instance with SWC-structure is an SWC-instance.
+
+\begin{definition}[Standard ordering of SWC-instances]
+    We define the \emph{standard ordering} of rows in $M$ such that $|M_{i,*}| \le |M_{i+1,*}|$ for each $i$, \ie, we order them from top to bottom in increasing length of the binary part. 
+    \label{def:order-SWC}
 \end{definition}
-By this semantics of DP table entries $C(k,B)$, the minimum of the last column $\min_B\{C(M,B)\}$ is the optimal wMEC cost.
 
-\todo{add examples to explain algorithm.}
+\begin{definition}[Good SWC-instances]
+    \label{def:good-SWC}
+    We call an SWC-instance $M$ \emph{good}, if it is in standard ordering and there are at least $\epsilon |\tau(M)|$ rows of $\tau(M)$ and at least $\epsilon |\tau'(M)|$ rows of $\tau'(M)$ that have only entries from $\{0,1\}$.
+\end{definition}
 
-\section{Quality metrics of assembled haplotypes}
-	To assess the quality of assembled haplotypes in this study, we calculated different metrics described in the following.
-	
-Completeness: The process of haplotyping establishes phase relations between pairs of consecutive heterozygous variants. We call each such pair a 'phase connection'. For each haplotype segment produced by a (combination of) technologies, we therefore count the number of phase connections, which is equal to the number of heterozygous markers that make part of such a haplotype segment minus one. 
-To measure the completeness of a phasing, we sum the number of phase connections across all haplotype segments and divide by the maximum possible number of phase connections, which is equal to the number of heterozygous variants on a chromosome minus one.
+To solve good SWC-instances, we generalize the PTAS by Jiao et al.~\cite{JXL04_k} for \BMEC to solve a specific class of \GMEC instances. 
+Our algorithm requires partitions of the set of rows.
+In the following two definitions, the required number of rows may be a fractional number. 
+To solve the problem, we allow the assignment of fractional rows, i.e., for a row $i$, we can choose an $x \in [0,1]$ and assign an $x$ fraction of $i$ to one set and a $1-x$ fraction to the other set. 
+\begin{definition}[Trisection]
+    An \emph{$\epsilon$-trisection} of an instance $M$ for $\tau$ is a partition of the rows into three consecutive ranges that have the following properties.
+    \begin{enumerate}
+        \item The first range $U$ contains row $M_{1,*}$ and $(1-\epsilon) |\tau(M)|$ rows of $\tau(M)$.
+        \item The second range $L$ is consecutive to first row set containing $(\epsilon - \epsilon^2)|\tau(M)|$ rows of $\tau(M)$.
+        \item The third range $X$ contains the remaining rows in $M$.
+    \end{enumerate}
+    To avoid ambiguity, we choose $L$ and $X$ such that the first row is in $\tau(M)$.
 
-Switch error rate: The switch error rate is the fraction of phase connections for which the phasing between the two involved heterozygous variants is wrong (\todo{Supplementary \todo{fig}S3aA}).
+    We define an $\epsilon$-trisection $U'$, $L'$, and $X'$ for $\tau'$ analogously, replacing $\tau(M)$ by $\tau'(M)$.
+    \label{def:trisection}
+\end{definition}
 
-Largest haplotype segment: In this study we are interested in haplotypes that span the whole length of all chromosomes. To measure the completeness of phasing, we report the fraction of heterozygous variants that are part of the largest haplotype segment.
+\begin{definition}[Subdivision of trisections]
+    We consider the rows sets $U, L, U', L'$ from Definition~\ref{def:trisection} and additionally, we divide each of these sets into $1/\epsilon^2$ disjoint subsets denoted as $R_i, S_i, R'_i, S'_i$.
+    For each $i$, $R_i$ contains $\epsilon^2 \cdot |R|$ rows from $\tau(M)$ and $S_i$ contains $\epsilon^2 \cdot |S|$ rows from $\tau(M)$.
+    Analogously, each $R'_i$ contains $\epsilon^2 \cdot |R'|$ rows from $\tau'(M)$ and $S'_i$ contains $\epsilon^2 \cdot |S'|$ rows from $\tau'(M)$.
+    To avoid ambiguity, each set $R_i$ and $S_i$ starts with a (fractional) row of $\tau(M)$ and each set $R'_i$ and $S'_i$ starts with a (fractional) row of $\tau'(M)$. 
+    \label{def:subdivision}
+\end{definition}
 
-Largest haplotype segment Hamming rate: To assess whether haplotypes are correct also over long genomic distances, we only consider the largest haplotype segment and compute the Hamming distance between true and predicted haplotypes (\todo{Supplementary \todo{fig}S3bB}),
-divided by the total number of heterozygous variants in this haplotype segment. 
-That is,the Hamming error rate is equal to the fraction of wrongly phased heterozygous variants. 
-Note that, only one switch error (e.g. in the middle of a chromosome) can result  into a very high Hamming distance and hence the Hamming distance is a much more stringent quality measure. 
-While the switch error rate assesses whether haplotypes are correct locally, i.e. between pairs of neighboring heterozygous variants, the Hamming distance assesses whether haplotypes are correct globally.
+\begin{definition}[Error difference]
+   Let $i$ be a row of instance $M$ and let $(\sigma,\sigma')$ be a solution pair.
+   Then the error difference of $\sigma$ and $\sigma'$ is defined as
+   $d_i := \dist(\sigma,M_{i,*}) - \dist(\sigma',M_{i,*})$.
+   \label{def:errors}
+\end{definition}
+%
+We introduce a new algorithm $\textsc{SWC}_\delta$ for our setting.
+For an instance $M$, we consider the rows sets $U, L, U', L'$ shown in Fig.~\ref{fig:section 2.1} from the $\epsilon$-trisections of $M$ and their subsets according to Definition~\ref{def:subdivision}.
+We further select a multi-set of strings from $R'_i \cap \tau(M)$ and $S'_i \cap \tau'(M)$.
+We then compute the majority weighting according to Definition~\ref{def:weighted-majority} for each column $j$ using 
+multisets based on the minimum number of errors (according to Definition~\ref{def:errors}).
+The main idea to find two small row sets that represent the whole instance $M$.
+The intuitive meaning is that we select rows from the upper part with a much lower density then the rows of the lower part.
+We therefore introduce a bias such that all rows are equally important.
 
+\begin{figure}[h]
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+            \draw (-2,-2) rectangle (2,3);      % A
+            \draw (-2,-3) rectangle (9,-2);     % B
+            \draw[dashed] (2,3) -- (9,-2);
+            \draw[dashed] (9,-2) -- (18,-3);
+            \draw[pattern=north east lines] (-2,-3.5) rectangle (18,-3); % Bottom area
+            \node at (8,0){$U \cup U'$};
+            \node at (14,-2.0) {$L \cup L'$};
+            \node at (4,-3.3) {$X \cup X'$};
+            \node at (-2.5,0){\(\left(\rule{0cm}{2.4cm}\right.\)};
+            \node at (19,0){\(\left.\rule{0cm}{2.4cm}\right)\)};
 
-\section{RESULTS}
-\subsection{Publicly available datasets used in this study} 
-\todo{add this paragraph probably in the text above.}
-Illumina reads\todo{citation} were obtained from 1000 Genome Project Consortium (\footnote{\url{ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/NA12878/high_coverage_alignment/}}). 
-PacBio reads\todo{citation} were downloaded btained from Genome in a Bottle Consortium (GIAB)(\footnote{\url{ftp://ftp trace.ncbi.nlm.nih.gov/giab/ftp/data/NA12878/NA12878_PacBio_MtSinai/sorted_final_merged.bam}}). 
-10X Genomics haplotypes: pPre-assembled 10X Genomics haplotypes (produced on the Chromium plat form with Chromium Genome v1 reagents, sequenced on an Illumina HiSeq X Ten and processed with LongRanger 2.1.0) were downloaded from 
-10X Genomics website (\footnote{\url{https://support.10Xgenomics.com/genome-exome/datasets/NA12878_WGS_210}}) and filtered for heterozygous and PASS filter SNVs. 
-Strand-seq libraries\todo{citation}: For this study have been downloaded from the European Nucleotide Archive (\footnote{\url{http://www.ebi.ac.uk/ena}}), accession number: PRJEB14185. 
-Alternatively, aligned Strand-seq data, used in this study, can be obtained at Zenodo site (\footnote{\url{doi:10.5281/zenodo.830278}}). 
-Reference haplotypes\todo{citation}: 
-In this study we use as a gold standard, we downloaded reference triopedigree- based haplotypes of NA12878 obtained released as part of the Illumina platinum genomes (Version: 2016-1.0 from 6 June 2016) (\footnote{http://www.illumina.com/platinumgenomes/}).
-
-\paragraph{Experimental design and dataset description}
-	To explore a new integrative phasing strategy, with the aim of obtaining dense and accurate chromosome-length haplotypes, we used sequencing data available for a well-studied individual (NA12878). 
-	The NA12878 genome has been extensively sequenced using multiple technologies, providing high-coverage public sources of sequence information\todo{add data as footnote}. 	
-	In this study, we focused on read-based phasing data generated from Illumina short-read sequencing and PacBio technology, as they represent current standards for short- and long-read sequencing, 
-	respectively (Illumina short-read sequencing is for simplicity referred to as “Illumina data”). 
-	The Illumina dataset was sequenced to an average depth of 49.5x coverage with a median insert size of 433bp, and the PacBio dataset was sequenced to 39.6x coverage with an average read length of ~15kb (\todo{Supplementary Table S1}).
-	In addition, we evaluated the performance of 10X Genomics, an emergent linked-read technology. Since none of these technologies alone provides chromosome-length haplotype information, 
-	we additionally incorporated single cell Strand-seq data\todo{citation}, which has the capacity to scaffold haplotype information obtained from other data types (Fig.~\ref{fig:fig1}(a)). 
-	Here we used 134 single cell libraries sequenced to an average depth of 0.037x coverage per library using a paired-end sequencing protocol (see \todo{Data Availability statementccessMethods and Supplementary Table S2}). 
-	To evaluate the phasing accuracy of haplotypes reported in this study, we used the publicly available Illumina platinum haplotypes generated for the same individual (NA12878) as a 'reference' standard (see \todo{Data AccessMethods}). 
-	NA12878 'reference haplotypes’ were completed by genetic haplotyping using highly accurate genotypes from seventeen individuals of a three-generation pedigree\todo{citation}, which renders it an ideal gold-standard set for haplotype comparisons. 
-	We confirmed that sites and genotypes are in very good agreement with Genome in a Bottle calls (\todo{Supplementary Note 1}). 
-	However, it should be noted that, due to stemming from short reads, this SNV set most likely lacks some variants at repetitive or complex genomic loci (e.g. recent segmental duplications).
-
-
-\subsection{Downsampling of sequencing datadatasets used in this studyDownsampling of Strand-seq libraries and read data (PacBio or Illumina)}
-	To assess different combinations of Strand-seq libraries (w.r.t. number of single cell libraries) with read data (w.r.t. depth of coverage), 
-	we performed a systematic analysis of the phasing performance for various subsets of each dataset. 
-	To achieve this, we downsampled the  original publicly available (see Data Access) datasets consisting of: 134 single cell Strand-seq libraries\todo{citation}, 
-	39.6x coverage long-read PacBio data\todo{citation}, and 49.6x coverage short-read Illumina data\todo{citation}. 
-	To simulate Strand-seq datasets consisting of reduced numbers of single cells, we randomly selected subsets of either 5, 10, 20, 40, 60, 80, 100, or 120 libraries from the original number of 134  libraries in the dataset. 
-	Read data from the PacBio and Illumina datasets were downsampled using Picard (picard-tools-1.130) to meet a defined depth of coverage of either 2, 3, 5, 10, 15, 25, or 30-fold. 
-	The downsampling was performed for 5 independent trials to account for variability in downsampled datasets, and the average phasing performance across all trials was reported (as described below).
-	
-
-\section{Phasing performance of individual technologies}
-	To independently assess the phasing performance of each technology we assembled haplotypes directly from sequencing reads (Illumina or PacBio) using WhatsHap (see Methods). 
-	The main advantage of this algorithm is that it solves the Minimum Error Correction (MEC) problem optimally with a runtime that scales linearly in the number of variants (alleles) and is independent of the read length. 
-	Therefore, it performs well with short-read technologies (Illumina) and is especially suited for use with long reads (PacBio, Oxford NanoPore). 10X Genomics haplotype segments were assembled by the vendor using the 10X LongRanger pipeline. 
-	To phase multiple Strand-seq libraries we have developed a new phasing algorithm, implemented in the R package StrandPhaseR (\todo{see Methods, and Supplementary \todo{fig}S1}). 
-	In comparison to our previously published phasing algorithm\todo{citation}, the current algorithm is provided as an easy to use R package and implements more robust heuristic approach to solve MEC problem in Strand-seq data.
-	The haplotypes generated by each technology (i.e. Illumina, PacBio, 10X Genomics and Strand-seq) were compared to the Illumina platinum reference haplotypes, to establish the density, completeness and accuracy of the phase blocks delivered by each platform independently. 
-	For a more streamlined exposition, we focus on results obtained for Chromosome 1 in the following analysis and present numbers aggregated across all chromosomes in a concluding discussion.
-	
-	
-	We found both PacBio and 10X Genomics technologies capable to phase nearly the complete set of variants listed in the reference haplotypes (98.8\% and 97.2\%, respectively), 
-	whereas Illumina alone phased only 77.8\% and Strand-seq only 57.6\% of the reference SNVs (Fig.~\ref{fig:fig1}(b)). 
-	Note that for 10X Genomics data, we used the variant set discovered, genotyped, and phased by 10X’ LongRanger software and hence variants not discovered decrease our estimate of completeness.
-	The comparatively low percentage for Strand-seq can be explained by the relatively low sequencing coverage employed, combined with a slight unevenness in genomic coverage (\todo{Supplementary \todo{fig}S2}). 
-	For all technologies except Strand-seq, only short-range haplotypes were assembled using the read-based phasing, with a limited number of alleles phased per haplotype segment (Fig.~\ref{fig:fig1}(c)). 
-	For instance, we found >30,000 unconnected haplotype segments assembled from Illumina data, with the largest segment of 16kb (median ~500bp) harboring only 0.06\% of the phased variants. 
-	This is because heterozygous variants that are further apart than the length of the sequenced DNA fragments cannot be connected, resulting in multiple disjoint haplotype segments with an unknown phase between them. 
-	Improvements were achieved using longer sequencing reads from PacBio technology, which effectively decreased the number of phased haplotype segments (1,927) and increased their size; the largest segment of 1.7Mb (median ~21kb) 
-	containing 1.25\% of all SNVs on Chromosome 1 (Fig.~\ref{fig:fig1}(c)). 10X Genomics produced even longer haplotype segments than both Illumina and PacBio data (Fig.~\ref{fig:fig1}(c)). 
-	The largest haplotype segment contained almost 5\% of the heterozygous SNVs and spanned more than 8.5Mb (median ~241kb). Still, the haplotypes of Chromosome 1 came in 199 disconnected segments and, 
-	hence, an end-to-end phasing was not achieved (Fig.~\ref{fig:fig1}(c)). That is, the linked reads from 10X Genomics were not able to connect distant neighboring heterozygous sites, for instance at centromeres, 
-	genome assembly gaps or regions of low heterozygosity (Fig.~\ref{fig:fig1}(a)). 
-	This is in contrast to the global, albeit sparse, haplotypes produced by Strand-seq. 
-	Although the completeness of Strand-seq haplotypes was lower compared to the other technologies, all phased variants were placed into a single haplotype segment spanning the entire length of Chromosome 1 (Fig.~\ref{fig:fig1}(b), and (c)).
-	
-	
-	Finally, we assessed the accuracy of each technology by calculating the extent of switch errors in comparison to the reference haplotypes. High phasing accuracy of each technology was exemplified by the low percentage (<0.4\%) 
-	of switch errors (Fig.~\ref{fig:fig1}(d)) with PacBio and 10X Genomics being the most accurate. 
-	Since no single phasing technology was sufficient to generate both global and dense haplotypes, 
-	we explored integrative phasing approaches that combine global, sparse haplotyping as afforded by Strand-seq technology with local high-density haplotypes from read-based phasing.
-	
-\subsection{Integrative global phasing strategy}
-We found that the combination of Strand-seq haplotypes with any of the other data types markedly increased the number of variants that were phased in the largest haplotype segment, albeit to differing degrees (\todo{fig}3aA). 
-Specifically, for the Illumina data we observed the completeness of each haplotype increased gradually with the number of Strand-seq libraries used in the experiment, 
-whereas the depth of coverage of Illumina data had only a minor but noticeable effect (\todo{fig}3aA, i). 
-In contrast, the PacBio data showed a significant improvement in haplotype completeness at 10-fold genomic coverage, 
-regardless of the number of Strand-seq libraries used (\todo{fig}3aA i, black arrowhead). 
-Similar results were seen when we combined Strand-seq with the 10X Genomics haplotypes (\todo{fig}3aA, ii). 
-In all cases, integration of Strand-seq phasing drastically improved the contiguity of the haplotype spanning Chromosome 1 (\todo{fig}3bB). 
-When combining Illumina data with 40 Strand-seq libraries >65\% of the reference variants could be phased accurately (\todo{fig}3bB i, black asterisk); 
-5497 haplotype segments (collectively representing 19.7\% of the phased SNVs), however, remained disconnected, even when integrating the complete (N=134) Strand-seq dataset. These results confirm that Illumina data are of limited utility for haplotype phasing.
-    
-    In contrast, as few as 10 Strand-seq cells combined with 10-fold PacBio coverage were sufficient to phase more than 95\% of all heterozygous SNVs into a single haplotype segment (\todo{fig}3bB ii, black asterisk), 
-    and merely 5 Strand-seq single cell libraries were required to connect all 10X Genomics haplotypes. 
-    However, we recommend at least 10 Strand-seq libraries (\todo{fig}3bB iii, black asterisk) to ensure that at least one haplotype-informative (i.e. Watson-Crick-type) cell exists for every chromosome with high probability (p=0.978).
-    This global haplotyping was unique to Strand-seq, as the combination of 10X Genomics with PacBio reads proved inefficient to join locally phased segments (\todo{fig}3bB iv). 
-    That is, the added value of combining these two technologies is limited as the haplotype segments tend to break at similar locations.
-    
-    Finally, we assessed the phasing accuracy of the assembled haplotypes (the longest phased segment only) (\todo{fig}3cC). 
-    Similar to the completeness of the haplotype, the accuracy of Illumina phasing gradually increased with sequencing depth and Strand-seq library number, indicating that Illumina coverage of 30-fold and higher is advisable (\todo{fig}3cC, i). 
-    We further observed slightly elevated switch error rates at lower PacBio depths, which plateaued at 10-fold coverage (\todo{fig}3Cc, black arrowhead). 
-    This is likely caused by allele uncertainty resulting from error-prone PacBio reads, especially at lower sequencing depths (\todo{fig}3C, i). 
-    The lowest switch error rate (< 0.2\%) was achieved by the combination of Strand-seq with 10X Genomics data (\todo{fig}3cC, ii, switch error rate).
-    
-    Switch error rates reflect local inaccuracies expressed by the number of pairs of consecutive heterozygous variants that are wrongly phased with respect to each other. 
-    These error rates are not necessarily informative about global haplotype accuracy, which largely depend on how switch errors are spatially distributed (see Methods, Supplementary \todo{fig}S4aA). 
-    Note that one single switch error implies that all following alleles (up to the next switch error) are assigned to the wrong haplotype. 
-    Since our goal is to generate dense and global haplotypes, we additionally report the Hamming error rate of the largest haplotype segment in comparison to the reference haplotypes (see Methods, Supplementary \todo{fig}S4bB). 
-    Illumina reads are highly accurate and therefore we observed lower impact of sequencing depth on the global accuracy of the largest phased haplotypes (\todo{fig}3cC, Hamming error rateiii). 
-    In contrast, PacBio reads exhibited higher sequencing error rates, which translated into higher switch error rates at low sequencing depths. 
-    Using 10-fold PacBio coverage combined with at least 10 Strand-seq cells yielded highly accurate global haplotypes (\todo{fig}3cC, iii black arrowheadgray rectangle), 
-    while lower coverages led to markedly worse results. Furthermore, the combination of Strand-seq with 10X Genomics haplotypes yielded highly accurate global haplotypes, 
-    already at the minimal amount of Strand-seq libraries (\todo{fig}3cC, Hamming error rateiv).
-    
-    Taken together, these results illustrate that Strand-seq can be used to phase existing sequence data and build dense, global and highly accurate haplotypes. 
-    Indeed, we found our approach highly efficient for genome-wide phasing (\todo{fig}4aA). Using a combination of 40 Strand-seq libraries with 30-fold Illumina coverage, 
-    or 10 Strand-seq libraries with either 10-fold PacBio coverage or the 10X Genomics haplotypes we successfully scaffolded chromosome-length haplotypes for every autosome of NA12878. 
-    The completeness of the genome-wide haplotypes measured for the largest haplotype block reached 95.7\% and 69.1\% using PacBio and Illumina reads, respectively (\todo{fig}4aA, i). 
-    We further demonstrated the high accuracy of these haplotypes on the local and global scales, which showed low switch (<0.45\%) and Hamming error (<0.99\%) rates for both the PacBio and Illumina combination (\todo{fig}4aA, i,ii). 
-    Whereas scaffolding the 10X Genomic haplotypes produced the most accurate local haplotypes (switch error rate of 0.05\%), global performance suffered, and the highest Hamming error rate (2.18\%) was calculated for this combination. 
-    Nevertheless, using Strand-seq to scaffold any of the datasets remarkably improved the completeness, contiguity and accuracy of phasing for each chromosome, 
-    highlighting our integrative phasing strategy as a robust method for building dense and accurate whole genome haplotypes (see Data Availability to access phased SNVs for NA12878 using integrative phasing approach presented in this study.). 
-	
-
-
-
-
-\section{DISCUSSION}
-	Strand-seq has been successfully prepared from a wide range of cell types taken from various organisms9,34,37 and is currently being adopted by an increasing number of researchers. The integrative phasing strategy we introduce here paves the way to leveraging Strand-seq to obtain chromosome-length dense and accurate haplotypes at a manageable cost and labor investment. Based on the comprehensive evaluation presented above, we recommend three different combinations of Strand-seq with a complementary technology (\todo{fig}4b).
-	
-	As one option, one can combine Strand-seq with standard Illumina sequencing. Although the power of Illumina data for phasing is limited, mainly due to short insert sizes and read lengths, it still has some merit for adding additional variants to Strand-seq haplotypes. This might be of interest to many researchers since Illumina sequencing still constitutes the most common technology and there is an abundance of Illumina sequence data currently available for many sample genomes. To completely phase these preexisting data, we recommend generating at least 40 Strand-seq libraries for the sample genome, which is sufficient to phase >68% of all heterozygous variants genome-wide with good accuracy (switch error 0.45%, Hamming error 0.99%), see Figure 4aA and Supplementary Table S3.
-	
-	To build more complete haplotypes, we recommend combining Strand-seq with either PacBio or 10X Genomic technologies. A minimum of 10-fold PacBio coverage coupled with 10 Strand-seq libraries will phase >95% of heterozygous variants genome-wide with excellent accuracy (switch error 0.25%, Hamming error 0.91%). PacBio has been demonstrated to be particularly powerful for resolving structural variation38,39 and, although not explored here, might hence be the best choice when the resolution of haplotypes, structural variation and repetitive regions is desired. However, the cost of this platform is still comparatively high. Therefore, until long-read technologies have become standard practice, we recommend combining 10 Strand-seq libraries with 10X Genomics technology. We found this combination yielded the most complete (>98% heterozygous variants genome-wide) haplotypes with the lowest switch error rate (0.05%). We did observe a slightly increased Hamming error rate (2.18%), however, which indicates that some genomic intervals are placed on the wrong haplotype, most likely due to switch errors in the pre-phased haplotype segments (produced by 10X Genomics) used as input. Overall, combining Strand-seq with 10X Genomics is the most cost-effective (in terms of time and money) strategy to phase an individual genome at extraordinary accuracy.
-
-	In this study, we used pre-phased 10X Genomics haplotype segments because using the raw sparse linked read data leads to algorithmically challenging wMEC problem instances, which presently cannot be solved optimally by WhatsHap. This implies that variants that have not been discovered by LongRanger are considered unphased (and hence decrease “completeness”) and that the error rates can likely be improved further by solving the combined instance resulting from Strand-seq and 10X data. We therefore consider processing the 10X Genomics raw data an important topic of future research.
-
-	In this paper, we focused on single individual haplotyping to avoid the biases and limitations of reference-panel based phasing as well as the need to have access to genetic material of the parents, which might not be available in all settings, including clinical contexts. In cases when high-coverage sequencing data of the parents are available, such datasets can be used to enhance read-based phasing and provide long range phase information40 (Supplementary Note 3).  
-	Strand-seq relies on BrdU incorporation during DNA replication and its use is therefore restricted to dividing cells. To provide long-range phase information for single samples in situations where growing cells are not available, Hi-C can constitute an alternative solution able to yield chromosome-spanning haplotypes32. However, the required coverage, and hence sequencing cost, is considerably higher for Hi-C than for Strand-seq. While the 134 Strand-seq libraries we used here reach a cumulative sequencing coverage of around 5x, markedly higher coverages are needed for Hi-C32. 
-	
-	Our results demonstrate that dense and accurate chromosome-length haplotypes can be generated at manageable costs. This development brings haplotype-level analyses closer to a routine practice, which can be key for understanding disease phenotypes. We emphasize that the strategy we present here works for single individuals without relying on other family members or statistical inference from haplotype reference panels. In contrast to such population-based phasing approaches, the method we advocate here allows insights into rare and de novo variants and long-range epistatic effects.
-	
-	Our future efforts will focus on de novo assembly of haplotype resolved-genomes without the alignment to a reference genome. This will provide us with true diploid representations of individual genomes, which will have profound implications to study variability of personal genomes in health and disease.
-
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{Figure1}.pdf}
-\caption{Figure 1: Phasing efficacy of read-based and experimental phasing approaches using Chromosome 1 as an (example Chromosome 1).
-aA) Two homologous chromosomes are shown (blue and black). Experimental phasing approaches like Strand-seq can connect heterozygous alleles along whole chromosomes, however, at higher costs (time and labor) and lower density of captured alleles. In contrast, read-based phasing can deliver high-density haplotypes, but only short haplotype segments are assembled with an unknown phase between them. bB) Barplot showing the percentage of phased variants, for each sequencing technology, from the total number of reference SNVs (Illumina platinum haplotypes). cC) Graphical summary of phased haplotype segments for Illumina, PacBio, 10X Genomics and Strand-seq phasing shown for chromosome 1. Each haplotype segment is colored in a different color with the longest haplotype colored in red. Side bargraph reports the percentage of SNVs phased in the longest haplotype segment. dD) Accuracy of each independent phasing approach measured as percentage short switch errors in comparison to benchmark haplotypes.}
-\label{fig:fig1}
+        \end{tikzpicture}
+        \caption{\label{fig:section 2.1} Row sets on an instance $M$ with partitions $U \cup U'$ (top), $L \cup L'$ (middle) and $X \cup X'$ bottom. For an error analysis, the instance is divided into blocks. All blocks have binary values without wildcards.}
+    \end{center}
 \end{figure}
 
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{Figure2}.pdf}
-\caption{Figure 2: Integration of global and local haplotypes by the WhatsHap algorithm. An example solution of the weighted minimal error correction problem (wMEC) using WhatsHap algorithm is shown. For simplicity base qualities used as weights are omitted from the picture (for details on wMEC see Patterson et al. 2015). a(i) The columns of the matrix represent 34 heterozygous variants (SNVs). Continuous stretches of zeros and ones indicate alleles supported by respective reads (0 – reference allele, 1 – alternative allele). First two rows of the wMEC matrix are represented by Strand-seq haplotypes, illustrated as one 'super read' connecting alleles along the whole length of the chromosome. (1st row haplotype 1 alleles, 2nd row haplotype 2 alleles). Subsequent rows of the matrix are represented by reads that map to the reference assembly in short overlapping segments.  Sequencing errors (shown in red in read 2 and 7) are corrected when the cost for flipping the alleles is minimized. b(ii) Reads are then partitioned into two haplotype groups (Haplotpye 1 – dark blue, Haplotype 2 – light blue) such that a minimal number of alleles are corrected (in red). As an illustration of long haplotype contiguity facilitated by Strand-seq 'super reads', we depict two non-overlapping groups of reads (gray rectangles) that can be stitched together by Strand-seq (dashed lines). c(iii) Final haplotypes are exported for both groups of optimally partitioned reads.
-eles. In contrast, read-based phasing can deliver high-density haplotypes, but only short haplotype segments are assembled with an unknown phase between them. bB) Barplot showing the percentage of phased variants, for each sequencing technology, from the total number of reference SNVs (Illumina platinum haplotypes). cC) Graphical summary of phased haplotype segments for Illumina, PacBio, 10X Genomics and Strand-seq phasing shown for chromosome 1. Each haplotype segment is colored in a different color with the longest haplotype colored in red. Side bargraph reports the percentage of SNVs phased in the longest haplotype segment. dD) Accuracy of each independent phasing approach measured as percentage short switch errors in comparison to benchmark haplotypes.}
-\label{fig:fig2}
+\begin{definition}[Weighted majority]
+    Let $j$ be an integer and let $\tilde{U}$ and $\tilde{L}$ be two matrices with at least $j$ columns.
+    In $\tilde{U}_{*,j}$ and $\tilde{L}_{*,j}$, we replace all zeros by $-1$ and then all wildcard symbols by zero.
+    We then compute the number
+    $\nu := \sum_{i \in \tilde{U}_{i,j}} (1-\epsilon)i/(\epsilon - \epsilon^2) + \sum_{i \in \tilde{L}_{i,j}} i$. 
+    Then $\textsc{Majority}_j(\tilde{U}, \tilde{L}) = 0$ if $\nu <0$ and $\textsc{Majority}_j(\tilde{U}, \tilde{L}) = 1$ if $\nu \ge 0$.
+    \label{def:weighted-majority}
+\end{definition}
+With this preparation, we are now ready to present the algorithm.
+The input has a long list of parameters that will allow our dynamic programs later on to control the execution.
+The reason is that we do not know $\tau$ and $\tau'$. 
+Therefore the algorithm takes \emph{guesses} of row sets as input.
+The values $r$ and $r'$ are guesses of $|\tau(M)|$ and $|\tau'(M)|$.
+\smallskip
+
+\begin{algorithm}[H] 
+    \caption{
+        \label{alg:SWC}
+        $\textsc{SWC}_\delta$}
+    \SetAlgoNoLine
+    \SetNlSkip{1em}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{Row sets $R_i$, $S_i$, $R'_i$ and $S'_i$ of a good SWC-instance $M$,  numbers $r, r'$.\\ Optional: selection of rows $\tilde{U}_i,\tilde{L}_i,\tilde{U}'_i,\tilde{L}'_i$, see below.}
+    \Output{A pair of solution strings $(\sigma,\sigma')$.}
+    Run the algorithm for each possible selection of the following type and keep the best outcome (minimum number of errors)\tcp*{If provided as input, skip selection.}
+    For each $i$, select (with repetition) a multi-set $\tilde{U}_i$ of $1/\delta$ strings from $R_i$ and $\tilde{L}_i$ from $S_i$\;
+    For each $i$, select (with repetition) a multi-set $\tilde{U}'_i$ of $1/\delta$ strings from $R'_i$ and $\tilde{L}'_i$ from $S'_i$ such that $\tilde{U}' \cap \tilde{U} = \tilde{L}' \cap \tilde{L} = \emptyset$\;
+    For each column $j$, set $\sigma_j := \textsc{Majority}_j(\tilde{U}, \tilde{L})$ and $\sigma'_j := \textsc{Majority}_j(\tilde{U}', \tilde{L}')$\;
+    For each row $i$ of $M$, determine the value $d_i := \dist(\sigma,M_{i,*}) - \dist(\sigma',M_{i,*})$\;
+    Assign the $r$ rows with minimal values $d_i$ to $\sigma$ and the remaining $r'$ rows to $\sigma'$.
+\end{algorithm}
+\smallskip
+
+Observe that for small (\ie, constant) values of $r$ or $r'$, the algorithm $\textsc{SWC}_\delta$ can be replaced by an exact algorithm since we know $\tau(M)$ if and only if we know $\tau'(M)$, and we are able to guess constantly many rows.
+
+%In order to be able to show our results for arbitrary good SWC-instances, we first have to consider special instances.
+\begin{lemma}\label{lem:SWC}
+    Let $M$ be a good SWC-instance.
+    For sufficiently large $r = |\tau(M)|$ and $r' = |\tau'(M)|$, let $R_i, S_i, R'_i, S'_i$ be a subdivision (Definition~\ref{def:subdivision}) of an $\epsilon$-trisection $U,L,X,U',L',X'$ of $M$.
+
+    Then $\textsc{SWC}_{\epsilon^3}$ is a $(1 + O(\epsilon))$-approximation algorithm for $M$. 
+\end{lemma}
+The proof is based on a randomized argument using Chernoff bounds and can be found in Appendix~\ref{app:SWC}.
+%
+Lemma~\ref{lem:SWC} shows that the set of solutions considered by $\SWC$ contains at least one solution that is good enough even though we do not look at $X$. 
+It does not say that we finally compute that solution, since other solutions may have fewer errors in $U\cup L$ or $U' \cup L'$.
+% \sgnote{Punch line is missing why we need a stronger statement, probably the answer is exactly what you explained me yesterday.\tgm{added a punch line, please check if you like it}}
+For our dynamic programs, we need a stronger statement.
+We would like to be able to compute a solution for a \emph{partial} instance and afterwards change a fraction of lines without losing the approximation guarantee.
+%Intuitively, the following lemma states that we can find a $(1+O(\epsilon))$ approximation for good SWC-instances, even if a fraction of rows (depending on $\epsilon$) is hidden.
+The next lemma is a key ingredient of our result.
+
+\begin{lemma}
+    \label{lem:swc-gap}
+    Let $M$ be a good SWC-instance and $\epsilon > 0$ sufficiently small.
+    Let $U,L,X$ be an $\epsilon$-trisection for $\tau(M)$ and $U',L',X'$ an $\epsilon$-trisection for $\tau'$, with subdivisions $R_i,S_i,R'_i,S'_i$ according to Definition~\ref{def:subdivision}.
+    Let $(\sigma, \sigma')$ be the solution computed by $\textsc{SWC}_{\epsilon^3}$ with $r = |\tau(M)|$, $r' = |\tau'(M)|$.
+    Then re-assigning the rows $\sigma(X)$ to $\tau(X)$ and $\sigma'(X')$ to $\tau'(X')$ gives a $(1 + O(\epsilon))$-approximation for the instance $M$.
+\end{lemma}
+\begin{proof}
+    For ease of presentation, we assume that all appearing numbers are integers.
+    It is easy to adapt the proof by rounding fractional numbers appropriately.
+
+    We first analyze the computed solution string $\sigma$. 
+    Let $\eta$ be the total number of errors of $(\tau,\tau')$ within $M$ and
+    let $\eta_P$ be the total number of errors of $(\sigma,\sigma')$ within $P := U \cup L$.
+    Due to Lemma~\ref{lem:SWC}, we have $\eta_P \le (1+O(\epsilon)) \eta$.
+
+    We may assume $r \ge r'$ since otherwise we can simply rename the two strings $\tau$, $\tau'$.
+    Additionally, by renaming of $\sigma$ and $\sigma'$, we may assume that $|\sigma(P) \cap \tau(P)| \ge |\sigma'(P) \cap \tau(P)|$.
+    Therefore $|\tau(P)| \ge n/3$ and $|\sigma(P) \cap \tau(P)| \ge n/6$.
+    (Recall that the matrix $M$ has $n$ rows and $m$ columns.)
+
+    \begin{claim}\label{claim:agree}
+        There is a set $I$ of $m - 25\eta/n$ indices $i$ such that
+        $\sigma_i = \tau_i$ for all $i \in I$.
+    \end{claim}
+    \begin{subproof}
+        We concentrate on the columns of $M$ where both strings $\tau$ and $\sigma$ have at most $n/12$ errors within $P$.
+        By counting the errors, there are at most $12 \eta/n$ columns where $\tau$ has at least $n/12$ errors.
+        Similarly, there are at most $12 (1+O(\epsilon)) \eta_P/ n < 13 \eta/ n$ many columns where $\sigma$ has at least $n/12$ errors.
+        Therefore there is a set $I$ of at least $m - 25\eta/n$ columns where simultaneously both $\tau$ and $\sigma$ have less than $n/12$ errors each.
+
+        Now suppose that the claim was not true and there was an index $i \in I$ with $\tau_i \neq \sigma_i$.
+        Then, since $|\tau(P) \cap \sigma(P)| \ge n/6$, either $\sigma_i$ or $\tau_i$ is erroneous in at least $n/12$ rows of $\tau(P) \cap \sigma(P)$, a contradiction.
+    \end{subproof}
+
+    Next we analyze $\sigma'$ for the columns $I$.
+    Let $j$ be a column (\ie, an index) from $I$.
+    By symmetry, we may assume $\sigma_j = \tau_j = 0$. 
+    We aim to show that an optimal solution has always sufficiently many errors to pay for wrong entries of $\sigma'$.
+
+    Let $\eta_j$ be the number of error of $(\tau,\tau')$ in column $j$ of $M$ and
+    let $\eta_{P,j}$ be the number of errors of $(\sigma,\sigma')$ in column $j$ of $P$.
+    Let $\eta''_j = \eta_j + \eta_{P,j}$.
+    \begin{claim}\label{claim:errors}
+        For each column $j$ of $I$, either $\sigma'_j = \tau'_j$ or $\eta''_j \ge (\epsilon-\epsilon^2)|\tau'(M)|/2$.
+    \end{claim}
+    \begin{subproof}
+        We distinguish two cases.
+        We first assume $\tau'_j = 0$.
+        If also $\sigma'_j = 0$, we are done. 
+        We therefore assume $\sigma'_j = 1$.
+        If there are more than $|\tau'(L')|/2$ ones in column $j$ of $L'$, $(\tau,\tau')$ has more than $|\tau'(L')|/2$ errors in column $j$ and thus 
+        $\eta_j \ge |\tau'(L')|/2$.
+        Otherwise $\sigma'(L')$ has at least $|\tau'(L')|/2$ zeros in column $j$ and therefore $\eta_{P,j} \ge |\tau'(L')|/2$.
+        We obtain $\eta''_j \ge |\tau'(L')|/2 \ge (\epsilon-\epsilon^2) |\tau'(M)|/2$ as claimed.
+
+        In the second case, $\tau'_j = 1$ and we assume that $\sigma'_j = 0$.
+        If there are more than $r'/2$ ones in column $j$ of $U'$, $(\sigma,\sigma')$ has more than $r'/2$ errors in column $j$ and thus $\eta_{P,j} \ge |\tau'(U')|/2$.
+        Otherwise $\tau'(U')$ has at least $r'/2$ zeros in column $j$ and therefore $\eta_j \ge |\tau'(U')|/2$.
+        Again, we obtain $\eta''_j \ge |\tau'(U')|/2 \ge (1-\epsilon) |\tau'(M)|/2$ as claimed.
+    \end{subproof}
+
+    Since by our assumption $|\tau'(X')| < \epsilon^2 |\tau'(M)|$,
+    Claim~\ref{claim:errors} implies that within $I$, after reassigning the rows we still have a $(1+ O(\epsilon))$-approximation.
+
+    To finish the proof, we argue that $\eta$ is large enough to pay for all errors in $X$ and $X'$ outside of $I$.
+    Let $\eta_I$ be the number of errors due to assigning $\sigma$ to $\tau(X)$ and $\sigma'$ to $\tau'(X')$ within the interval $I$.
+
+    Then, using the size of $I$ stated in Claim~\ref{claim:agree}, the total number of errors of $(\sigma,\sigma')$ in $M$ is at most
+    $(1+O(\epsilon)) \eta + \eta_I + \epsilon^2 n \cdot 25\eta/n$, \ie, the errors of $\textsc{SWC}_{\epsilon^3}$ within $P$, the errors within $X$ and $X'$ in the columns of $I$, and all other entries of $X \cup X'$.
+    The obtained approximation ratio is
+    %\[
+    %    \frac{(1+O(\epsilon)) \eta + \eta_I + \epsilon^2 n \cdot 25\eta/n}{\eta} 
+    %    \le \frac{\eta + O(\epsilon) \eta + 25 \epsilon^2 \eta}{\eta}
+    %    = 1 +  O(\epsilon)\,.
+    %\]
+    $((1+O(\epsilon)) \eta + \eta_I + \epsilon^2 n \cdot 25\eta/n/\eta 
+        \le (\eta + O(\epsilon) \eta + 25 \epsilon^2 \eta)/\eta
+        = 1 +  O(\epsilon)$.
+
+    The first inequality uses that for some constant $k$, $(1 + k \epsilon) \eta \ge \eta + \eta_I$.
+\end{proof}
+
+\subsection{A DP for SWC-instances.}%a pair of solution strings.}
+\label{sec:second}
+
+Let $M$ be an SWC-instance with rows  $\{1, 2, \ldots n\}$. 
+We define $\st_i$ to be the start and $\en_i$ the end of string number $i$ of $M$, i.e., the column number of the matrix where the binary part starts and ends.
+For a sub-matrix $M'$ of $M$, $\st_{M'}$ determines the index of the first column of $M'$ and $\en_{M'}$ the index of the last column of $M'$.
+
+We next specify the parts of which the DP cells are composed.
+We divide the input instance into blocks defined as follows.
+\begin{definition}[Block]
+    Given a good SWC-instance $M$, a block $B$ is a sub-instance determined by four numbers $1 \le a < b < c \le n$ as follows.
+    The first column of $B$ is column $1$ of $M$. 
+    The last column of $B$ is $\en_{b}$.
+    We write $U_B$ for the rows from $a$ to $b - 1$, $L_B$ for the rows from $b$ to $c - 1$, and $X_B$ for the rows from $c$ to $n$. 
+    \label{def:sets-one-solution-string}
+\end{definition}
+The idea is that a block determines a trisection. 
+We subdivide each block into chunks and select rows from these chunks. 
+\begin{definition}[Chunk] 
+    Let $B$ be a block determined by the numbers $a,b,c$.
+    We partition $B$ into $2/\epsilon^2$ many \emph{chunks} (ranges or rows).
+    These chunks are determined by numbers 
+   % \[
+   $a = a_1 < a_{2} < \dotsm < a_{1/\epsilon^2 + 1} = b = b_{1} < b_{2} < \dotsm < b_{1/\epsilon^2 + 1} = c$. %\,.
+   % \]
+    The $\ell$th chunk of $U_B$ is the submatrix composed of the rows $a_{\ell}$ to $a_{\ell+1}-1$ and the $\ell$th chunk of $L_B$ is the submatrix composed of the rows $b_{\ell}$ to $b_{\ell+1}$.
+    \label{def:subsets-one-solution-string}
+\end{definition}
+
+\begin{definition}[Selection]
+    \label{def:selection}
+    For each block $B$ with a set of chunks $C$, we consider multiset $T$ of rows of size $2/\epsilon^5$.
+    We require that $T$ contains $1/\epsilon^3$ rows from each chunk in $C$.
+\end{definition}
+The selection $T$ will take the role of $\tilde{U}$ and $\tilde{L}$ in $\textsc{SWC}_\delta$.
+With these preparations we can define a DP cell.
+\begin{definition}[DP cell]
+    For each block $B$, each set of chunks $C$ of $B$ and each selection $T$ of rows from $B$, there is a DP cells are represented by $D(B,C,T)$. 
+    A DP cells $D(B,C,T)$ is a \emph{predecessor} of $D(\hat B,\hat C,\hat T)$ if the following conditions hold.
+    \begin{itemize}
+        \item $\hat{a} = b$ and $\hat{b} = c$, where $b,c,\hat{a},\hat{b}$ are the numbers from Definition~\ref{def:sets-one-solution-string}.
+        \item The chunks from $C$ between $b$ and $c$ are exactly the chunks from $\hat{C}$ between $\hat{a}$ to $\hat{b}$.
+        \item For each pair of chunks from $T \times \hat{T}$ with the same range of rows, the selection $T$ matches the selection $\hat{T}$. 
+            \label{def:dp-cell-one-solution-string}
+    \end{itemize}
+\end{definition} 
+
+The value of $D(B,C,T)$ will be an approximation of the minimum number of errors
+that we can have in $M$ until the last column of $B$.
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tikzpicture}[scale=0.6]
+            \draw (-2,-2) rectangle (2,3);      % A
+            \node at (-2.3,3) {$a$};
+            \draw (-2,-3) rectangle (9,-2);     % B
+            %         \draw[dashed] (2,3) -- (9,-2);
+            %          \draw[dashed] (9,-2) -- (18,-3);
+            \node at (-2.3,-2) {$b$};
+            \node at (-2.3,-3) {$c$};
+            \node at (-2.3,-3.5) {$d$};
+            \draw[red,dashed] (-2,-1.3) -- (8,-1.3);
+            \node at (8, -1) {$b'$};
+            \node at (9.5, -1.7) {$b$};
+            \node at (13.5, -2.2) {$c'$};
+            \draw (-2,-3.5) rectangle (18,-3);
+            \draw[red,dashed] (-2,-2.6) -- (13,-2.6);
+            \draw[red,dashed] (-2,-3.3) -- (18,-3.3);
+            \node at (18.5, -3) {$d'$};
+            \node at (18, -2.8) {$c$};
+            %         \node[red] at (18.5, -3) {$B'_2$};
+            %          \draw (2,-3.7) rectangle (20,-3.5); % Bottom area
+            %         \node at (0,0){$A_0$};
+            %         \node at (0,-2.7) {$B_0$};
+            %         \node at (5.5,-1) {$B_0', T_U = T'_L$};
+            % 	\node[red] at (5.5,-1) {$B_0'$};
+            %        \node at (0,-3.3) {$B_1$};
+            %         \node[red] at (7,-2.8) {$B'_1$};
+            \node at (-2.7,0){\(\left(\rule{0cm}{2.4cm}\right.\)};
+            \node at (21,0){\(\left.\rule{0cm}{2.4cm}\right)\)};
+            \draw (2,-3) to (2,-3.5);
+            %          \draw (9,-3.5) to (9,-3.7);
+            %          \node at (20.5,-3.6) {$B_2$};
+            \draw[blue,dashed] (-2,1) -- (4.7,1);
+            \draw[blue,dashed] (-2,1.2) -- (4.6,1.2);
+            \draw[blue,dashed] (-2,1.3) -- (4.5,1.3);
+            \draw[blue,dashed] (-2,1.4) -- (4.4,1.4);
+            %             \node[blue,dashed] at (5.5, 1.2) {$T'_U$};
+
+            \draw[blue] (-2,1.8) -- (3.5,1.8);
+            \draw[blue] (-2,2) -- (3.2,2);
+            \draw[blue] (-2,2.1) -- (3.1,2.1);
+            \draw[blue] (-2,2.2) -- (3,2.2);
+            %             \node[blue] at (4, 2.2) {$T_U$};
+
+            \draw[blue] (-2,-2.3) -- (10.8,-2.3);
+            \draw[blue] (-2,-2.4) -- (11.7,-2.4);
+            \draw[blue] (-2,-2.45) -- (12.2,-2.45);
+            %             \node[blue] at (11, -2) {$T_L$};
+
+            \draw[blue,loosely dashed] (-2,-1.5) -- (8,-1.5);
+            \draw[blue,loosely dashed] (-2,-1.6) -- (8.1,-1.6);
+            \draw[blue, loosely dashed] (-2,-1.7) -- (8.1,-1.7);
+            %             \node[blue] at (8.5, -1.5) {$T'_L$};
+
+
+            %         \draw (9,-3) to (9,-3);
+        \end{tikzpicture}
+        \caption{\label{fig:DP-crux1} Example for a pair of strings with $b' > b$. The blue lines and dashed blue ones represent sets $T$ and $T'$, and $T \cap T' = \emptyset$.}
+    \end{center}
 \end{figure}
 
 
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{Figure3}.pdf}
-\caption{Figure 3: Various combinations of Strand-seq and read-based phasing (Illumina, PacBio, 10Xusing Genomics) - example Chromosome 1 as an example.
-Plots show haplotype quality measures for various combinations of Strand-seq cells (5, 10, 20, 40, 60, 80, 100, 120, 134) with selected coverage depths of Illumina or PacBio sequencing data (2, 3, 4, 5, 10, 15, 25, 30, >30-fold), or in combination with 10X Genomics haplotypes. aA) Assessment of the completeness of the largest haplotype segment as the \% of phased SNVs. Grey bars highlight  PacBio sequencing depth where completeness and accuracy of final haplotypes do not dramatically improve. bB) Assessment of the contiguity of the largest haplotype segment as the length of the largest haplotype segment. Every phased haplotype segment is depicted as a different color, with the largest segment colored in red. Black asterisks point to a recommended depth of coverage of a given technology in combination with Strand-seq cC) Assessment of the accuracy of the largest haplotype segment as the level of agreement with the ‘reference’ standard. Gray barsBlack arrowheads highlight Illumina and PacBio sequencing depth where accuracy of final haplotypes do not substantially improve. In case of Illumina sequencing such improvement is more gradual.}
-\label{fig:fig3}
+We now describe the dynamic program for a pair of solution strings $(\sigma, \sigma')$ by using joint DP cells $(\zeta,\zeta')$ (see also Fig.~\ref{fig:DP-crux1}). 
+For $\sigma'$, we use the same notation as in Definitions~\ref{def:sets-one-solution-string}, \ref{def:subsets-one-solution-string} and \ref{def:selection}, but we use the symbol prime (\,$\cdot '$\,) for all occurring variables.
+
+\begin{definition}[DP cell for a pair]
+    We define joint DP cell $(\zeta,\zeta') = (D(B,C,T), D'(B',C',T'))$ with the two single cells defined as in Definition~\ref{def:dp-cell-one-solution-string}. 
+    We require that
+    \begin{itemize}
+        \item the rows of $C$ and $C'$ where chunks start are pairwise distinct, and
+        \item $T \cap T' = \emptyset$.
+    \end{itemize}
+    \label{def:dp-cell-two-solution-string}
+\end{definition}
+\smallskip
+
+%One of the selections for chunks in $B$ and $B'$ that corresponds to a joint DP cell is shown in Fig.~\ref{fig:DP-crux1}.
+%Similar to a single cell, the value of a pair of cells will be an approximation of the minimum number of errors.
+
+\begin{definition}[Predecessor of a joint DP cell]
+    A DP cell $(\hat{\zeta}, \hat{\zeta}')$ is a \emph{predecessor} of $(\zeta, \zeta')$ if (a) $\hat{\zeta} = \zeta$ and $\hat{\zeta}'$ is a predecessor of $\zeta'$; or (b) $\hat{\zeta}$ is a predecessor of $\zeta$ and $\hat{\zeta}' = \zeta'$.
+    \label{def:predecessor-two}
+\end{definition}
+
+\subparagraph{Algorithm ($\textsc{SWC}^{\sigma, \sigma'}$).}
+%Additionally to guessing $r$, we globally guess a second number $r'$ such that $r$ and $r'$ represent $|\tau(M)|$ and $|\tau'(M)|$.
+We globally guess two numbers $r$ and $r'$ that represent $|\tau(M)|$ and $|\tau'(M)|$.
+We split the processing into an initialization phase and an update phase.
+In the initialization phase, we assign values to each DP cell  $(\zeta,\zeta')$ based on $\SWC$ with the following parameters.
+We obtain $R_i, S_i$ from the chunks $C$ and $R'_i,S'_i$ from the chunks $C'$.
+In the execution of $\SWC$, we use the selections $T,T'$ instead of trying all possible selections, i.e., $T$ and $T'$ determine all $\tilde{U}_i$, $\tilde{L}_i$, $\tilde{U}'_i$, and $\tilde{L}'_i$ in the algorithm.
+Let $\tilde{B}$ be the matrix with rows from $1$ to the $\min\{c - 1,c' - 1\}$ and columns one to $\min\{\en_B, \en_{B'}\}$.
+The solution of the computation is a pair of strings $(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$, the prefixes of the two computed strings until $\en_{\tilde{B}}$.
+The value of $(\zeta,\zeta')$ is $\cost_{\tilde{B}}(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$.
+
+In the update phase, we compute the value and the pair of strings of the DP cell $(\zeta,\zeta')$ as follows. 
+We inductively assume that all DP cells for predecessors of $(\zeta,\zeta')$ have been updated already.
+As in Section~\ref{sec:single}, we try all predecessor pairs of DP cells and keep the one that gives the best result.
+Let $(\overline{\zeta},\overline{\zeta}')$ be a predecessor of $(\zeta,\zeta')$.
+By symmetry, we assume without loss of generality that $b' < b$. 
+There are two cases how the two pairs interact.
+The first case is $\zeta = \overline{\zeta}$.
+We run $\SWC$ on the columns $\en_{\overline{B}'}+1$ to $\en_{B}$ with the parameters from $(\zeta,\zeta')$ (see initialization).
+To obtain the full solution, we append the computed string for $B'$ to the string $\sigma'_{\zeta,\overline{\zeta}'}$ (which is one of the solution strings of the predecessor pair).
+Let $\tilde{B}$ be the matrix with rows from $1$ to the $\min\{c - 1,c' - 1\}$ and columns one to $\en_{B'}$.
+The solution of the computation is a pair of strings $(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$, the prefixes of the two computed strings from column one to $\en_{\tilde{B}}$.
+The potential new value of $(\zeta,\zeta')$ is $\cost_{\tilde{B}}(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$.
+We replace the stored solution with the potential new solution if the cost has decreased.
+
+The second case is $\zeta' = \overline{\zeta}$.
+This case is the crux of the joint DP, since we have a ``switch'' the role of $\sigma$ and $\sigma'$.
+%
+We run $\SWC$ on the columns $\en_{\overline{B}}$ to $\en_{B'}$ with the parameters from $(\zeta,\zeta')$ (see initialization).
+To obtain the full solution, we then append the computed string for $B$ to the string $\sigma_{\overline{\zeta},\zeta'}$ (which is one of the solution strings of the predecessor pair).
+Let $\tilde{B}$ be the matrix with rows from $1$ to the $\min\{c - 1,c' - 1\}$ and columns one to $\en_{B'}$.
+The solution of the computation is a pair of strings $(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$, the prefixes of the two computed strings until $\en_{\tilde{B}'}$.
+The potential new value of $(\zeta,\zeta')$ is $\cost_{\tilde{B}}(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$.
+We replace the stored solution with the potential new solution if the cost has decreased.
+
+%As in the previous section, 
+For the last strings,
+we additionally consider special cells that are defined as before, but with $c=n$ or $c'=n$. 
+Intuitively, we use these cells when only at most $1/\epsilon^4$ rows of $\tau(M)$ or $\tau'(M)$ are left.
+For pairs of cells containing such $\zeta$ or $\zeta'$, our computation considers the optimal solution within the computation instead of $\SWC$.
+
+\begin{theorem}\label{thm:column1}
+    The algorithm $\textsc{SWC}^{\sigma,\sigma'}$ is a PTAS for $SWC$-instances.
+\end{theorem}
+\begin{proof}
+    To see that the DP works in polynomial time, we observe that instead of simple DP cells in Lemma~\ref{lem:simpleDP} here we consider pairs of DP cells.
+    Therefore the number of cells is squared and thus stays polynomial.
+    During the recursive construction of the solution, we compare each cell to be computed with one compatible cell at a time.
+    Therefore the construction of the solution also takes only polynomial time.
+    As in Lemma~\ref{lem:simpleDP}, the computed solution is vacuously feasible.
+
+    We continue with analyzing the quality of the computed solution.
+    Let $(\tau,\tau')$ be an optimal solution.
+    We set $r = |\tau(M)|$ and $r' := |\tau'(M)|$.
+    By renaming the two strings we may assume that the last row of the first $(1-\epsilon^2) r$ rows of $\tau(M)$ is below the first row of the last $\epsilon^2 r'$ rows of $\tau'(M)$.
+
+    We consider DP cells similar to the proof of Lemma~\ref{lem:simpleDP}.
+    Starting from the top-most row of $\tau(M)$, for each $i \ge 0$, the $i$th range $Y_i$ contains the next 
+    $(\epsilon^{2i} - \epsilon^{2i+2})r$ rows of $\tau(M)$.
+    We assign the rows not in $\tau(M)$ such that the first row of each $Y_i$ is contained in $\tau(M)$.
+    Then we choose $Y_i$ such that all rows of $M$ until $Y_{i+1}$ are contained in $Y_i$.
+
+    We consider the DP cells $\zeta_i$ for each $i$ with the parameters $B_i$, $C_i$, and $T_i$.
+    The block $B_0$ contains the rows of $Y_0$ and $Y_1$, and the columns one to the end of the first row of $\tau(B_0)$.
+    For each $i > 0$, block $B_i$ contains the rows of $Y_i$ and $Y_{i+1}$, and the columns after those of $B_{i-1}$ to the end of the first row of $B_i$.
+
+    If only a constant number of rows of $\sigma(M)$ are left, we can compute the partial solutions optimally and
+    there are DP cells for exactly this purpose:
+    there is a DP cell $\zeta_i$ such that the last $2/\epsilon^5$ rows of $\tau(M)$ are located between $a_i$ and $c_i$ and $Y_i$ contains exactly these rows.
+    As before, to keep a clean notation, in the following we implicitly assume that cells with constantly many rows of $\sigma(M)$ are handled separately.
+
+    The chunks of $C_i$ are the ranges that equally distribute $\tau(B)$. The selection $T_i$ is the best possible selection as specified in $\SWC$.
+    Analogously we define $B'_i$, $C'_i$, and $T'_i$ for $\zeta'_i$.
+
+    We construct a solution SOL and inductively show that the value of each considered cell $(\zeta_i,\zeta'_j)$ and $(\zeta'_i,\zeta_j)$ is at most a factor $(1+O(\epsilon))$ larger than the number of errors of an optimal solution restricted to the considered prefix and the considered rows. 
+    Afterwards we show that our algorithm computes a solution at least as good as SOL.
+
+    We first consider the DP cell $(\zeta_0,\zeta'_0)$.
+    Recall that we assumed \WLOG that $i'_0 > i_0$.
+    We apply Lemma~\ref{lem:swc-gap} with the parameters of the pair of cells to obtain the prefixes $\sigma_{\zeta_0}$ and $\sigma'_{\zeta'_0}$.
+    The total number of errors within the columns of $M$ at the prefixes is therefore at most a factor $(1+O(\epsilon))$ larger than in $(\tau,\tau')$.
+    There are two possibilities for the subsequent steps with $i \ge 0$.
+
+    We first assume that $b_{i+1}' > b_{i}$ and consider the cell $(\zeta_{i},\zeta'_{i+1})$.
+    Then, similar to the proof of Lemma~\ref{lem:simpleDP}, we apply $\SWC$ to obtain the suffix of $({\sigma}_{\zeta_i,\zeta'_{i+1}},{\sigma'}_{\zeta_i,\zeta'_{i+1}})$ after $\en_{B_{i'}}$.
+    By Lemma~\ref{lem:swc-gap}, considering the suffix alone we have at most a factor $(1+O(\epsilon))$ more errors within these columns than $(\tau,\tau')$.
+
+    Since $\zeta_i$ is a predecessor of $\zeta_{i+1}$, all newly assigned rows were not considered in $(\zeta_i,\zeta'_i)$.
+    Note that $\zeta_i$ did not change. Even though we looked at the same chunks, we used the same selections and therefore did not change $\sigma_{\zeta_i,\zeta'_i}$.
+
+    The second possibility is that $b_{i+1}' < b_{i}$ and we consider the cell $(\zeta_{i+1},\zeta'_{i})$. The instance is shown in Fig.~\ref{fig:DP-crux2}.
+    We then apply $\SWC$ to obtain the suffix of $({\sigma}_{\zeta_{i+1},\zeta'_{i}},{\sigma'}_{\zeta_{i+1},\zeta'_{i}})$ after $\en_{B_{i}}$.
+    We obtain a $(1+O(\epsilon))$-approximation analogous to the case $b_{i+1}' > b_{i}$.
+\end{proof}
+
+\section{Subinterval-free instances.}\label{sec:subinterval-free}
+We show how to generalize the results of the previous section in order to handle instances where no interval of a string $s$ is a proper subinterval of a string $s'$ and thus show Theorem~\ref{thm:ptas}.
+To this end, we first show how to handle the rooted version of sub-interval free instances, where there is one column $j$ such that each string of the instance crosses $j$.
+
+We order the rows of a subinterval-free instance $M$ from top to bottom such that for each pair $i,i'$ of rows with the binary part of $i$ starting on the left of the binary part of $i'$, $i$ is above $i'$.
+In other words, the binary strings are ordered from top to bottom with increasing starting position (\ie, column).
+Observe that the sub-string freeness property ensures that the last binary entry of $i'$ is not on the left of the last binary entry of $i$.
+
+\begin{lemma}\label{lem:second_instance_setting}
+    Let $M$ be a $\GMEC$ instance such that no string is the substring of another string.
+    Furthermore we assume that there is a column $j$ of $M$ such that each string of the instance crosses $j$.
+    Then there is a PTAS for $M$.
+\end{lemma}
+\begin{proof}
+    Let $s$ and $t$ be the first and the last row of $M$.
+    The column $j$ determines a block $W$ of $M$ that spans all rows and the columns from the first binary entry of $t$, $j_t$, to the last binary entry of $s$, $j_s$.
+    In particular, $W$ has only binary entries.
+
+    The right hand side of $j_t$ (the submatrix of $M$ composed of all columns with index at least $j_t$) forms a $\GMEC$ instance as required in Theorem~\ref{thm:column1}.
+    The submatrix of $M$ that contains all rows of $M$ and columns $1$ to $j_s$ forms a \GMEC instance as required in Theorem~\ref{thm:column1} if we invert both the order of the rows and the columns.
+    Instead of changing the ordering of the matrix, we can run the algorithm from right to left and from bottom to top.
+
+    We would like to apply Theorem~\ref{thm:column1} independently to the two specified sub-problems.
+    To this end we define a special set of DP cells $\gamma$ with cells $(\zeta_W,\zeta'_W) \in \gamma$.
+    The content of these cells is similar to the regular cells, but it contains the information for both sides simultaneously.
+    More precisely, a cell $\zeta_W$ has the following entrees.
+
+    (a) Three consecutive ranges of rows determined by numbers $1\le \overleftarrow{c} < \overleftarrow{b} < \overrightarrow{b} < \overrightarrow{c} \le n$.
+    These numbers determine an upper range $R_U$ from row $\overleftarrow{b}+1$ to row $\overrightarrow{b}-1$ and the following further ranges.
+    A left lower range $\overleftarrow{R}_L$ from row $\overleftarrow{b}$ to row $\overleftarrow{c}+1$,
+    as well as a right lower range $\overrightarrow{R}_L$ from row $\overrightarrow{b}$ to row $\overrightarrow{c}-1$.
+    (b) A separation into chunks $C$. There are $3/\epsilon^2$ chunks in $C$: $1/\epsilon^2$ for $R_U$,  $1/\epsilon^2$ for $\overrightarrow{R}_L$, and  $1/\epsilon^2$ for $\overleftarrow{R}_L$.
+    (c) A selection $T$ of $3/\epsilon^5$ rows (with repetition): $1/\epsilon^2$ for each chunk.
+
+    We analogously obtain $\zeta'_W$ with the same variables but marked with the symbol prime.
+    The rows selected in $\zeta'_W$ are required to be disjoint from those in $\zeta_W$, i.e., $T \cap T' = \emptyset$.
+    Also the boundaries of chunks in $\zeta_W$ and $\zeta'_W$ have to be disjoint.
+
+    \begin{definition}[Center cells]
+        The cells $(\zeta_W,\zeta'_W) \in \gamma$ are called \emph{center cells}.
+        \label{def:center-cells}
+    \end{definition}
+    The reason is that they take a special role as common ``centers'' of two separate runs of the DP: one run to the left and one run to the right.
+    Observe that for each feasible entry of $(\zeta_W,\zeta'_W)$, we can apply Theorem~\ref{thm:column1} independently to the left and to the right, since the DP cells $(\zeta_W,\zeta'_W)$ takes the role of the left-most cell in Theorem~\ref{thm:column1}.
+    The strings only overlap between the columns $j_t,j_s$ where we obtain an instance of \BMEC, which in particular is a good SWC-instance.
+    Note that for each column $\hat{j}$ on the right hand side of $j_t$, all rows of $W$ located above $\overleftarrow{b}$ with binary entry at column $\hat{j}$  have also a binary entry at all rows between $\overleftarrow{b}$ and $\overrightarrow{b}$, due to the subinterval-freeness. 
+    The properties of $\hat{j}$ on the left hand side of $j_s$ are analogous.
+    We will choose $\overleftarrow{b}$ and $\overrightarrow{b}$ in such a way that by Lemma~\ref{lem:swc-gap}, it is therefore sufficient to consider the rows between $\overleftarrow{b}$ and $\overrightarrow{b}$ in order to handle all rows crossing $j$.
+
+    %The two solution strings within this block are determined by the rows from $\overleftarrow{c}$ to $\overrightarrow{c}$ and from $\overleftarrow{c}'$ to $\overrightarrow{c}'$, depending only on $(\zeta_W,\zeta'_W)$.
+    None of the remaining steps from Section~\ref{sec:second} interfere with each other.
+    We therefore run the following $DP$.
+    We first compute all center cells $(\zeta_W,\zeta'_W) \in \gamma$.
+    For each cell, we store an infix of $\sigma$ and an infix of $\sigma'$.
+    The infix of $\sigma$ starts at $j_t$ and ends at $j_s$.
+    The entries of the two strings are those that we obtain from $\SWC$ with the parameters of $(\zeta_W,\zeta'_W)$.
+    Each cell $(\zeta_W,\zeta'_W)$ forms a starting point for Algorithm $\textsc{SWC}^{\sigma, \sigma'}$, applied independently towards the left hand side and the right hand side.
+
+    To see that the DP yields a good enough approximation, again we compare against an optimal solution $(\tau,\tau')$.
+    Clearly we get a $(1+O(\epsilon))$-approximation for the infix between column $j_t$ and $j_s$ if for a DP cell $(\zeta_W,\zeta'_W)$, by Lemma~\ref{lem:swc-gap}.
+    Note that the computed solution does not consider the rows above $\overleftarrow{c}$ or below $\overrightarrow{c}$.
+    Since the further processing respects our choice between $\overleftarrow{c}$ and $\overrightarrow{c}$, the claim follows from Theorem~\ref{thm:column1}. 
+\end{proof}
+
+\subparagraph{General sub-interval-free instances} 
+We use Lemma~\ref{lem:second_instance_setting} to handle general sub-interval free instances.
+Instead of a single column $j$ crossed by all strings, we determine a sequence $q = (q_1,q_2,\dotsc)$ of columns with the property that each string crosses exactly one of them.
+Let $s_1$ be the first string in $M$.
+Then we choose $q_1$ to be the column of the last entry of $s_1$.
+
+We recursively specify the remaining columns.
+For a given $j$ such that we know $q_j$, let $s_i$ be the last (\ie, bottom-most) string that crosses $q_j$.
+Then we choose $q_{j+1}$ to be the last (\ie, rightmost) column of string $s_{i+1}$.
+For each $q_i$ in the sequence $q$, we determine a block $W_i$ analogous to $W$ in Lemma~\ref{lem:second_instance_setting}.
+
+A simple induction shows that by the no-substring property and the chosen order of strings, each string crosses at least one column of $q$ and none of them crosses more than one.
+In particular, for each $j$, the solution on the left hand side of $q_j$ depends on rows of $M$ disjoint from the rows that determine the solution on the right hand side of $q_{j+1}$. 
+
+In order to combine the solution on the right hand side of $q_j$ with the solution on the left hand side of $q_{j+1}$, we introduce a notion of dominance.
+Let us consider two arbitrary submatrices $V_1$ and $V_2$ of $M$.
+\begin{definition}[Dominance]
+    \label{def:dominance}
+    We say that $V_1$ $\tau$-dominates $V_2$ if for each column $c$ that is in both $V_1$ and $V_2$, either at least one of the two matrices has no binary entries or
+    the number of binary entries in $\tau(V_1)$ is at least $1/\epsilon^2$ times the number in $\tau(V_2)$.
+    We say that $V_1$ is $\tau$-dominant over $V_2$ for a column $c$, if the one column submatrix of $V_1$ determined by $c$ dominates $V_2$. 
+%
+    We analogously define $\tau'$-dominance.
+\end{definition}
+
+Consider a submatrix $\overrightarrow{V}$ of $M$ that only contains rows that cross $q_i$ and a submatrix $\overleftarrow{V}$ of $M$ that only contains rows that cross $q_{i+1}$.
+We observe that if $\overrightarrow{V}$ is $\tau$-dominant over $\overleftarrow{V}$ for some column $c$, it is also $\tau$-dominant for all columns on the left hand side of $c$:
+until $q_i$ is reached, when moving to the left the number of binary entries of $\tau(\overrightarrow{V})$ increases and the number of binary entries of $\tau(\overleftarrow{V})$ decreases.
+Analogously, if $\overleftarrow{V}$ is $\tau$-dominant over $\overrightarrow{V}$ for some column $c$, it is also $\tau$-dominant for all columns on the right hand side of $c$.
+
+We therefore have a possibly empty interval $I$ without $\tau$-dominance such that the columns of $\overrightarrow{V}$ on the left hand side of $I$ are $\tau$-dominant and the columns of $\overleftarrow{V}$ on the right hand side of $I$ are $\tau$-dominant.
+The different cases for $I$ are shown in Figures~\ref{fig:second_instance1} and \ref{fig:second_instance2}.
+\begin{figure}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+            \draw (0,0) -- (4,0);
+            \draw (0.1,-.1) -- (4,-.1);
+            \draw (0.2,-.2) -- (4,-.2);
+            \draw[blue,thick] (4,.2) -- (4,-3);
+            \node at (4,.5) {$q_0$};
+            \node at (3.5,-1) {$W$};
+            \draw (0.5,-.5) -- (4.5,-0.5);
+            \draw (0.5,-.6) -- (4.6,-0.6);
+            \draw (0.7,-.7) -- (4.6,-0.7);
+            \draw (1,-1) -- (5,-1);
+            \draw (1.2,-1.2) -- (5.1,-1.2);
+            \draw (3,-1.5) -- (6,-1.5);
+            \draw (3.1,-1.7) -- (6.2,-1.7);
+            \draw (3.1,-1.8) -- (6.2,-1.8);
+            \draw (3.1,-2) -- (7,-2);
+            \draw (4,-2.3) -- (7.5,-2.3);
+            \draw (4,-2.5) -- (8,-2.5);
+            \draw (4,-2.6) -- (9,-2.6);
+            \draw (4,-2.7) -- (9.4,-2.7);
+            \draw (4,-2.8) -- (9.5,-2.8);
+            \draw[blue,thick] (14,-2.5) -- (14,-5);
+            \node at (14, -2) {$q_1$};
+            % 	\draw (5,-3.1) -- (11,-3.1);
+            % 	\draw (5.1,-3.2) -- (11.1,-3.2);
+            % 	\draw (5.2,-3.3) -- (11.2,-3.3);
+            \draw (10,-3.4) -- (14,-3.4);
+            \draw[dashed] (9.5,-2.2) to (9.5,-3.6);
+            \draw[dashed] (10,-2.2) to (10,-3.6);
+            \draw (10,-3.7) -- (14,-3.7);
+            \draw (10.2,-3.8) -- (17.2,-3.8);
+            \draw (10.3,-4) -- (17.5,-4);
+            \draw (10.5,-4.4) -- (17.8,-4.4);
+            \draw (12,-4.5) -- (18,-4.5);
+            \draw (12.5,-4.7) -- (19,-4.7);
+            \node at (9.8,-3.1) {$I$};
+            \node at (13,-4.1) {$W$};
+            \draw[red, dashed] (0,0) rectangle (3.89,-.3);
+            \draw[red, dashed] (3.2,-.3) rectangle (4.5,-2.2);
+            \draw[red, dashed] (10,-3.4) rectangle (14,-3.8);
+            \draw[red, dashed] (12.5,-3.8) rectangle (17.3,-4.7);
+            \draw[red, dashed] (4.1,-2.4) rectangle (9,-2.9);
+        \end{tikzpicture}
+        \caption{\label{fig:second_instance1} Blocks represented by ranges shown in red on an instance $M$ and the blue lines are the columns, $I$ and $W$ shows the empty interval and central region respectively.}
+    \end{center}
 \end{figure}
 
-
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{Figure4}.pdf}
-\caption{Figure 4: Recommended setting to phase certain amount of individuals. aA) Genome-wide phasing of NA12878 using combination of 40 Strand-seq libraries with 30x short Illumina reads, 10 Strand-seq libraries with 10-fold long PacBio reads, or 10 Strand-seq libraries with 10X Genomics data. (i) The percentage of phased SNV pairs in the largest haplotype segment for each combination (ii)The cumulative accuracy the genome-wide haplotype was calculated by summing the switch error rates and (iii) the Hamming error rates found for each autosomes.Plots show quality measures such as percentage of phased SNV pairs, switch error rate and Hamming error rate for phased autosomal chromosomes. bB) A diagram providing the recommendations for the required number of Strand-seq libraries to be combined with recommended minimum of 10-fold PacBio and 30x Illumina coverage in order to reach global and accurate haplotypes for a depicted number of individual diploid genomes.}
-\label{fig:fig3}
+\begin{figure}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+            \draw (0,0) -- (4,0);
+            \draw (0.1,-.1) -- (4,-.1);
+            \draw (0.2,-.2) -- (4,-.2);
+            \draw[blue,thick] (4,.2) -- (4,-3);
+            \node at (4,.5) {$q_0$};
+            \node at (3.5,-1) {$W$};
+            \draw (0.5,-.5) -- (4.5,-0.5);
+            \draw (0.5,-.6) -- (4.6,-0.6);
+            \draw (0.7,-.7) -- (4.6,-0.7);
+            \draw (1,-1) -- (5,-1);
+            \draw (1.2,-1.2) -- (5.1,-1.2);
+            \draw (3,-1.5) -- (6,-1.5);
+            \draw (3.1,-1.7) -- (6.2,-1.7);
+            \draw (3.1,-1.8) -- (6.2,-1.8);
+            \draw (3.1,-2) -- (7,-2);
+            \draw (4,-2.3) -- (7.5,-2.3);
+            \draw (4,-2.5) -- (8,-2.5);
+            \draw (4,-2.6) -- (9,-2.6);
+            \draw (4,-2.7) -- (9.4,-2.7);
+            \draw (4,-2.8) -- (9.5,-2.8);
+            \draw[blue,thick] (11,-2.5) -- (11,-5);
+            \node at (11, -2) {$q_1$};
+            \draw (5,-3) -- (11,-3);
+            \draw (5.1,-3.2) -- (11.2,-3.2);
+            \draw (5.2,-3.3) -- (11.2,-3.3);
+            \draw (5.5,-3.4) -- (11.3,-3.4);
+            \draw[dashed] (5.5,-2.2) to (5.5,-3.6);
+            \draw[dashed] (9,-2.2) to (9,-3.6);
+            \draw (8,-3.7) -- (12,-3.7);
+            \draw (8.2,-3.8) -- (12.2,-3.8);
+            \draw (8.3,-4) -- (12.5,-4);
+            \draw (8.5,-4.4) -- (12.8,-4.4);
+            \draw (10,-4.5) -- (13,-4.5);
+            \draw (10.5,-4.7) -- (14,-4.7);
+            \node at (7,-3.1) {$I$};
+            \node at (10.8,-4.1) {$W$};
+            \draw[red, dashed] (0,0) rectangle (3.89,-.3);
+            \draw[red, dashed] (3.2,-.3) rectangle (4.5,-2.2);
+            \draw[red, dashed] (10.5,-3.1) rectangle (11.2,-4.7);
+            %   	\draw[red, dashed] (4.1,-2.4) rectangle (9,-2.9);
+        \end{tikzpicture}
+        \caption{\label{fig:second_instance2} This sketch shows a non-dominance example in region $I$.}
+    \end{center}
 \end{figure}
 
-% \section{Integrative global phasing strategy}
-% 	To generate more complete and dense haplotypes, we sought to establish a novel and  integrative phasing approach using a combination of Strand-seq data with the other data types. That is, we aim to enrich the sparse yet global phasing from Stand-seq using the dense haplotype information provided by Illumina, PacBio or 10X Genomics. However, integrating phase information across platforms poses a non-trivial statistical and algorithmic challenge, which we resolved by treating the sparse Strand-seq haplotypes generated by StrandPhaseR as one row in the fragment matrix processed by WhatsHap (see Methods). The other rows correspond to sequencing reads (PacBio, Illumina) or pre-assembled haplotype segments (10X Genomics) (see Methods). This allows, for the first time, for integrative phasing by solving the corresponding optimization problem (weighted MEC) provably optimal (\todo{fig}2). We performed extensive experiments to demonstrate that this approach enables excellent results in practice, as we describe in the following section.
-% 	To discover the most beneficial combinations of Strand-seq with Illumina or PacBio data, we explored combinations of variable numbers of Strand-seq libraries together with increasing depths of sequencing reads. To this end, we downsampled the number of Strand-seq libraries used in the analysis by randomly selecting subsets of libraries (5, 10, 20, 40, 60, 80, 100, or 120) from the original (N = 134) dataset. Similarly, we randomly downsampled the sequencing reads from the Illumina and PacBio datasets to a lower genomic coverage (2, 3, 4, 5, 10, 15, 25, and 30-fold). We applied our integrative phasing strategy to all pairs of downsampled Strand-seq libraries and the downsampled PacBio/Illumina datasets to assess the completeness (i.e. % of phased SNVs), contiguity (length of the largest haplotype segment) and accuracy (agreement with the 'reference' standard) of each assembled haplotype.
-% 	We found that the combination of Strand-seq haplotypes with any of the other data types markedly increased the number of variants that were phased in the largest haplotype segment, albeit to differing degrees (\todo{fig}3aA). Specifically, for the Illumina data we observed the completeness of each haplotype increased gradually with the number of Strand-seq libraries used in the experiment, whereas the depth of coverage of Illumina data had only a minor but noticeable effect (\todo{fig}3aA, i). In contrast, the PacBio data showed a significant improvement in haplotype completeness at 10-fold genomic coverage, regardless of the number of Strand-seq libraries used (\todo{fig}3aA i, black arrowheadgray rectangle). Similar results were seen when we combined Strand-seq with the 10X Genomics haplotypes (\todo{fig}3aA, ii). In all cases, integration of Strand-seq phasing drastically improved the contiguity of the haplotype spanning Chromosome 1 (\todo{fig}3bB). When combining Illumina data with 40 Strand-seq libraries >65% of the reference variants could be phased accurately (\todo{fig}3bB i, black asterisk); 5497 haplotype segments (collectively representing 19.7% of the phased SNVs), however, remained disconnected, even when integrating the complete (N=134) Strand-seq dataset. These results confirm that Illumina data are of limited utility for haplotype phasing.
-% 	In contrast, as few as 10 Strand-seq cells combined with 10-fold PacBio coverage were sufficient to phase more than 95% of all heterozygous SNVs into a single haplotype segment (\todo{fig}3bB ii, black asterisk), and merely 5 Strand-seq single cell libraries were required to connect all 10X Genomics haplotypes. However, we recommend at least 10 Strand-seq libraries (\todo{fig}3bB iii, black asterisk) to ensure that at least one haplotype-informative (i.e. Watson-Crick-type) cell exists for every chromosome with high probability (p=0.978). This global haplotyping was unique to Strand-seq, as the combination of 10X Genomics with PacBio reads proved inefficient to join locally phased segments (\todo{fig}3bB iv). That is, the added value of combining these two technologies is limited as the haplotype segments tend to break at similar locations.
-% 	Finally, we assessed the phasing accuracy of the assembled haplotypes (the longest phased segment only) (\todo{fig}3cC). Similar to the completeness of the haplotype, the accuracy of Illumina phasing gradually increased with sequencing depth and Strand-seq library number, indicating that Illumina coverage of 30-fold and higher is advisable (\todo{fig}3cC, i). We further observed slightly elevated switch error rates at lower PacBio depths, which plateaued at 10-fold coverage (\todo{fig}3Cc, black arrowhead). This is likely caused by allele uncertainty resulting from error-prone PacBio reads, especially at lower sequencing depths (\todo{fig}3C, i). The lowest switch error rate (< 0.2%) was achieved by the combination of Strand-seq with 10X Genomics data (\todo{fig}3cC, ii, switch error rate).
-% 	Switch error rates reflect local inaccuracies expressed by the number of pairs of consecutive heterozygous variants that are wrongly phased with respect to each other. These error rates are not necessarily informative about global haplotype accuracy, which largely depend on how switch errors are spatially distributed (see Methods, Supplementary \todo{fig}S4aA). Note that one single switch error implies that all following alleles (up to the next switch error) are assigned to the wrong haplotype. Since our goal is to generate dense and global haplotypes, we additionally report the Hamming error rate of the largest haplotype segment in comparison to the reference haplotypes (see Methods, Supplementary \todo{fig}S4bB). Illumina reads are highly accurate and therefore we observed lower impact of sequencing depth on the global accuracy of the largest phased haplotypes (\todo{fig}3cC, Hamming error rateiii). In contrast, PacBio reads exhibited higher sequencing error rates, which translated into higher switch error rates at low sequencing depths. Using 10-fold PacBio coverage combined with at least 10 Strand-seq cells yielded highly accurate global haplotypes (\todo{fig}3cC, iii black arrowheadgray rectangle), while lower coverages led to markedly worse results. Furthermore, the combination of Strand-seq with 10X Genomics haplotypes yielded highly accurate global haplotypes, already at the minimal amount of Strand-seq libraries (\todo{fig}3cC, Hamming error rateiv).
-% 	Taken together, these results illustrate that Strand-seq can be used to phase existing sequence data and build dense, global and highly accurate haplotypes. Indeed, we found our approach highly efficient for genome-wide phasing (\todo{fig}4aA). Using a combination of 40 Strand-seq libraries with 30-fold Illumina coverage, or 10 Strand-seq libraries with either 10-fold PacBio coverage or the 10X Genomics haplotypes we successfully scaffolded chromosome-length haplotypes for every autosome of NA12878. The completeness of the genome-wide haplotypes measured for the largest haplotype block reached 95.7% and 69.1% using PacBio and Illumina reads, respectively (\todo{fig}4aA, i). We further demonstrated the high accuracy of these haplotypes on the local and global scales, which showed low switch (<0.45%) and Hamming error (<0.99%) rates for both the PacBio and Illumina combination (\todo{fig}4aA, i,ii). Whereas scaffolding the 10X Genomic haplotypes produced the most accurate local haplotypes (switch error rate of 0.05%), global performance suffered, and the highest Hamming error rate (2.18%) was calculated for this combination. Nevertheless, using Strand-seq to scaffold any of the datasets remarkably improved the completeness, contiguity and accuracy of phasing for each chromosome, highlighting our integrative phasing strategy as a robust method for building dense and accurate whole genome haplotypes (see Data Availability to access phased SNVs for NA12878 using integrative phasing approach presented in this study.). 
+\begin{definition}[Dominance region]
+    The \emph{dominance region} of $\overrightarrow{V}$  with respect to $\overleftarrow{V}$ is the set of columns where $\overrightarrow{V}$ is dominant over $\overleftarrow{V}$, and vice versa. 
+    \label{def:dominance-region}
+\end{definition}
+Within the dominance region, our old DP can simply compute solutions without considering interferences: the dominated block is small enough to be ignored, applying Lemma~\ref{lem:swc-gap}.
 
-% \section{METHODS}
-% 
-% \subsection{Integrative phasing using WhatsHap}
-% 	As an input for integrative phasing, Strand-seq haplotypes were phased using StrandPhaseR (exported in VCF format) and combined with either PacBio or Illumina alignments (both stored in BAM format) or 10X Genomics pre-phased haplotype segments (stored in the VCF produced by LongRanger) to phase heterozygous variants obtained from Illumina platinum genomes (see Data
-% Availability Access). We achieved this integrative phasing across platforms by solving the weighted minimum error correction (wMEC) problem using WhatsHap19,20.
-% 	Mathematically, aligned reads from Illumina or PacBio (or pre-phased 10X Genomics haplotype segments) and sparse Strand-seq haplotypes are jointly represented in the form of a fragment matrix, where each  row represent either one reads (in case of Illumina and PacBio), one pre-phased haplotype segment (in case of 10X Genomics) or one sparse global haplotype (in case of StrandSeq data) and columns represent the variant sites (\todo{fig}2). The matrix is filled with 0, 1 and ‘-’ entries, where 0 and 1 indicate that the corresponding read supports the reference or alternative allele, respectively,  and ‘-’ means the information is missing (e.g. because a read does not cover this variant site). WhatsHap selects a subset of rows and solves the wMEC problem optimally on these rows, as described earlier20. The result is a maximum likelihood bipartition of rows, which corresponds to the two sought haplotypes.
-% 	For all analyses, whatshap was provided with a reference genome (option --reference) to enable re-alignment-based allele detection when constructing the fragment matrix from sequencing reads. This has been shown to significantly improve performance for PacBio reads20.
-% 
-% \section{Quality metrics of assembled haplotypes}
-% 	To assess the quality of assembled haplotypes in this study, we calculated different metrics described in the following.
-% Completeness: The process of haplotyping establishes phase relations between pairs of consecutive heterozygous variants. We call each such pair a 'phase connection'. For each haplotype segment produced by a (combination of) technologies, we therefore count the number of phase connections, which is equal to the number of heterozygous markers that make part of such a haplotype segment minus one. To measure the completeness of a phasing, we sum the number of phase connections across all haplotype segments and divide by the maximum possible number of phase connections, which is equal to the number of heterozygous variants on a chromosome minus one.
-% Switch error rate: The switch error rate is the fraction of phase connections for which the phasing between the two involved heterozygous variants is wrong (Supplementary \todo{fig}S3aA).
-% Largest haplotype segment: In this study we are interested in haplotypes that span the whole length of all chromosomes. To measure the completeness of phasing, we report the fraction of heterozygous variants that are part of the largest haplotype segment.
-% Largest haplotype segment Hamming rate: To assess whether haplotypes are correct also over long genomic distances, we only consider the largest haplotype segment and compute the Hamming distance between true and predicted haplotypes (Supplementary \todo{fig}S3bB), divided by the total number of heterozygous variants in this haplotype segment. That is,the Hamming error rate is equal to the fraction of wrongly phased heterozygous variants. Note that, only one switch error (e.g. in the middle of a chromosome) can result  into a very high Hamming distance and hence the Hamming distance is a much more stringent quality measure. While the switch error rate assesses whether haplotypes are correct locally, i.e. between pairs of neighboring heterozygous variants, the Hamming distance assesses whether haplotypes are correct globally.
+Within the interval $I$, both cells have to ``cooperate.''
+We obtain a \BMEC block in the middle with additional rows on the top and bottom. 
+This sub-instance can be solved directly,
+%We handle it similar to the center in Lemma~\ref{lem:second_instance_setting}.
+% \sgnote{we had nested DP here, inner and outer. I think we need that intuition in main text, probably move proof of ``DP is a PTAS'' to appendix.}%
+%We handle it as in Lemma~\ref{lem:second_instance_setting}.
+
+We use DP cells similar to Lemma~\ref{lem:second_instance_setting}, but for more than one center.
+For each $j$, we consider column $q_j\in q$ and a collection $\kappa_j$ of DP cells $(\zeta_{q_j},\zeta'_{q_j}) \in \kappa_j$.
+Each cell $(\zeta_{q_j},\zeta'_{q_j})$ is a center cell with center $q_j$.
+We refer to the cells in $\kappa_j$ as the $j$th center cells.
+
+Additionally, for each center cell we also store the dominance information on the left and right of $q_j$, 
+i.e., we store the intervals $\overleftarrow{I}, \overleftarrow{I}'$ between $q_{j-1}$ and $q_j$ and the intervals $\overrightarrow{I},\overrightarrow{I}'$ between $q_j$ and $q_{j+1}$ where no cell dominates another, once with respect to $\tau$ and  once with respect to $\tau'$.
+
+Formally this means to extend the cells by four numbers that store the start and end points four intervals $\overleftarrow{I},\overrightarrow{I}',\overrightarrow{I}$, and $\overrightarrow{I}'$.
+
+For each of the four intervals we store additional information.
+The four intervals only differ in whether we consider $\sigma$ or $\sigma'$. The left and right version are symmetric.
+Therefore it is sufficient to analyze the details for a generic $I \in \overleftarrow{I},\overrightarrow{I}',\overrightarrow{I},\overrightarrow{I}'$.
+The interval ${I}$ determines a block ${B}$ that we subdivide into chunks ${C}$ and we select rows ${T}$.
+There are several differences to previous trisections, subdivisions and selections.
+
+We divide the rows of block ${B}$ into four regions: 
+a middle part ${U^\uparrow}$ that has only binary entries (a \BMEC sub-instance) such that each row crosses $q_j$,
+a middle part ${U^\downarrow}$ that has only binary entries such that each row crosses $q_{j+1}$,
+the rows ${U}^{\uparrow\uparrow}$ above ${U}^\uparrow$, and the rows ${U}^{\downarrow\downarrow}$ below ${U}^\downarrow$.
+We choose the two middle parts such that the number of rows is maximal.
+
+It is not sufficient to use a globally guessed $r$. 
+Instead, we add four numbers ${r}^{\uparrow\uparrow},{r}^\uparrow,{r}^\downarrow,{r}^{\downarrow\downarrow}$ to the DP cell in order to guess and store the values 
+$\tau({U}^\uparrow)$, $\tau({U^\downarrow})$, $\tau({U^{\uparrow\uparrow}})$, and $\tau({U^{\downarrow\downarrow}})$.
+
+Due to the non-dominance, we know that for each column of ${B}$, at least an $\epsilon^2$-fraction of rows from $\tau(B)$ are located in the middle part ${M}$.
+Observe that there is no region that takes the role of $X$ in a trisection.
+We obtain an instance similar to a good SWC-instance, but it has two non-binary regions and the binary region only has an $\epsilon^2$ fraction of rows instead of an $\epsilon$-fraction.
+To be able to still apply Lemma~\ref{lem:swc-gap}, we subdivide each of the three regions into chunks and increase the number of chunks per region. 
+The number of chunks depends on  the four versions of ${r}$. 
+If our chunks do not contain more than $\epsilon^4 {r}$ rows of $\tau(M)$, the lemma is applicable.
+We guess a number $k$ and set the size of chunks with root $q_j$ to contain $\epsilon^{4k} {r}^{\uparrow\uparrow}$ rows of $\tau(M)$ in ${U}^\uparrow$ and $\epsilon^{4k} {r}^{\uparrow\uparrow}$ in ${M}$ for the rows with root $q_j$.
+There may be an additional chunk with fewer rows, if the numbers don't match.
+We specify the remaining chunks symmetrically, based on a number guessed for root $q_{j+1}$.
+The choice of $k$ will become clear in the description of the DP.
+
+The increased precision also requires that we  increase the precision of the entire remaining DP: we replace each selection of $1/\epsilon^2$ chunks into selections of $1/\epsilon^4$ chunks.
+Clearly, the increased precision cannot decrease the quality of the computed solution.
+
+The idea of the DP is that for each $q_j$, we run the rooted DP as an \emph{inner} DP that determines solutions for their dominance regions that fit to solutions in the consecutive non-dominance regions.
+The non-dominance regions then form interfaces that we can use to compute an overall solution from left to right with an \emph{outer} DP.
+
+The inner DP works as follows.
+For each cell $(\zeta_{q_1},\zeta'_{q_1}) \in \kappa_1$, we compute the prefixes of $\sigma,\sigma'$ until $q_1$ exactly as in Lemma~\ref{lem:second_instance_setting}.
+We start the DP to the right hand side also the same way as before, but with the difference that as soon as we reach the row ranges for $\overrightarrow{I}$ or $\overrightarrow{I}'$, we use the choices already stored in $(\zeta_{q_1},\zeta'{q_1})$.
+We have to ensure that our choices within the DP do not contradict the choices of  $(\zeta_{q_1},\zeta'_{q_1}) \in \kappa_1$. 
+If $(\zeta_{q_1,i},\zeta'_{q_1,i})$ is the cell of the inner DP that overlaps with $\overrightarrow{I}$ first, we require that among the common rows, $\overrightarrow{B}$ contains the remaining rows from $\tau(M)$ restricted to the rows of the inner DP and does not contradict $B_i$. 
+Each chunk of $C_i$ contains $\epsilon^k |\tau(M)|$ rows of $\tau(M)$, for some integer $k$ (the same $k$ that we guessed for the non-domination region). 
+We have to ensure that the chunks of $\overrightarrow{U}^\uparrow$ and $\overrightarrow{M}^\uparrow$ match the chunks and the chunks of $\overrightarrow{C}_i$.
+Furthermore, we have to check that the selection of rows matches.
+
+For all $j > 1$ continue in the same manner starting from $(\zeta_{q_j},\zeta'_{q_j})$ and handle the processing of $\overleftarrow{I}$ as we did before with $\overrightarrow{I}$.
+Observe that we can see the processing of $(\zeta_{q_1},\zeta'_{q_1})$ as a special case with empty interval $\overleftarrow{I}$, and to obtain the suffix of $\sigma,\sigma'$, the last interval $\overrightarrow{I}$ can be handled as empty interval.
+
+The global DP proceeds from left to right. For each $q_j$, it considers all cells $(\zeta_{q_j},\zeta'_{q_j})$.
+The value of $(\zeta_{q_j},\zeta'_{q_j})$ is its inner DP value plus the best value achievable on the left hand side with the same choice of parameters for the left non-domination region.
+Among all cells from $\kappa_j$ with the same parameters for the right non-domination region, the global DP only keeps the best value (the smallest number of errors).
+
+\subparagraph{The above DP is a PTAS for $\mathbf{M}$.} 
+Let $(\tau,\tau')$ be an optimal solution.
+For each separate $q_j \in q$, we run the same DP as in Lemma~\ref{lem:second_instance_setting} and thus we obtain a $(1+O(\epsilon))$-approximation.
+For the intervals $\overleftarrow{I}$ and $\overrightarrow{I}$, there is a choice of parameters that matches the choices analyzed in Lemma~\ref{lem:second_instance_setting}.
+We therefore only have to argue that the transition between sub-instances works correctly.
+We consider the dominant regions determined by $(\tau,\tau')$ and consider the DP cells that guess these regions correctly from left to right.
+Let $I$ be one of the guessed non-dominant regions.
+We obtain the solution for $I$ by applying $\SWC$, which gives a $(1+O(\epsilon))$ approximation.
+The transition between dominant and non-dominant regions uses that in both cases we create the solution strings from the same parameters in $\SWC$ and therefore creates the solution from the same instance strings.
+This finishes the proof of Theorem~\ref{thm:ptas}.
+
+\section{A QPTAS for general instances.}\label{sec:QPTAS}
+
+To solve the general instances, the main observation is that we divide the rows into their at most $\log_2(m)$ length classes $L_i$, and the $i$th length class $L_i$ is the set of all strings of length $\ell$ with $\ell \in (m/2^{i+1}, m/2^{i}]$.
+First we present an algorithm to solve each length class $L_i$ separately by constructing their corresponding columns.
+
+\subsection{Length classes.}\label{sec:length-classes}
+We show how we can handle length classes of strings.
+To this end, let us assume \WLOG that $m$ (\ie, the number of columns in $M$) is a power of $2$.
+Then for each $i \ge 0$, the $i$th length class $L_i$ is the set of all strings of length $\ell$ with $\ell \in (m/2^{i+1}, m/2^{i}]$. 
+We observe the following known property of length classes.
+\begin{lemma}\label{lem:half}
+    For each $i \ge 0$ there is a set $q_i = \{q_{i,1},q_{i,2},\dotsc\}$ of columns such that (a) each string in $L_i$ crosses at least one column from $q_i$ and (b) no string from $L_i$ crosses more than two columns from $q_i$.
+    Furthermore, we can choose the sets such that $q_i \subseteq q_{i+1}$.
+\end{lemma}
+\begin{proof}
+    At level $i$, for each $k$ with $1 \le k \le 2^{i+1}$ we select the column with index $k \cdot m/2^{i+1}$.
+    We observe that the distance between two consecutive columns from $q_i$ is $m/2^{i+1}$, which matches the shortest length of strings in $L_i$: 
+    if a minimal string starts right after a column of $q_i$, its last entry will cross the next column of $q_i$. 
+
+    Since strings do not start before column $1$ and column $m$ is contained in each $q_i$, claim (a) follows.
+    To see (b), observe that a maximum length string of $L_i$ is at most $m/2^i$.
+    Let $j$ be an index. 
+    The distances from $q_{i,j}$ to the column right before $q_{i,j+1}$ and from $q_{i,j+1}$ to right before $q_{i+2}$ are exactly $m/2^{i+1}$ .
+    If the string starts directly at a column $q_{i,j}$ from $q_i$, it would cross column $q_{i,j+1}$ and end right before column $q_{i,j+2}$ as shown in Fig.~\ref{fig:gen_instance1}.
+
+    The last claimed property follows directly from the construction of the sets $q_i$ (Fig.~\ref{fig:gen_instance1}).
+\end{proof}
+
+\begin{figure}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+            \draw[blue,thick] (7,.2) -- (7,-6);
+            \draw[blue,thick] (13,.2) -- (13,-6);
+            \draw[blue,thick] (19,.2) -- (19,-6);
+            \draw[blue,thick,dashed] (10,.2) -- (10,-6);
+            \draw[blue,thick,dashed] (16,.2) -- (16,-6);
+            \node at (2.5,-1.5) {$L_1$};
+            \node at (7,0.5) {$q_{1,1}$};
+            \node at (10,0.5) {$q_{1,2}$};
+            \node at (13,0.5) {$q_{1,3}$};
+            \node at (16,0.5) {$q_{1,4}$};
+            \node at (19,0.5) {$q_{1,5}$};
+            \draw (1,-0.5) -- (7,-0.5);
+            \draw (3,-0.7) -- (8,-0.7);
+            \draw (5,-0.9) -- (8,-0.9);
+            \draw (6,-1.2) -- (11,-1.2);
+            \draw (7,-1.5) -- (13,-1.5);
+            \draw (8,-1.7) -- (11,-1.7);
+            \draw (9,-1.9) -- (12,-1.9);
+            \draw (9,-2.1) -- (13,-2.1);
+            \draw (9,-2.3) -- (14,-2.3);
+            \draw (8,-2.5) -- (12,-2.5);
+            \draw (9.5,-2.9) -- (14,-2.9);
+            \draw (11,-2.7) -- (16,-2.7);
+            \draw (13,-3.1) -- (19,-3.1);
+            \draw (14,-3.3) -- (19,-3.3);
+            \draw (17,-3.5) -- (21,-3.5);
+            \draw (15,-3.7) -- (21,-3.7);
+            %                 \node at (13,-6.8);
+        \end{tikzpicture}
+        \caption{\label{fig:gen_instance1} For a single-length-class instance, the sketch shows the strings crossing each column either exactly once or exactly twice.}
+    \end{center}
+\end{figure}
+
+For each $i$, we now separate $L_i$ into two sub-instances.
+One sub-instance $L'_i$ is formed by those rows from $L_i$ that only cross one column of $q_i$ and the second sub-instance $L''_i$ is formed by those rows that cross exactly two columns of $L_i$.
+
+We first show that we can handle each class separately.
+\begin{lemma}\label{lem:half-length-class}
+    There is a QPTAS for \GMEC if all strings are in the same class $L'_i$ or $L''_i$.
+\end{lemma}
+\begin{proof}
+    We first note that by skipping all $q_{i,j}$ with even $j$, the strings in $L''_i$ cross exactly one column of the set.
+    It is therefore sufficient to handle $L'_i$.
+
+    For each column $q_{i,j}$, we create a set of DP cells (as defined in Definition~\ref{def:dp-cell-two-solution-string}) that stores information about a center region as defined in Definition~\ref{def:center-cells} and about non-domination intervals as defined in Definition~\ref{def:dominance}, exactly as in the proof of Theorem~\ref{thm:ptas}. 
+    The next insight is that we can order the rows crossing column $c$ at the left and right side as defined below.
+    \subparagraph{Left row ordering}
+    We first order the rows with increasing starting positions of strings as in Lemma~\ref{lem:second_instance_setting}.
+    At the left side of column $c$ , we obtain a similar instance as in Lemma~\ref{lem:second_instance_setting}.
+
+    \subparagraph{Right row ordering}
+    Afterwards we reorder the rows in order to handle the right hand side of column $c$. More precisely, we order the strings in increasing order based on the end of strings $e_i$.
+    The obtained structure corresponds to the right hand side of column $c$ is similar to the instance handled in Lemma~\ref{lem:second_instance_setting}.
+
+    Instead of running the DP of Lemma~\ref{lem:second_instance_setting}, we guess the sequence of blocks.
+    An optimal solution $(\tau,\tau')$ determines a sequence of blocks $\overleftarrow{A}_1,\overleftarrow{A}_2,\dotsc,\overleftarrow{A}_k$ such that $|\tau(\overleftarrow{A}_{i+1})| =  \epsilon^2 |\tau(\overleftarrow{A}_{i})|$. 
+    Instead of moving from $\overleftarrow{A}_1$ to $\overleftarrow{A}_k$ using a DP, we directly guess the strings for all $k$ sub-matrices \emph{simultaneously}.
+    We do the same with the chunks and row selections.
+    Additionally, we guess the sequence of sub-matrices $\overleftarrow{A}'_1,\overleftarrow{A}'_2,\dotsc,\overleftarrow{A}'_{k'}$ simultaneously 
+    such that $|\tau'(\overleftarrow{A}'_{i+1})| =  \epsilon^2 |\tau'(\overleftarrow{A}'_{i})|$.
+    We obtain a combined DP cell $\overleftarrow{\zeta}$ for $k+k'$ sub-matrices.
+
+    Again we form the sub-matrices $\overrightarrow{A}_1,\overrightarrow{A}_2,\dotsc,\overrightarrow{A}_{k}$ and  $\overrightarrow{A}'_1,\overrightarrow{A}'_2,\dotsc,\overrightarrow{A}'_{k'}$ analogous to the left hand side and guess the selected strings of all matrices simultaneously 
+    such that $|\tau(\overrightarrow{A}_{i+1})| =  \epsilon^2 |\tau(\overrightarrow{A}_{i})|$ and  $|\tau'(\overrightarrow{A}'_{i+1})| =  \epsilon^2 |\tau'(\overrightarrow{A}'_{i})|$. 
+    We obtain a combined DP cell $\overrightarrow{\zeta}$ for all $k+k'$ sub-matrices on the right hand side.
+%     \sgnote{I think here length class means $L'_i$ or $L''_i$, right? This definition should go in main text.}
+    \begin{definition}[DP cell for sub-class of a length class $L_i$] %($L'_i$ or $L''_i$)]
+        For each $q_{i,j}$, let $\xi_j$ be the set of super-cells $(\overleftarrow{\zeta}, \overleftarrow{\zeta'}, \overrightarrow{\zeta}, \overrightarrow{\zeta'})$, but with the additional center and non-domination information of Lemma~\ref{lem:second_instance_setting}.
+        \label{def:dp-cell-length-class}
+    \end{definition}
+
+    For each $q_{i,j}$, let $\xi_j$ be the set of super-cells based on Definition~\ref{def:dp-cell-length-class}.
+    We then design a DP that moves from left to right through the columns in $q_i$.
+    The DP and its analysis now follow from the proof of Theorem~\ref{thm:ptas}, but we consider the left hand side and right hand side of each cell from $\xi_j$ simultaneously.
+
+    To analyze the running time, we observe that $k$ and $k'$ are at most $O(\log_{1/\epsilon}(n))$ since for each $i$ we assume that $|\tau(\overleftarrow{A}_{i+1})| =  \epsilon |\tau(\overleftarrow{A}_{i})|$
+    and $|\tau'(\overleftarrow{A}'_{i+1})| =  \epsilon |\tau'(\overleftarrow{A}'_{i})|$. 
+    The number of instances $\overrightarrow{A}_i$ and $\overrightarrow{A}'_i$ are also at most $O(\log_{1/\epsilon}(n))$ each, for the same reason.
+
+%     \sgnote{Maybe, we say selection and majority voting to generate solution strings work as before.}
+    We thus obtain super-cells that are combined of logarithmically many sub-cells with polynomial complexity.
+    We obtain an overall super-cell which is a quadruple $(\overleftarrow{\zeta},\overleftarrow{\zeta}',\overrightarrow{\zeta},\overrightarrow{\zeta}')$, and we have to distinguish $\bigl(n^{O(1)}\bigr)^{4 \log_{1/\epsilon}(n)} = n^{O(\log n)}$
+    different cells, which is quasi-polynomial\footnote{We assume that $n$ and $m$ are polynomially related. This is justified because there are $n \cdot m$ entries of $M$ and therefore measuring in $m$ instead of $n$ would also give a quasi-polynomial complexity.}.
+
+    We now analyze the performance guarantee. 
+    For each column $j$, we obtain the values $\sigma_j$ and $\sigma'_j$ in almost the same way as we do in Lemma~\ref{lem:second_instance_setting}, but with the difference that we require consistency with all other rows sampled.
+    For an optimal solution $(\tau,\tau')$, it is sufficient to only consider choices of rows such that all rows selected for $\sigma$ are in $\tau(M)$ and all rows selected for $\sigma'$ are in $\tau'(M)$.
+    Such a selection of rows ensures consistency. 
+    Note that we could apply the proof of Lemma~\ref{lem:second_instance_setting}  from the root to the left hand side and to the right hand side independently,
+    if we knew $\tau(M)$ and $\tau'(M)$, just by avoiding wrong assignments.
+    The simultaneous selection of all relevant rows ensures that we consider at least one selection of rows that satisfies these strong conditions.
+    This solution is a $(1+\epsilon)$ approximation by the proof of Lemma~\ref{lem:second_instance_setting}, and
+    our DP computes a solution of at least the same quality since we consider the overall number of errors with respect to all sampled rows.
+\end{proof}
+
+Combining the two sub-classes gives a QPTAS for an entire length class.
+
+\begin{definition}[DP for a length class $L_i$]
+    For each index $j$ let $\xi'_j$ be the sets of DP cells for $L'_i$ and for the odd indices $j$ let $\xi''_j$ be the set of cells for $L''_i$.
+    We define a super-cells that starts in $j$, $(Z'_j,Z''_j,Z'_{j+1},Z''_{j+2}) \in \xi'_j \times \xi''_j \times \xi'_{j+1} \times \xi''_{j+2}$ and the super-cell that ends in $j$, $(Z'_{j-1},Z''_{j-2},Z'_j,Z''_j) \in \xi'_{j-1} \times \xi''_{j-2} \times \xi'_{j} \times \xi''_{j}$.
+ \label{def:dp-whole-length-class}
+\end{definition}
 
 
+\begin{lemma}\label{lem:length-class}
+    There is a QPTAS for \GMEC if all strings are in the same class $L_i$.
+\end{lemma}
+\begin{proof}
+To prove it, we consider DP-cells according to Definition~\ref{def:dp-whole-length-class} and combine these cells from two consecutive columns such that they are compatible.
+
+    To combine the PTAS for $L'_i$ and $L''_i$, we proceed from left to right.
+    For each index $j$ let $\xi'_j$ be the sets of DP cells for $L'_i$ and for the odd indices $j$ let $\xi''_j$ be the set of cells for $L''_i$.
+    For each column $c$ before $q_{i,1}$, each pair of cells $(Z,Z') \in \xi'_1 \times \xi''_1$ determines two subproblems for which we compute the two separate solutions.
+%     \sgnote{Maybe, we define DP cell for $L_i$ to re-use it in next section.}
+    Let $\mathcal{B}(Z,Z',z)$ be the set of all boxes (sets of rows) for $\sigma$ considered in the sub-cells of $(Z,Z')$ at column $z$ and
+    let $\mathcal{B}'(Z,Z',z)$ be the set of all boxes (sets of rows) for $\sigma'$ considered in the sub-cells of $(Z,Z')$ at column $z$. 
+
+    We now extend the DP as follows.
+    We compose the solution from left to right, starting with the prefix of $(\sigma,\sigma')$ before $q_{i,1}$ and then, step by step, we fill the intervals between $q_{i,j}$ and $q_{i,j+1}$ for $j \ge 1$.
+    The starting interval can be seen as the interval between a dummy-column $q_0$ and $q_1$.
+    For each $j$, let us analyze its interval. 
+    If $j$ is odd, we simultaneously consider the cells $\xi'_j,\xi'_{j+1},\xi''_j, \xi''_{j+2}$.
+    Otherwise, we simultaneously consider the cells $\xi'_j,\xi'_{j+1},\xi''_{j-1}, \xi''_{j+1}$.
+
+    For each column $c$ with index $\ell$ in the interval, in both cases the values of the DP cells reveal all $\SWC$ instances at $c$ that we would have to solve in order to obtain solutions for $L'_i$ and $L''_i$ separately.
+    Instead of solving these instances separately, we solve them simultaneously.
+
+    Let $\hat{C}_1, \hat{C}'_1$ and $\hat{C}_2,\hat{C}'_2$ be the chunks of the four DP cells at position $j$.
+    In order to determine the value $\sigma_j$, we have to combine $\hat{C}_1$ with $\hat{C}_2$ and take care of the different densities of rows.
+    To this end, we generalize the function $\textsc{Majority}_j$.
+    \begin{definition}{Generalized Majority}
+        \label{def:generalized-majority}
+        For a single chunk $c$, let $r(c)$ be the number of rows in $c$ that are guessed to be in $\tau(M)$ and $t(c)$ the number of selected rows.
+        As in Definition~\ref{def:weighted-majority}, we replace all values zero by $-1$.
+        Then, for the given set of chunks $C$ with selection $T$, we compute 
+        \[
+            \rho := \sum_{c \in C} \sum_{i \in T\colon i \in c} (r(c) \cdot M_{i,j})\,.
+        \]
+        We set $\sigma_j = 1$ if the outcome is at least zero and $0$ otherwise.    
+        The definition is analogous for $\sigma'_j$.
+    \end{definition}
+
+    By replacing the majority function by the generalized majority function of Definition~\ref{def:generalized-majority} in the proof of Lemma~\ref{lem:SWC}, we obtain a $(1 + O(\epsilon))$-approximation
+    also if we consider different cells simultaneously.
+
+    Since we consider all cells for the entire interval simultaneously, one of the choices is at least as good as sampling uniformly at random with knowledge of $\tau(M)$ and $\tau'(M)$.
+    We therefore obtain a solution for the interval with at most a $(1+O(\epsilon))$ factor of errors compared to $(\tau,\tau')$
+
+    Finally we have to join the results that we obtain for the intervals.
+    Observe that for each pair of cells $(Z''_j,Z''_{j+2}) \in \xi''_j \times \xi''_{j+2}$ there are two consecutive pairs of cells
+    $(Z'_j,Z'_{j+1}) \in \xi'_j \times \xi'_{j+1}$ and $(Z'_{j+1}, Z'_{j+2}) \in \xi'_{j+1} \times \xi'_{j+2}$.
+    For a quadruple of cells $(Z'_j,Z''_j,Z'_{j+1},Z''_{j+2})$ we consider each quadruple on the left hand side ending with the matching cells $Z'_j,Z''_j$.
+    Among these, we take the one with fewest errors.
+    To obtain the value of the new quadruple, we add the errors in the interval $(q_{i,j} q_{i,j+1}]$ to the value of the selected predecessor quadruple.
+    To compute the value $(Z'_{j+1},Z''_j,Z'_{j+2},Z''_{j+2})$, we consider all cells $(Z'_j,Z''_j,Z'_{j+1},Z''_{j+2})$, \ie, the cells that have the same $Z''_{j},Z''_{j+1},Z'_{j+1}$ for all choices of $Z'_j$.
+    We add the errors between $q_{i,j+1}$ and $q_{i,j+2}$ to the smallest value found among the predecessors.
+
+    The approximation ratio follows from Lemma~\ref{lem:half-length-class} and the quasi-polynomial running time from the fact that we only consider constantly many super-cells simultaneously.
+
+\end{proof}
+
+\begin{figure}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+            \node at (2.5, .5) {$q_{3,1}$};
+            \node at (5, .5) {$q_{2,1}$};
+            \node at (7.5, .5) {$q_{3,3}$};
+            \node at (10, .5) {$q_{1,1}$};
+            % 	\draw[blue,thick] (0,.2) -- (0,-6);
+            \draw[blue,thick] (10,.2) -- (10,-6);
+            \draw[blue,thick, dashed] (5,.2) -- (5,-6);
+            \draw[blue,thick, loosely dashed] (2.5,.2) -- (2.5,-6);
+            \draw[blue,thick, loosely dashed] (7.5,.2) -- (7.5,-6);
+            \draw (.2,-4) -- (10,-4);
+            \draw (1,-4.2) -- (11,-4.2);
+            \draw (3,-4.4) -- (10,-4.4);
+            \draw (6,-4.6) -- (13,-4.6);
+            \draw (7,-4.8) -- (14,-4.8);
+            \draw (7,-5) -- (12,-5);
+            \node at (0,-4.5) {$L_1$};
+
+            \draw (.2,-2.5) -- (5,-2.5);
+            \draw (1,-2.6) -- (5.5,-2.6);
+            \draw (3,-2.8) -- (7,-2.8);
+            \draw (3.5,-3.0) -- (6,-3.0);
+            \draw (4,-3.2) -- (8,-3.2);
+            \node at (0,-3) {$L_2$};
 
 
+            \draw (6,-2.7) -- (10,-2.7);
+            \draw (6.5,-2.9) -- (10.5,-2.9);
+            \draw (7,-3.4) -- (10.2,-3.4);
+
+            \draw (.2,-0.5) -- (2.5,-0.5);
+            \draw (1,-0.7) -- (3,-0.7);
+            \draw (1.1,-0.9) -- (2.8,-0.9);
+            \draw (1.2,-1.1) -- (2.7,-1.1);
+            \draw (1.6,-1.3) -- (3.3,-1.3);
+
+            \draw (2.6,-1.5) -- (5.1,-1.5);
+            \draw (3.5,-1.7) -- (5.7,-1.7);
+            \draw (3.7,-1.9) -- (5.5,-1.9);
+            \draw (2.6,-1.0) -- (5.2,-1.0);
+            \draw (5.3,-1.0) -- (7.8,-1.0);
+            \node at (0,-1) {$L_3$};
+        \end{tikzpicture}
+        \caption{\label{fig:gen_instance2} Different length classes, $L_1$ with corresponding column $q_{1,1}$, 
+            $L_2$ with corresponding columns $q_{2,1}, q_{2,2} = q_{1,1}$, 
+            and $L_3$ with corresponding columns $q_{3,1}, q_{3,2} = q_{2,1}, q_{3,3}, q_{3,4} = q_{1,1}$.}
+    \end{center}
+\end{figure}
+
+\subsection{The general QPTAS.}\label{sec:generalQPTAS}
+Finally we combine our insights to an algorithm for general instances shown in Fig.~\ref{fig:gen_instance2} by combining different length classes.
+%
+For different length classes $L_i$, we construct their corresponding columns as explained in previous section. 
+The main idea is that for each column $j$, we only have to consider those quadruple of super-cells according to Definition~\ref{def:dp-whole-length-class} that cross $j$ from all the length classes simultaneously.
+We therefore consider at most $O(\log(n))$ quadruples of super-cells simultaneously. In the dynamic programming, we consider a joint quadruple of super-cells from all the length classes.
+Then the overall complexity of a joint cell is quasi-polynomial: the number of different cells is $\bigl(n^{O(\log n)}\bigr)^{O(\log n)} = n^{O(\log^2 n)}$.
+
+Let $Q_{i,j}$ be the set of quadruples of length class $i$ crossing column $j$ such that the strings are ordered from shortest length class to the largest.
+For each length class $i$, a quadruple $q \in Q_{i,j}$ is the set of rows starting at $j$, cross $j$, or end in $j$.
+If $j$ is the index of $q_{i,\ell}$,
+The quadruple $q$ starts in $j$ if it is formed by cells $(Z'_\ell,Z''_\ell,Z'_{\ell+1},Z''_{\ell+2})$ and ends in $j$ if it is formed by $(Z'_{\ell-1},Z''_{\ell-2},Z'_\ell,Z''_\ell)$ (see proof of Lemma~\ref{lem:length-class}. 
+If $j$ lies between $q_{i,\ell}$ and $q_i,\ell$, $j$ crosses those quadruples that contain $Z'_\ell$ and $Z'_{\ell+1}$.
+If non of the cases are true, we do not consider $q$ in the cells for column $j$.
+
+Let us consider a $\log(n)$ vector of quadruples $v$ with one quadruple $Q_{i,j}$ for each $i$ and consider quadruples starting at, ending at, or crossing column $j$ for length class $i$.
+We require that if for some $i$, the quadruple $q \in Q_{i,j}$ ends at $j$, then for all the length classes $L_k$ with $k>i$ the same condition holds (with index larger than $i$).
+This also implies that if for some $i$, the quadruple of length class $i$ starts at $j$, then the same also holds for all quadruples of shorter length classes(with index larger than $i$).
+%This insight is required in the induction over $j$. 
+In particular, in order to be able to combine neighboring vectors of quadruples, we do not allow to mix starting and ending quadruples.
+Let $\phi$ be the set of all $\log(n)$ vectors of tuples as described above (with one tuple of each length class).
+% \sgnote{If we break Lemma 7 into definitions, then we can refer more precisely. \tgm{The lemma is in the appendix, we cannot refer to it more precisely.}}
+The tuple for each length class is defined as in Lemma~\ref{lem:length-class} and the DP for general instances follows the ideas of Lemma~\ref{lem:length-class}.
+% \sgnote{Do we need to be more precise about the selections, dominance regions here?}
+We move from left to right column by column. In the initialization step, the joint DP cell is initialized based on Algorithm~\ref{alg:SWC} using $\phi$.
+We guess the strings from each length class and consider them jointly in a DP cell and compute the minimum errors and pair of solution strings from interval $[q_{1,j}, q_{1,j+1}]$.
+
+For column $j$, let us consider a vector $v \in \phi$.
+We distinguish whether $v$ has starting or ending quadruples. 
+(One of the two cases must apply due to the shortest length class.)
+For a $v \in \phi$ with starting quadruples,
+let $d$ be the smallest number such that there is a quadruple of length class $d$ starting at $j$.
+To compute $v$ we consider all $v' \in \phi$ with the following properties.
+(a) $v'$ has the same quadruples for all length classes $d' < d$ and 
+(b) for $d' \ge d$, the right hand sides of the quadruples of length class $d'$ in $v'$ compatible the left hand sides of the quadruples of $v$ (see proof of Lemma~\ref{lem:length-class}.
+The super-cells from left and right hand side are compatible if the intersecting strings from left and right hand side are assigned to same types of solution string $\sigma$ or $\sigma'$.
+%\sgnote{This sentence not clear.}
+%Now we can apply weighted majority weighting similar to in Lemma~\ref{lem:length-class}, but by considering strings from all length classes such that the right hand cells remain compatible with left hand side cells and trying over all possibilities.
+%Then the value of $v$ is the minimum value over all $v'$. 
+
+For a $v \in \phi$ with ending quadruples,
+let $d$ be the smallest number such that there is a quadruple of length class $d$ ending at $j-1$. (In the very first column of the instance, we do not need this value.)
+To compute $v$ we consider all $v' \in \phi$ with the following properties.
+(a) $v'$ has the same quadruples for all length classes $d' < d$ and 
+(b) for $d' \ge d$, the right hand sides of the quadruples of length class $d'$ in $v'$ match the left hand sides of the quadruples of $v$ in column $j-1$.
+Then the value of $v$ is the sum of the minimum value over all such $v'$ and the number of errors in column $j$ obtained by applying $\SWC$ exactly as in the proof of Lemma~\ref{lem:length-class}. 
+% \sgnote{Maybe, we need to be precise about how we take care of dependencies.}
+%Observe that in Lemma~\ref{lem:length-class} we combined two pairs of super-cells that we can see as two length classes $L'$ and $L''$. 
+%The only difference for the general instances with $log(n)$ length classes is that here we combine $\log(n)$ quadruples of super-cells.
+%
+%The termination till last column $j$ follows analogous to as in Section 2.2. 
+
+The approximation ratio follows 
+by
+%analogous to Lemma~\ref{lem:length-class}, 
+arguing that the expected number of errors at each column is at most $(1+O(\epsilon))$ of OPT
+(see Lemma~\ref{lem:length-class}).
+This finishes the proof of Theorem~\ref{thm:qptas}.
