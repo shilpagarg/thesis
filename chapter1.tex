@@ -10,7 +10,7 @@ A \MEC instance is an $n \times m$ matrix $M$ with entries from $\{0,1,-\}$.
 
  \GMEC is a relevant problem in computational biology, and it is closely related to segmentation problems that were introduced by {[}Kleinberg--Papadimitriou--Raghavan STOC'98{]} in the context of data mining.
  
-     Without restrictions, it is known to be $\UG$-hard to compute an $O(1)$-approximate solution to \MEC. For both \MEC and \GMEC, the best polynomial time approximation algorithm has a logarithmic performance guarantee.
+     Without restrictions, it is known to be $\UG$-hard \citep{trevisan2012khot} to compute an $O(1)$-approximate solution to \MEC. For both \MEC and \GMEC, the best polynomial time approximation algorithm has a logarithmic performance guarantee.
     We partially settle the approximation status of \GMEC by providing a quasi-polynomial time approximation scheme (QPTAS).
     Additionally, for the relevant case where the binary part of a row is not contained in the binary part of another row, we provide a polynomial time approximation scheme (PTAS).
 
@@ -107,22 +107,22 @@ Binary-MEC is a variant of the Hamming $k$-Median Clustering Problem when $k = 2
 \cite{LMW02_finding} provided a PTAS for the general consensus pattern problem which is closely related to \MEC.
 Additionally, they provided a PTAS for a restricted version of the star alignment problem aligning with at most a constant number of gaps in each sequence.
 More recently, ~\cite{BDK+16_minimum} showed that it is unique games hard to approximate \MEC with constant performance guarantee, whereas it is approximable within a logarithmic factor in the size of the input. 
-\GMEC was shown to be $\NP$-hard by ~\cite{CIKT07_complexity}.\footnote{Their result predates the hardness result of ~\cite{Fei14_np} for H2S. The proof of the claimed $\NP$-hardness of H2S by ~\cite{KPR98_segmentation} was never published.}
+\GMEC was shown to be $\NP$-hard by ~\cite{Cilibrasi2007}.\footnote{Their result predates the hardness result of ~\cite{Fei14_np} for H2S. The proof of the claimed $\NP$-hardness of H2S by ~\cite{KPR98_segmentation} was never published.}
 Additionally, they showed that allowing a single gap in each string renders the problem $\APX$-hard.
 
 
 ~\cite{AS99_two} provided a PTAS for H2S, the maximization version of \BMEC and ~\cite{WUB13_monochromatic} showed that there is also a PTAS for the maximization version of \MEC.
-For \GMEC, ~\cite{HCP+10_optimal} studied the fixed-parameter tractability in the parameter of fragment length with some restrictions.
+For \GMEC, ~\cite{he2010optimal} studied the fixed-parameter tractability in the parameter of fragment length with some restrictions.
 These restrictions allow their dynamic programming algorithm to focus on the reconstruction of a single haplotype and, hence, to limit the possible combinations for each column.
-There is an FPT algorithm parameterized by the coverage~\cite{PMP+15_whatshap,garg2016read} (and some additional parameters for pedigrees). 
+There is an FPT algorithm parameterized by the coverage~\cite{Patterson2015,garg2016read} (and some additional parameters for pedigrees). 
 ~\cite{BDK+16_minimum} provided FPT algorithms parameterized by the fragment length and the total number of corrections for Gapless-MEC.
-There are some tools which can be used in practice to solve Gapless-MEC instances~\cite{PZD+15_hapcol, PMP+15_whatshap}.
+There are some tools which can be used in practice to solve Gapless-MEC instances~\cite{Pirola2015, Patterson2015}.
 
 Most research in haplotype phasing deals with exact and heuristic approaches to solve \BMEC.
-Exact approaches, which solve the problem optimally, include integer linear programming~\cite{FM12_solving} and fixed-parameter tractable algorithms~\cite{HCP+10_optimal, PZD+15_hapcol}.
-There is a greedy heuristic approach proposed to solve Binary-MEC~\cite{BB08_hapcut}. 
+Exact approaches, which solve the problem optimally, include integer linear programming~\cite{Fouilhoux2012} and fixed-parameter tractable algorithms~\cite{he2010optimal, Pirola2015}.
+There is a greedy heuristic approach proposed to solve Binary-MEC~\cite{Bansal2008}. 
 
-~\cite{LBI+01_snps} obtained a network-flow based polynomial time algorithm for Minimum Fragment Removal (MFR) for gapless fragments.
+~\cite{Lancia2001} obtained a network-flow based polynomial time algorithm for Minimum Fragment Removal (MFR) for gapless fragments.
 Additionally, they found the relation of Minimum SNPs Removal (MSR) to finding the largest independent set in a weakly triangulated graph.
 
 \section{Preliminaries and notation.}\label{sec:prelim}
@@ -134,7 +134,7 @@ We say that the $i$th row of $M$ \emph{crosses} the $j$th column if $M_{i,j} \in
 
 For each feasible solution $(\sigma,\sigma')$ for $M$, we specify an assignment of rows $M_{i,*}$ to solution strings.
 The default assignment is specified as follows.
-For a row $M_{i,*}$, we assign $M_{i,*}$ to $\sigma$ if $\dist(\sigma,M_{i,*}) \le \dist(\sigma',M_{i,*})$.
+For a row $M_{i,*}$, we assign $M_{i,*}$ to $\sigma$ if $\dist(\sigma,M_{i,*}) \le \dist(\sigma',M_{i,*})$. For $\dist(\sigma,M_{i,*})$, see Definition~\ref{eq:distance}
 Otherwise we assign $M_{i,*}$ to $\sigma'$.
 For the rows of $M$ assigned to $\sigma$ we write $\sigma(M)$ and for the rows assigned to $\sigma'$ we write $\sigma'(M)$.
 For a given instance, $\Opt = (\tau, \tau')$ denotes an optimal solution.
@@ -495,7 +495,7 @@ We obtain $R_i, S_i$ from the chunks $C$ and $R'_i,S'_i$ from the chunks $C'$.
 In the execution of $\SWC$, we use the selections $T,T'$ instead of trying all possible selections, i.e., $T$ and $T'$ determine all $\tilde{U}_i$, $\tilde{L}_i$, $\tilde{U}'_i$, and $\tilde{L}'_i$ in the algorithm.
 Let $\tilde{B}$ be the matrix with rows from $1$ to the $\min\{c - 1,c' - 1\}$ and columns one to $\min\{\en_B, \en_{B'}\}$.
 The solution of the computation is a pair of strings $(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$, the prefixes of the two computed strings until $\en_{\tilde{B}}$.
-The value of $(\zeta,\zeta')$ is $\cost_{\tilde{B}}(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$.
+The value of $(\zeta,\zeta')$ is $\cost_{\tilde{B}}(\sigma_{\zeta,\zeta'},\sigma'_{\zeta,\zeta'})$. For $\cost$ computation, see Definition~\ref{eq:cost}.
 
 In the update phase, we compute the value and the pair of strings of the DP cell $(\zeta,\zeta')$ as follows. 
 We inductively assume that all DP cells for predecessors of $(\zeta,\zeta')$ have been updated already.
@@ -660,7 +660,7 @@ A simple induction shows that by the no-substring property and the chosen order 
 In particular, for each $j$, the solution on the left hand side of $q_j$ depends on rows of $M$ disjoint from the rows that determine the solution on the right hand side of $q_{j+1}$. 
 
 In order to combine the solution on the right hand side of $q_j$ with the solution on the left hand side of $q_{j+1}$, we introduce a notion of dominance.
-Let us consider two arbitrary submatrices $V_1$ and $V_2$ of $M$.
+Let us consider two arbitrary sub-matrices $V_1$ and $V_2$ of $M$.
 \begin{definition}[Dominance]
     \label{def:dominance}
     We say that $V_1$ $\tau$-dominates $V_2$ if for each column $c$ that is in both $V_1$ and $V_2$, either at least one of the two matrices has no binary entries or
@@ -1158,3 +1158,12 @@ by
 arguing that the expected number of errors at each column is at most $(1+O(\epsilon))$ of OPT
 (see Lemma~\ref{lem:length-class}).
 This finishes the proof of Theorem~\ref{thm:qptas}.
+\section{Discussion}
+The approximation status of \GMEC instances has been open for 10 years. We have studied the problem by unraveling its structures and identifying cases where the PTAS algorithm for \BMEC can not be directly applied for \GMEC.
+Based on the ideas of the algorithm for \BMEC, we build our own dynamic programming algorithm, by additionally including some deep insights. We have proved that the dynamic programming algorithm is in QPTAS.
+Proving that the \GMEC in QPTAS rules out the possibility of this problem to be in APX-hard and also provides a hint that this problem can exhibit a PTAS.
+
+Unfortunately, due to the nested nature of dynamic programming, the algorithm can not be used to solve the \GMEC instances in practice.
+The \GMEC instances are of utmost importance because they have a biological significance.
+Based on this motivation, we looked into other types of algorithms ---parameterized algorithms \citep{martin2016whatshap} --- which are shown to work well in practice.
+Studying the structures for \GMEC instances in this chapter provided us good insights in deriving the parameter in parameterized algorithm which is explained in the next chapter.

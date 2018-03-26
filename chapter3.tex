@@ -7,17 +7,21 @@ We show that leveraging reads of related individuals jointly in this way yields 
 Coverages as low as 2$\times$ for each member of a trio yield haplotypes that are as accurate as when analyzed separately at 15$\times$ coverage per individual.
 
 \section{Introduction}\label{sec:intro}
-For pedigree phasing, we generalize the phasing for single individual introduced in Chapter 1 to incorporating pedigree information.
+With sequencing cost decreasing at an exponential rate, it has now become possible to sequence pedigree of genomes.
+As a result, the sequencing datasets from pedigrees are becoming publicly available.
+Thus to come up with an algorithm, that solves the haplotyping problem for pedigrees in a joint framework by considering both information sources, from sequencing reads and principles of Mendelian inheritance is very important.
 
-There are three major approaches to phasing.
+Over the last few years, there has been considerable efforts devoted to phasing using reference panels, phasing pedigrees using genotype data and molecular haplotyping using NGS data.
+Broadly, the methods for phasing are classified into three classes. 
 First, haplotypes can be inferred from genotype information of large cohorts based on the idea that common ancestry gives rise to shared haplotype tracts, as reviewed by \cite{Browning2011, loh2016fast, loh2016reference}.
 This approach is known as \emph{statistical} or \emph{population-based phasing}.
+The idea is to explain the genotypes of the target genome by finding the maximum likelihood paths from the reference panel (large set of haplotypes from the population).
 It can be applied to unrelated individuals and only requires genotype data, which can be measured at low cost.
 While very powerful for common variants, this technique is less accurate for phasing rare variants and cannot be applied at all to private or \textit{de novo} variants.
 %
 Second, haplotypes can be determined based on genotype data of related individuals, known as \emph{genetic haplotyping} \citep{Glusman2014}.
 To solve the phasing problem, one seeks to explain the observed genotypes under the constraints imposed by the Mendelian laws of inheritance, while being parsimonious in terms of recombination events.
-For larger pedigrees, such as parents with many children, this approach yields highly accurate phasings \citep{Roach2011, abecasis2002merlin, williams2010rapid}.
+For larger pedigrees, such as parents with many children, this approach yields highly accurate phasing \citep{Roach2011, abecasis2002merlin, williams2010rapid}.
 On the other hand, it is less accurate for single mother-father-child trios and has the intrinsic limitation of not being able to phase variants that are heterozygous in all individuals.
 %
 Third, the sequences of the two haplotypes can be determined experimentally, called \emph{molecular haplotyping}.
@@ -31,6 +35,12 @@ These and other experimental techniques for molecular haplotyping have been surv
 They are of great interest because they facilitate phasing of rare variants for single individuals.
 Rare variants have been postulated to contribute considerably to clinical traits and are hence of major interest.
 
+\paragraph{Hybrid Approaches.}
+The ideas underlying population-based phasing, genetic haplotyping, and read-based phasing have been combined in many ways to create hybrid methods.
+\cite{Delaneau2013a}, for instance, use local phase information provided by sequencing reads to enhance their population-based phasing approach SHAPEIT.
+Exploiting pedigree information for statistical phasing has also been demonstrated to significantly improve the inferred haplotypes \citep{Marchini2006,CDW13_exact}.
+Using their heuristic read-based phasing approach HapCompass, \cite{Aguiar2013} note that combining reads from parent-offspring duos increases performance in regions that are identical by descent (IBD). 
+Beyond this approach, we are not aware of prior work to leverage family information towards read-based phasing.
 % \paragraph{Haplotype Assembly.}
 % When many haplotype fragments are available for one individual, for instance from sequencing, one can attempt to reconstruct the full haplotypes or at least to obtain larger blocks.
 % This process is known as \emph{haplotype assembly}, \emph{single-individual haplotyping}, or \emph{read-based phasing} (in case the fragments indeed stem from sequencing reads).
@@ -44,22 +54,8 @@ Rare variants have been postulated to contribute considerably to clinical traits
 % All three problems are NP-hard \citep{Lancia2001,Cilibrasi2007}.
 % Flipping of bits corresponds to correcting sequencing errors and hence the MEC problem has received most attention in the literature and is most relevant in practice.
 % A wealth of exact and heuristic approaches to solve the MEC problem exists.
-% Exact approaches, which solve the problem optimally, include integer linear programming \citep{Fouilhoux2012,Chen2013}, and fixed-parameter tractable (FPT) algorithms \citep{He2010,Patterson2015,Pirola2015}.
+% Exact approaches, which solve the problem optimally, include integer linear programming \citep{Fouilhoux2012,CDW13_exact}, and fixed-parameter tractable (FPT) algorithms \citep{he2010optimal,Patterson2015,Pirola2015}.
 % Refer to the reviews by \cite{Schwartz2010} and \cite{Rhee2015} for further related approaches.
-
-Here, we build upon our previous approach WhatsHap \citep{Patterson2014,Patterson2015} and generalize it to jointly handle sequencing reads of related individuals.
-WhatsHap is an FPT approach that solves the (weighted) MEC problem optimally in time exponential in the maximum coverage, but linear in the number of variants.
-In particular the runtime does not explicitly depend on the read length.
-These properties make it particularly apt for current long-read data. 
-This has also been observed by \citet{Kuleshov2014b}, who approached the weighted MEC problem in a message-passing framework and, by doing so, independently arrived at the same DP algorithm used in WhatsHap.
-The exponential runtime in the maximum coverage does not constitute a problem in practice because reads can be removed in regions of excess coverage without loosing much information.
-The evaluation by \cite{Patterson2015} suggests that pruning data to a maximum coverage of 15$\times$ yields excellent results while an even higher coverage does not deliver a big additional improvement.
-\paragraph{Hybrid Approaches.}
-The ideas underlying population-based phasing, genetic haplotyping, and read-based phasing have been combined in many ways to create hybrid methods.
-\cite{Delaneau2013a}, for instance, use local phase information provided by sequencing reads to enhance their population-based phasing approach SHAPEIT.
-Exploiting pedigree information for statistical phasing has also been demonstrated to significantly improve the inferred haplotypes \citep{Marchini2006,Chen2013a}.
-Using their heuristic read-based phasing approach HapCompass, \cite{Aguiar2013} note that combining reads from parent-offspring duos increases performance in regions that are identical by descent (IBD). 
-Beyond this approach, we are not aware of prior work to leverage family information towards read-based phasing.
 
 % \begin{figure}[t!]\centering
 % \includegraphics[width=\columnwidth]{{Marschall.152.fig.1}.pdf}
@@ -69,15 +65,23 @@ Beyond this approach, we are not aware of prior work to leverage family informat
 % \label{fig:ex_pedigree}
 % \end{figure}
 \paragraph{Contributions.}
+Here, we build upon our previous approach WhatsHap \citep{Patterson2014,Patterson2015} and generalize it to jointly handle sequencing reads of related individuals.
+WhatsHap is an FPT approach that solves the (weighted) MEC problem optimally, exponentially in time with maximum coverage, but linearly in the number of variants.
+In particular the run-time does not explicitly depend on the read length.
+These properties make it particularly apt for current long-read data. 
+This has also been observed by \citet{Kuleshov2014b}, who approached the weighted MEC problem in a message-passing framework and, by doing so, independently arrived at the same DP algorithm used in WhatsHap.
+The exponential run-time in the maximum coverage does not constitute a problem in practice because reads can be removed in regions of excess coverage without loosing much information.
+The evaluation by \cite{Patterson2015} suggests that pruning data to a maximum coverage of 15$\times$ yields excellent results while an even higher coverage does not deliver a significant additional improvement.
+
 Here, we introduce a unifying formal framework to fully integrate read-based and genetic haplotyping.
 To this end, we define the Weighted Minimum Error-Correction on Pedigrees Problem, termed PedMEC, which generalizes the (weighted) MEC problem and accounts for Mendelian inheritance and recombination.
 This problem is NP-hard.
 We generalize the WhatsHap algorithm for solving this problem optimally and thereby show that PedMEC is fixed-parameter tractable.
-When the maximum coverage is bounded, the runtime of our algorithm is linear in the number of variants and does not explicitly depend on the read length, hence inheriting the favorable properties of WhatsHap.
+When the maximum coverage is bounded, the run-time of our algorithm is linear in the number of variants and does not explicitly depend on the read length, hence inheriting the favorable properties of WhatsHap.
 
 We target an application scenario where related individuals are sequenced using error-prone long-read technologies such as PacBio sequencing.
 As a driving question motivating this research, we ask how much coverage is needed for resolving haplotypes in related individuals as opposed to single or unrelated individuals.
-Our focus is on phasing and we do not consider the genotyping step, which can either be done from the same data or from orthogonal and potentially cheaper data sources such as microarrays or short-read sequencing.
+Our focus is on phasing and we do not consider the genotyping step, which can either be done from the same data or from orthogonal and potentially cheaper data sources such as micro-arrays or short-read sequencing.
 On simulated and real PacBio data, we show that sequencing each individual in a mother-father-child trio to 5$\times$ coverage is sufficient to establish a high-quality phasing.
 This is in stark contrast to state-of-the-art single-individual read-based phasing, which yields worse results even for 15$\times$ coverage with respect to both error rates and numbers of phased variants.
 We furthermore demonstrate that our technique also exhibits favorable properties of genetic haplotyping approaches:
@@ -168,7 +172,11 @@ where $\iverl S \iverr=1$ if statement $S$ is true and $0$ otherwise.
 
 To state the problem of jointly phasing all individuals in $\mathcal{I}$ formally, it is instrumental to consider the set of matrix entries to be flipped explicitly.
 We will therefore introduce a set of index pairs $E_i \subset \{1,\ldots,R_i\}\times\{1,\ldots,M\}$ where $(j,k)\in E_i$ if and only if the bit in row $j$ and column $k$ of matrix $\mathcal{F}_i$ is to be flipped.
-
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{pedmec4}.pdf}
+\caption{Example shows the input instance and cheapest solution and the resultant haplotypes.}
+\label{fig:pedmec4}
+\end{figure}
 \begin{problem}[Weighted Minimum Error Correction on Pedigrees, PedMEC]\label{prob:pedmec}
 Let a set of individuals $\mathcal{I}=\{1,\ldots,N\}$, a set of relationships $\mathcal{T}$ on $\mathcal{I}$, recombination costs $\mathcal{X}\in\N^M$, and, for each individual $i\in I$, a sequencing read matrix $\mathcal{F}_i\in\{0,1,-\}^{R_i\times M}$ and corresponding weights $\mathcal{W}_i\in\N^{R_i\times M}$ be given.
 Determine a set of matrix entries to be flipped $E_i \subset \{1,\ldots,R_i\}\times\{1,\ldots,M\}$ to make $\mathcal{F}_i$ feasible and two corresponding haplotypes $h_i^0, h_i^1\in\{0,1\}^M$ for each individual $i\in\mathcal{I}$ as well as two transmission vectors $t_{m\to c},t_{f\to c}\in\{0,1\}^M$ for each trio $(m,f,c)\in\mathcal{T}$ such that
@@ -185,34 +193,49 @@ We therefore extend the PedMEC problem to incorporate genotypes and term the res
 Let the same input be given as for Problem~\ref{prob:pedmec} (PedMEC) and, additionally, a genotype vector $g_i\in\{0,1,2\}^M$ for each individual $i\in\mathcal{I}$. Solve the PedMEC problem under the additional constraints that $h^0_i+h^1_i=g_i$ for all $i\in\mathcal{I}$, where ``$+$'' refers to a component-wise addition of vectors.
 \end{problem}
 
-For the classical MEC problem, additionally assuming that all sites to be phased are heterozygous is common \citep{Chen2013}.
+For the classical MEC problem, additionally assuming that all sites to be phased are heterozygous is common \citep{CDW13_exact}.
 This variant of the MEC problem is a special case of PedMEC-G with $\mathcal{I}=\{1\}$ and $\mathcal{T}=\emptyset$ and $g_1(k)=1$ for all $k$.
-
 \begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{pedmec4}.pdf}
-\caption{Example shows the input instance and cheapest solution and the resultant haplotypes.}
-\label{fig:pedmec4}
+\includegraphics[width=\columnwidth]{{pedmeccost1}.pdf}
+\caption{Example shows biparition cost for a particular transmission 00 at column one.}
+\label{fig:pedmeccost1}
 \end{figure}
 \section{Example on PedMEC}
-Let us consider an example to illutrate PedMEC instance shown in Figure~\ref{fig:pedmec4}.
-Given a trio with three individuals, mother, father and child. Also, given the input SNP matrices $\mathcal{F}_i$ and its corresponding weight matrices $\mathcal{i}$ for each individual in a trio.
-There is a recombination vector $\mathcal{X}$ which represents the likelihood of recombination between two consecutive variants.
-Due to the sequencing errors present in the matrices, there are conflicts. The goal is to generate conflict-free matrices such that we obey Mendelian laws of inheritance.
-We achieve these objective by jointly minimizing the flipping cost of set of entries over all the individuals and allowing recombination in mother, father or both for every trio relationships.
-As a final output, we want two haplotypes for each individual in a trio.
-In this example, the cheapest solution is to flip two bits marked in red and, pay cost of 3 and 5, plus allow one recombination event in mother (with cost 22).
-In this way, we generate two haplotypes for each individual in a trio with cheapest cost.
+Let us take an example to illustrate on how to solve the PedMEC instance shown in Figure~\ref{fig:pedmec4}.
+Consider a trio with three individuals, mother, father and child. As input, given SNP matrices $\mathcal{F}_i$ and their corresponding weight matrices $\mathcal{i}$ for an each individual of a trio.
+Additionally, there is a recombination vector $\mathcal{X}$ given, representing the likelihood of recombination between two consecutive variants.
+The sequencing errors present in reads create conflicts in matrices. The goal is to generate the conflict-free matrices such that we obey Mendelian laws of inheritance.
+We can achieve this objective by jointly minimizing the flipping cost of set of entries over all the individuals and, additionally for every trio relationships, allowing recombination in mother, father or both.
+As an output, we obtain two haplotypes for an each individual in a trio.
 
-Let's see how we can solve this PedMEC instance using a dynamic program. Let us assume there are two haplotypes green and purple for mother, and brown and blue for child shown in Figure~\ref{fig:pedmeccost1}.
-In a DP, we go from left and right columnvise. Let us a consider a first column and compute DP cell value for partitions shown in Figure~\ref{fig:pedmeccost1} and transmission value 00; the least significant bit 0 represents the haplotype green is transmitted to child, otherwise purple; and the most significant bit 0 tells that the
-brown haplotype from father is transmitted to child, otherwise blue. To compute the minimum allele assignment for each parition, we flip all the 1 first and then 0; and pay cost based on weights for the corresponding entry.
+In this example, it is easy to see that the entries marked in in red boxes create conflicts in matrices. 
+Therefore, the cheapest solution is to flip these bits by paying a cost of 3 and 5, plus allow one recombination event in mother (with cost 22).
+In this way, we generate two haplotypes for an each individual in a trio.
+
+Let us see on how we can solve this PedMEC instance using a dynamic programming based approach. 
+Let us assume there are two haplotypes masked in green and purple for mother, and brown and blue for child shown in Figure~\ref{fig:pedmeccost1}.
+In a DP, we go column wise from left and right. 
+Let us consider first column and compute DP cell value for partitions shown in Figure~\ref{fig:pedmeccost1} and transmission value 00; 
+the least significant bit 0 represents the haplotype green is transmitted to child, otherwise purple; and the most significant bit 0 tells that the
+brown haplotype from father is transmitted to child, otherwise blue. 
+To compute the minimum allele assignment for each partition, we try different possibilities of alleles assignments.
+For example, first, we flip all the entries in the partition to 1; and pay cost based on weights for the corresponding entries from weight matrices and, second we try to flip entries to 0 and pay cost accordingly.
 For the green partition, we pay cost 0 if we flip all the entries in the partition to 0 and otherwise 15+7+32+27 = 81.
 Similarly, we compute the allele assignment costs for other partitions too.
-We further take the minimum allele assignment for each partition and add them, which results in cost 5 for this example.
-Let us consider a different transmission value 01 shown in Figure~\ref{fig:pedmeccost2}. For this transmission value, the haplotype purple is transmitted to child.
-Accordingly, the partitions change and their allele costs. For the green partition, which now does not span across individuals, has cost 0 if flip bits to 0 and otherwise cost 22.
+We further take the minimum allele assignment for each partition and add the costs from all partitions, which results in cost 5 for this example.
+Let us consider a different transmission value 01. For this transmission value, the haplotype purple is transmitted to child.
+Accordingly, the partitions change and their corresponding allele assignment costs. For the green partition, which now does not span across individuals, cost 0 if flip bits to 0 and otherwise cost 22.
 As before, we compute the minimum allele assignment cost for each partition and resultant cost is 37 for this example.
-
+% \begin{figure}[t!]\centering
+% \includegraphics[width=\columnwidth]{{pedmeccost2}.pdf}
+% \caption{Example shows biparition cost for a particular transmission 01 at column one.}
+% \label{fig:pedmeccost2}
+% \end{figure}
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{pedmeccost4}.pdf}
+\caption{Example shows bipartition cost for a particular transmission 00 at column two, given DP column for column one.}
+\label{fig:pedmeccost4}
+\end{figure}
 Similarly, we can compute partitions cost for all possible partitions by considering different transmission value and store them in DP column.
 
 Let us compute the partition cost for column two shown in Figure~\ref{fig:pedmeccost4}, given the DP column for column one.
@@ -224,25 +247,6 @@ Similarly, we compute partition cost for other partitions by trying all transmis
 We recurse till the last column and can finally backtrace to get the haplotypes once we know the optimal partitions.
 
 With this example, we are now ready to provide a formal dynamic programming algorithm.
-
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{pedmeccost1}.pdf}
-\caption{Example shows biparition cost for a particular transmission 00 at column one.}
-\label{fig:pedmeccost1}
-\end{figure}
-
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{pedmeccost2}.pdf}
-\caption{Example shows biparition cost for a particular transmission 01 at column one.}
-\label{fig:pedmeccost2}
-\end{figure}
-
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{pedmeccost4}.pdf}
-\caption{Example shows biparition cost for a particular transmission 00 at column two, given DP column for column one.}
-\label{fig:pedmeccost4}
-\end{figure}
-
 
 \section{Algorithm}\label{sec:algorithm}
 \paragraph{Algorithm Overview: Solving PedMEC and PedMEC-G.}
@@ -328,19 +332,19 @@ Consequently, they are concerned with bipartitions of the intersection of read s
 \begin{equation}\label{eqn:proj_col}
 C^\cap(k,B',t)=\min_{\mathcal{B}(A(k)):B\simeq B'}\{C(k,B,t)\}.
 \end{equation}
-These projection columns can be created while computing $C(k,\cdot,\cdot)$ at no extra (asymptotic) runtime.
+These projection columns can be created while computing $C(k,\cdot,\cdot)$ at no extra (asymptotic) run-time.
 Using these projection columns, Equation~\eqref{eqn:recurrence} becomes
 \begin{align}\label{eqn:recurrence_projcol}
 & C(k+1,B,t)= \Delta_C(k+1,B,t)\\
 & \quad + \min_{t'\in\{0,1\}^{2\abs{\mathcal{T}}}}\big\{C^\cap(k,B\cap A(k),t')+d_H(t,t')\cdot\mathcal{X}(k+1)\big\}, \nonumber
 \end{align}
 where $B\cap A(k) := (P\cap A(k), Q\cap A(k))$ for $B=(P,Q)$.
-We have therefore reduced the runtime of computing this minimum to $\mathcal{O}(2^{2|\mathcal{T}|})$.
+We have therefore reduced the run-time of computing this minimum to $\mathcal{O}(2^{2|\mathcal{T}|})$.
 
 \paragraph{Runtime.}
 Computing one column of local costs, $\Delta_C(k,\cdot,\cdot)$, takes $\mathcal{O}\big(2^{2\abs{\mathcal{T}}}\cdot(2^{|A(k)|} +  2^{2|\mathcal{I}|}\cdot |\mathcal{I}|)\big)$ time, as discussed above.
 For each entry, we use Equation~\eqref{eqn:recurrence_projcol} to compute the aggregate value of cost incurred in present and past columns.
-Over all columns, we achieve a runtime of 
+Over all columns, we achieve a run-time of 
 $\mathcal{O}\big(M\cdot \big(2^{2|\mathcal{T}|+c+|\mathcal{I}|}|\mathcal{I}|+2^{4|\mathcal{T}|+c}\big)\big)$, where $c=\max_k\{\abs{A(k)}\}$ is the maximum coverage.
 
 \paragraph{Backtracing.}
@@ -405,7 +409,7 @@ We emphasize that WhatsHap solves wMEC and PedMEC-G optimally.
 Since the focus of this paper is on comparing these two models, we do not include other methods for single-individual haplotyping.
 We are not aware of other trio-aware read-based phasing approaches that PedMEC-G could be compared to additionally.
 
-The runtime depends exponentially on the maximum coverage.
+The run-time depends exponentially on the maximum coverage.
 Therefore we prune the input data sets to a \emph{target maximum coverage} using the read-selection method introduced by \cite{Fischer2016}, which is implemented as part of WhatsHap.
 This target coverage constitutes the only parameter of our method.
 For PedMEC-G, we prune the maximum coverage to 5$\times$ for each individual separately.
@@ -414,13 +418,28 @@ The respective experiments are referred to as \mbox{PedMEC-G-5}, wMEC-5, and wME
 For wMEC, we use the additional ``all heterozygous'' assumption (see Section~\ref{sec:algorithm}), to also give it the advantage of being able to ``trust'' the genotypes, as is the case for PedMEC-G.
 Both wMEC and PedMEC-G were provided with the ground truth unphased genotypes for the respective data set.
 PedMEC-G was additionally provided with the respective genetic map (original 1000G genetic map for real data and scaled by factor 10 for simulated data).
-
+\begin{figure}%
+\centering
+\includegraphics[width=\columnwidth,height=.7\columnwidth,keepaspectratio]{{simulated}.pdf}\\
+\centering
+\includegraphics[width=\columnwidth,height=.7\columnwidth,keepaspectratio]{{pedmec1}.pdf}%
+\caption{Simulated data set (top) and real dataset (bottom): phasing error rate ($x$-axis) versus completeness in terms of the fraction of unphased SNPs ($y$-axis) for \mbox{PedMEC-G-5} (solid line), wMEC-5 (dashed line), and wMEC-15 (dotted line).
+Average coverage (per individual) of input data is encoded by circles of different sizes.}\label{fig:main-results}%
+\end{figure}
 
 As described above, the ground truth phased variants was generated by SHAPEIT with default parameters, implying that SHAPEIT treated the three samples as unrelated individuals.
 For comparison purposes, we re-ran SHAPEIT and provided it with pedigree information.
 We refer to the resulting phased data set as \emph{SHAPEIT-trio}.
 Moreover, we ran duoHMM (v0.1.7) by \cite{OConnell2014} on the resulting files to further improve the phasing.
-
+\begin{figure}[t]
+\begin{center}
+\includegraphics[height = .6\columnwidth, width=.6\columnwidth]{{Marschall.152.fig.3}.pdf}
+\end{center}
+\caption{Three-way comparison of phasings provided by SHAPEIT, 10XGenomics, and \mbox{PedMEC-G-5} (on 15$\times$ coverage data). 
+Of all pairs of consecutive SNPs phased by all three methods, the percentages of cases where the phasing reported by one method disagrees with the other two are reported. 
+Missing to 100\%: cases where all three methods agree.
+Left: SHAPEIT run with default parameters, corresponding to our ``ground truth phasing''; right: SHAPEIT run with pedigree information.}\label{fig:threeway}
+\end{figure}
 \section{Performance Metrics}\label{sec:metrics}
 We compare each phased individual to the respective ground truth haplotypes separately and only consider sites heterozygous in this individual.
 
@@ -445,16 +464,11 @@ To simultaneously compare phasings from three different methods (e.g.\ SHAPEIT, 
 For an individual, we considered all pairs of consecutive heterozygous SNPs that have been phased by all three methods.
 For each of these pairs, either all three methods agree or two methods agree (since only two possible phases exist).
 Below, we discuss the fraction of these different cases in relation to the total number of considered SNP pairs.
-
-\begin{figure}%
-\centering
-\includegraphics[width=\columnwidth,height=.7\columnwidth,keepaspectratio]{{simulated}.pdf}\\
-\centering
-\includegraphics[width=\columnwidth,height=.7\columnwidth,keepaspectratio]{{pedmec1}.pdf}%
-\caption{Simulated data set (top) and real dataset (bottom): phasing error rate ($x$-axis) versus completeness in terms of the fraction of unphased SNPs ($y$-axis) for \mbox{PedMEC-G-5} (solid line), wMEC-5 (dashed line), and wMEC-15 (dotted line).
-Average coverage (per individual) of input data is encoded by circles of different sizes.}\label{fig:main-results}%
+\begin{figure}[t]\centering
+\includegraphics[width=\columnwidth]{{Marschall.152.fig.4}.pdf}
+\caption{Two disjoint unconnected haplotype blocks for which phase information can be inferred from the genotypes.}
+\label{fig:genetic_molecular}
 \end{figure}
-
 \section{Results}
 We report the results of  wMEC-5, wMEC-15, and \mbox{PedMEC-G-5} for both data sets, \emph{real} and \emph{simulated}.
 All combinations of the three methods, two data sets, and six different average coverages (2$\times$, 3$\times$, 4$\times$, 5$\times$, 10$\times$ and 15$\times$) were run.
@@ -480,12 +494,6 @@ In contrast, wMEC-15 needs 15$\times$ average coverage on each individual to rea
 When running on 5$\times$ data, \mbox{PedMEC-G-5}'s error rate and fraction of unphased positions decrease to 0.75\% and 0.85\%, respectively.
 Therefore, it reaches better results while requiring only a third of the sequencing data, which translates into significantly reduced sequencing costs.
 
-\begin{figure}[t]\centering
-\includegraphics[width=\columnwidth]{{Marschall.152.fig.4}.pdf}
-\caption{Two disjoint unconnected haplotype blocks for which phase information can be inferred from the genotypes.}
-\label{fig:genetic_molecular}
-\end{figure}
-
 \paragraph{Comparison of Real and Simulated Data.}
 When comparing results for simulated and real data, i.e.\ top and bottom plots in Figure~\ref{fig:main-results}, the curves appear similar, with some important difference.
 In terms of the fraction of phased SNPs ($y$-axis), results are virtually identical.
@@ -495,16 +503,6 @@ In general, error rates in the real data are larger than in the simulated data, 
 On the other hand, the population-based phasing used as ground truth for the real data set will most likely also contain errors.
 Especially low-frequency variants present difficulties for population-based phasers.
 Next, we therefore compare our ground truth statistical phasing to the independent phasing provided by 10XGenomics.
-
-\begin{figure}[t]
-\begin{center}
-\includegraphics[width=.85\columnwidth]{{Marschall.152.fig.3}.pdf}
-\end{center}
-\caption{Three-way comparison of phasings provided by SHAPEIT, 10XGenomics, and \mbox{PedMEC-G-5} (on 15$\times$ coverage data). 
-Of all pairs of consecutive SNPs phased by all three methods, the percentages of cases where the phasing reported by one method disagrees with the other two are reported. 
-Missing to 100\%: cases where all three methods agree.
-Left: SHAPEIT run with default parameters, corresponding to our ``ground truth phasing''; right: SHAPEIT run with pedigree information.}\label{fig:threeway}
-\end{figure}
 
 \paragraph{Three-Way Comparison with 10XGenomics.}
 Figure~\ref{fig:threeway}(left) shows the results of a three-way comparison of ground truth statistical phasing, 10XGenomics, and \mbox{PedMEC-G-5} on 15$\times$ coverage data.
@@ -545,8 +543,8 @@ In the future, we plan to further optimize the implementation of I/O subroutines
 \section{Discussion}
 We have presented a unifying framework for integrated read-based and genetic haplotyping.
 By generalizing the WhatsHap algorithm \citep{Patterson2015}, we provide a fixed-parameter tractable method for solving the resulting NP-hard optimization problem, which we call \emph{PedMEC}.
-When maximum coverage and number of individuals are bounded, the algorithm's runtime is linear in the number of phased variants and independent of the read length, making it well suited for current and future long-read sequencing data.
-This is mirrored by the fact that the runtime is dwarfed by the time required for reading the input files in practice.
+When maximum coverage and number of individuals are bounded, the algorithm's run-time is linear in the number of phased variants and independent of the read length, making it well suited for current and future long-read sequencing data.
+This is mirrored by the fact that the run-time is dwarfed by the time required for reading the input files in practice.
 PedMEC can use any provided costs for correcting errors in reads as well as for recombination events.
 By using phred-scaled probabilities as costs, minimizing the cost can be interpreted as finding a maximum likelihood phasing in a statistical model incorporating Mendelian inheritance, read error correction, and recombination.
 
@@ -560,6 +558,11 @@ Figure~\ref{fig:ex_pedigree} illustrates the increased connectivity while phasin
 Genetic haplotyping alone cannot phase variants that are heterozygous in all individuals, emphasizing the need for an integrative approach as introduced here.
 We demonstrate that such an approach indeed yields better result and recommend its use whenever both reads and pedigree information are available.
 Most remarkingly, the presented approach is able to deliver outstanding performance even for coverages as low as 2$\times$ per individual, on par with performance delivered by single-individual haplotyping at 15$\times$ coverage per individual.
+
+The disadvantage of PedMec framework is that we can not phase variants that are heterozygous in all individuals.
+Additionally, the variants that are unique to the genome can not be phased due to the reference genome being included in the pipeline.
+The next step is to generalize the approach by excluding reference genome from the pipeline and perform phasing directly from reads.
+In next chapter, we discuss the approach to generate haplotypes directly from reads.
 
 % \paragraph{Future work.}
 % We plan to implement phasing of \emph{de novo} variants observed in the child, which would be impossible with pure genetic haplotyping but is straightforward with our approach.

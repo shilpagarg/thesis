@@ -5,6 +5,107 @@
 
 \chapter{Additional Details}
 
+\section{Proof of Lemma~\ref{lem:SWC}}\label{app:SWC}
+\begin{proof}
+    We show the claim by using a randomized argument. 
+    To this end, we assume that for each $i$, the rows from $R_i$ and $S_i$ are selected uniformly at random from $R_i \cap \tau(M)$ and $S_i \cap \tau(M)$ and
+    the rows from $R'_i$ and $S'_i$ are selected uniformly at random from $R'_i \cap \tau'(M)$ and $S'_i \cap \tau'(M)$.
+    We argue that for each column, the expected number of errors is at most a factor $(1 + O(\epsilon))$ larger than in an optimal solution.
+    Then the claim follows from linearity of expectation and the fact that there is a selection with at most the expected number of errors. 
+
+    We consider the $j$th column of $M$.
+    Let $c := \tau(M)_{*,j}$, but without rows that have an entry ``$-$'' in column $j$.
+    Let $p := |\{ i : c_i = 0\}|/|c|$ be the fraction of zeros in $c$.
+    By swapping the zeros and ones we can assume \WLOG that $p \ge 1-p$, \ie, $p \ge 1/2$.
+    Our assumption implies $\tau_j = 0$ and the optimal solution has $(1-p)|c|$ errors within $c$.
+
+    The general idea of the proof is as follows.
+    Suppose we would select exactly one row from $\tau(M)$ uniformly at random.
+    Then with probability $p$, the algorithm has $(1-p)|c|$ errors in $c$ and with probability $(1-p)$ the number of errors is $p|c|$.
+    Therefore the expected number of errors is $(p(1-p) + (1-p)p) |c| = 2 p (1-p) |c|$.
+    We obtain the approximation ratio $2 p (1-p) |c| / ((1-p)|c|) = 2 p$.
+
+    We will see that the approximation ratio improves with choosing several rows instead of a single one.
+    Additionally, we have to handle the circumstance that we only sample from $U \cup L$ and ignore $X$.
+
+    There is a further issue regarding $U$.
+    Let $s$ be the smallest index such that $R_s$ and $c$ intersect, \ie, $R_s$ is the first set with binary entries in column $j$.
+    Then rows sampled for $R_s$ may be located outside of $c$ at positions with wildcards in column $j$.
+    We avoid the complications caused by the wildcards by only considering classes $R_{i}$ for $i > s$.
+
+    To summarize, $c$ has at least $\epsilon r$ selected entries and we ignore at most $2 \epsilon^2 r$ of these due to $X$ and $R_s$.
+    For each $i > s$, we sample $1/\epsilon^3$ rows from $R_i$. 
+    Let $c'$ be $c$ restricted to $\bigcup_{i > s} R_{i}$ and let $c''$ be $c$ restricted to  $L$.
+    Let $\hat{c}$ be $c$ without $R_s$ and $X$ and let $\bar{c}$ be the part of $c$ in $X \cup R_s$.
+    For each $i$, let $c'_i$ be the fraction of zeros of $c'$ in $R_i$ and $c''_i$ the fraction of zeros of $c''$ in $S_i$.
+
+    For each $i \le \ell$, we define $p'_i$ to be the fraction of zeros $c'_i$ and $p''_i$ the fraction of zeros $c''_i$.
+
+    We define a random variables $Y'_{i,k}$ for each $s < i \le 1/\epsilon^2$ and $Y''_{i,k}$ for each $1 \le i \le 1/\epsilon^2$. 
+    In both cases, $1 \le k \le 1/\epsilon^3$.
+    For each $i,k$, we pick an entry from $c'_{i}$ ($c''_i$) uniformly at random. 
+    Then $Y'_{i,k}$ ($Y''_{i,k}$) is the value of the picked entry.
+    For all $i,k$, $E[Y'_{i,k}] = 1 - p'_{i}$ and $E[Y''_{i,k}] = 1 - p''_i$. 
+    Observe that the $Y_{i,k}$ are independent Poisson trials.
+    Let $Y' := \sum_{s<i ,1 \le k \le 1/\epsilon^3} Y'_{i,k}$ 
+    and $Y'':= \sum_{i, 1 \le k \le 1/\epsilon^3} Y''_{i,k}$.
+    We want to use Chernoff bounds to control the probability to take the wrong decision.
+    It is sufficient to consider $Y'$ with $s = 1/\epsilon^2-1$, since in all other cases the probabilities are amplified more.
+    Let $\mu' := E[Y']$.
+    We analyze the ranges of $\mu'$ separately.
+    \subparagraph{Case 1:} Let us assume that $\mu' \in [0,1/(2\euler\epsilon^3)]$.
+    We define $\delta' := 1/(2\mu'\epsilon^3) - 1$.
+    Using a multiplicative Chernoff bound (cf.~\cite{MU05_probability}), we obtain
+    \begin{align}
+        \Pr(Y' \ge 1/(2\epsilon^3)) &< \Bigl(\frac{\euler^{\delta'}}{(1+\delta')^{(1+\delta')}}\Bigr)^{\mu'} = \Bigl(\frac{1}{1 + \delta'}\Bigr)^{\mu'} \Bigl(\frac{\euler}{{1 + \delta'}}\Bigr)^{\mu'\delta'}\\
+        &= (2 \mu' \epsilon^3)^{\mu'}(\euler \cdot 2\mu'\epsilon^3)^{(1/(2\epsilon^3)  - \mu')}\label{eq:rhs}
+    \end{align}
+    Note that both terms of \eqref{eq:rhs} are numbers between zero and one.
+    If $\mu' < 1/\epsilon$, the right term is smaller than $\epsilon^4 \mu'$. 
+    Otherwise the left term is smaller than $\epsilon^4 \mu'$
+
+    The range of $\mu'$ implies that the majority of entries in $\hat{c}'$ is zero.
+    Recall that $\hat{c}'$ has an $\epsilon^3 \mu'$ fraction of zeros.
+    The expected number of errors done by the algorithm is therefore at most
+    $(1 - \epsilon^4 \cdot \mu') \cdot (\epsilon^3 \mu') + \epsilon^4 \cdot \mu' \cdot (1 - \epsilon^3 \mu') = (1+\epsilon) \epsilon^3 \mu'$.
+
+    \subparagraph{Case 2:} Let us assume that $\mu' \in (1/(2\euler\epsilon^3), 1/(2\epsilon^3) - 1/\epsilon^2]$.
+    We use Hoeffding's inequality \cite{Hoe63_probability} to analyze the range.
+    To this end, we scale $Y'$ and obtain $\bar{Y}':= \epsilon^3 Y'$, which has values between zero and one.
+    Then 
+    \[
+        \Pr(\bar{Y}' - E[\bar{Y}'] \ge \epsilon) \le \euler^{-2\epsilon^2/\epsilon^3} = \euler^{-2/\epsilon}\,.
+    \]
+
+    Since for sufficiently small $\epsilon$, $\euler^{-2/\epsilon} < \epsilon/(2\euler) \le \epsilon^4 \mu'$,
+    again we obtain a $(1+\epsilon)$-approximation in expectation.
+
+    All other ranges now follow immediately:
+    For $\mu' \in (1/(2\epsilon^3) - 1/\epsilon^2,1/(2\epsilon^3)]$ every solution is a $(1+O(\epsilon))$-approximation and for larger $\mu'$ the majority of entries in $\hat{c}'$ is one.
+    The analysis is analogous.
+
+    In order to combine $Y'$ and $Y''$, we introduce a bias for $Y'$ such that we count rows $i$ for $s < i \le \ell$ with a factor $(1-\epsilon)/(\epsilon - \epsilon^2)$.
+    Then
+    \[
+        \bar{Y} := \frac{\bar{Y}' \cdot (\ell-s)(1-\epsilon)/(\epsilon - \epsilon^2) + \bar{Y}'' \cdot \ell}{(\ell-s)(1-\epsilon)/(\epsilon - \epsilon^2) + \ell}\,.
+    \]
+    Then, using the union bound, setting $\sigma_j = 0$ for $\bar{Y} < 1/2$ and $\sigma_j = 1$ otherwise gives an expected $1+O(\epsilon)$ approximation within $\hat{c}$.
+    Errors in $\bar{c}$ are either also errors in an optimal solution, or they contribute at most a factor $O(\epsilon)$ to the total number of errors.
+    Thus overall we obtain an approximation ratio $1+O(\epsilon)$ within $c$.
+    The algorithm $\SWC$ has at most the same approximation ratio, since the only difference is that we do not fix the $Y_{i,k}$ to be zero or one.
+    Thus the random process used by the algorithm can only have a lower variance.
+
+    This finishes our analysis for $\tau(M)_{*,j}$.
+    For $\tau'(M)_{*,j}$, the proof is analogous.
+
+    % I DON'T UNDERSTAND THE FOLLOWING ANYMORE, THEREFORE COMMENTED.
+    %To finish the proof we still have to argue that we may assign the $r$ rows with maximal values $d_i$ to $\sigma$ and the remaining $r'$ rows to $\sigma'$.
+    %The reason is that at all times we compare against the assignment of $(\tau,\tau')$, which is a stronger result then the mere approximation ratio.
+    %Since $|\tau(M)|=r$ and the choice of $d_i$ gives the assignment with fewest errors, the claim follows.
+\end{proof}
+
+We introduced a small but easy to handle imprecision due to the assumption that we can choose exactly the same number of strings from each range.
+
 
 
 %%% Local Variables:

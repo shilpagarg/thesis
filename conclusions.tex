@@ -1,7 +1,162 @@
-\chapter{Conclusions}
+\chapter{Conclusions and perspectives}
+We summarize our algorithmic contributions to the four open problems introduced in Chapter 1 concerning the area of haplotyping.
+Furthermore, we provide broader perspectives on how these approaches can be utilized to answer different biological questions and save millions of lives.
 
+\section{Conclusions}
+Deriving accurate and complete haplotypes from sequencing datasets helps in genome-engineering, evolutionary studies, and functional and comparative genomics.
+In this thesis, we have provided efficient algorithms to perform haplotyping based on different information sources.
 
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: "main"
-%%% End:
+There are two ways to perform haplotyping using sequencing data: reference-based phasing and haplotype-aware denovo assembly.
+In reference-based phasing, reads are aligned to the reference genome and then the phasing is performed using aligned reads over the variants.
+The reference-based phasing for a single individual is formulated as the Minimum Error Correction (MEC) and its weighted version as wMEC (as explained in Chapter 1).
+Different types of sequencing datasets generate different types of instances such as MEC, Gapless-MEC, and Binary-MEC.
+To study the complexity and approximation status of these instances is very important, and helps in unraveling and understanding the structures.
+
+\subsection{Approximation status for \GMEC}
+Third-generation sequencing technologies generate single-ended reads in the order of 10Kb in length. These reads are often aligned to the reference genome for performing phasing.
+The alignment of these reads can be mathematically represented in the form of a matrix, which is denoted by \GMEC.
+\GMEC is a generalization for \BMEC because \BMEC contains only binary values, whereas \GMEC contains wildcards at the end of each row. 
+It is known that \BMEC is in PTAS and \MEC is in APX-hard.
+There is a gap about the approximation status for \GMEC, which has been open for 10 years.  
+As a part of this thesis, we study the approximation status of \GMEC and conclude that \GMEC is in QPTAS.
+Proving \GMEC in QPTAS guarantees that the \GMEC is not in APX-hard.
+
+The main challenge in \GMEC instances is that we would like to sample sufficiently many rows such that we get haplotypes from end-to-end, otherwise missing its parts which may lead to an unbounded approximation.
+To handle this problem, we provided a dynamic programming approach that well captures the structure of instances.
+
+We started with simple instances (SWC) such that all the rows start from one column and are ordered in the increasing length of the binary part.
+Such instances are simple to solve because we can apply the \BMEC algorithm for the sub-matrices starting from column one and then argue that we generate good solution strings.
+As soon as, we are at a sub-instance consisting of wildcards and binary values, we require to be extra careful and, therefore, we sample more rows and create a bias to generate haplotypes as explained in Chapter 3.
+Furthermore, we show that in expectation, the algorithm works well at each column and is in PTAS. 
+We have generalized this algorithm to solve complete SWC instances by using clever DP algorithms.
+
+We further generalized this DP algorithm for SWC instances to solve sub-interval free instances. 
+The main insights are that we can determine a sequence of columns. At each column, we get SWC instances at its left and right side.
+In order to combine the consecutive columns, we introduced the notion of dominance such that we can solve two consecutive columns simultaneously in the DP, still getting a good approximation.
+We proved that this dynamic programming algorithm is in PTAS.
+
+Next, we generalize this dynamic programming algorithm to solve general \GMEC instances. 
+The main observation is that we can divide the instances into different length classes and each length class can be solved in quasi-polynomial time.
+To combine different length class instances, we use clever techniques in DP and prove that the generalized dynamic program is in QPTAS.
+
+This dynamic programming provides good insights into the structure of instances, which further motivates to derive other types of algorithms that potentially work well in practice.
+
+\subsection{Parameterized algorithm for phasing individual genomes}
+There are different sequencing technologies available to sequence the genome, one of them is strand-specific technology and others are long-read technologies.
+The strand-specific technology provides global but sparse information about the haplotypes. The main advantage of strand-seq technology is that it provides Illumina reads along with the directionality information.
+The downside of Strand-Seq data is its sparseness, which creates a necessity to integrate with other available local long-read information sources such as PacBio and ONT to get complete haplotypes.
+
+We have presented an integrative phasing strategy, which is a parameterized algorithm, to generate accurate, contiguous and complete haplotypes. 
+The parameterized algorithm has coverage as a parameter, which is usually small enough in practice that makes it feasible to solve these instances faster.
+We have provided a dynamic programming to solve these instances. The main idea is to go column wise from left to right. At each column, we store the best allele assignment score for each bipartition.
+In the recurrence step, when we compute the bipartition at $k+1$ column, we consider the bipartition from the previous column $k$ 
+such that the reads assigned to different haplotypes remain same over two consecutive columns and we store the best allele assignment for the corresponding bipartition in DP table.
+In this way, we re-curse until the last column and finally backtrace to generate the haplotypes.
+
+We have demonstrated the effectiveness of this algorithm on the real human genome. 
+We have performed a comprehensive coverage analysis on the level of coverage required from each sequencing technology in this integrative framework.
+
+In the situation, when the strand-seq data is not available to provide global information about the haplotypes, it is better to utilize the information from pedigrees.
+\subsection{Parameterized algorithm for phasing pedigrees}
+For pedigree of genomes, we have extended the parameterized algorithm for a single individual to incorporate the pedigree information.
+In the model, we want to find two haplotypes for each individual in a pedigree such that we obey Mendelian laws of inheritance.
+We formulated the combination of read-based phasing and genetic haplotyping into an integrative framework known as MEC on pedigrees (PedMec).
+
+% We solve the parameterized algorithm using dynamic programming manner. 
+As input, we have SNP matrices and corresponding weight matrices for each individual in a pedigree. 
+Additionally, we have the recombination vector that represents the likelihood of recombination between every consecutive variant.
+We have provided the dynamic programming algorithm to solve PedMec instances.
+The major difference between the pedigree framework to the single individual case is the number of partitions.
+In a pedigree framework, we have four partitions, instead of two, because the reads from the mother, father and child each can be partitioned into two sets, 
+with additional constraints that the reads from child partitions belong to either mother or father.
+The constraint is represented by the transmission value, which means which haplotype from each parent is transmitted to the child.
+We compute the best allele assignment score for these four partitions at each column and store them in a DP table.
+The recurrence step proceeds similarly to the single individual case, but with additional step of trying all possibilities of recombination in mother or father.
+We continue this process till the last column and re-curse to find haplotypes for each individual in a pedigree.
+
+The running time increases by a factor of $2^t$, where $t$ is the number of trio-relationships, but it still remains linear in the number of variants.
+Therefore, the algorithm is suitable for long-read technologies.
+
+We demonstrate the effectiveness of our algorithm on both real and simulated data. We considered the AJ trio from Genome in a Bottle Consortium (GIAB).
+We showed that we provided long-range chromosomal-length accurate haplotypes by incorporating trio information.
+The main conclusion is we require low coverages of 2$\times$ for each individual with family relationship information as opposed to a single individual at 15$\times$ coverage.
+
+In all these approaches, we performed phasing based on the reads aligned to the reference genome. Therefore, there is a reference bias attached to it.
+Additionally, we are also interested in phasing sequences or variants that are unique to the genome.
+
+\subsection{Haplotype-aware denovo assembly}
+To overcome the problem of reference bias, we proposed a new approach to reconstructing the genome sequences of diploid organisms directly from the reads.
+The process of obtaining haplotype sequences from reads is called haplotype-aware denovo assembly.
+Constructing these sequences is very important to understanding the true characteristics of diploid organisms.
+
+Current assemblers collapse the heterozygosity information represented by bubbles in assembly graphs and therefore generate a haploid consensus sequence.
+A popular diploid assembler --- Falcon Unzip, which is purely PacBio based --- has the ability to generate diploid assemblies.
+The main disadvantages of Falcon Unzip method are that it breaks for low coverage datasets and for genomes with a low heterozygosity rate.
+
+In order to handle these problems, we have provided a novel graph based diploid assembly pipeline, which is basically a hybrid of short accurate and long read data.
+The pipeline involves constructing the base assembly graph using Illumina data such that it acts as a backbone for subsequent steps.
+Using accurate data, it is possible to accurately detect SNVs represented by bubbles in the assembly graph.
+Furthermore, we aligned the long reads to this graph to span over the bubbles and detect the bubble chains.
+By using long alignments that span the bubble chains, we perform phasing using a generalized wMEC model for a single individual.
+The generalized wMEC model is extended to MEC on bubble chains (gMEC), which is based on the observation that phasing bubble chains is equivalent to phasing multi-allelic variants.
+The running time increases by a factor of $a \choose 2$, where $a$ is the maximum number of alleles in any bubble.
+
+We have demonstrated the effectiveness of our algorithm by combining two yeast strains to form a pseudo-diploid yeast genome.
+We have showed that our graph-based approach has the ability to generate more accurate, contiguous and complete assemblies even at a low coverage of 10$\times$.
+Additionally, we have pointed out that we can detect and phase large structural variations.
+
+\section{Perspectives}
+A major revolution in approaches to the haplotyping problem occurred due to the third generation sequencing technologies.
+Using long reads delivered by these technologies, it has become possible to generate accurate, contiguous and complete haplotypes.
+Indeed, there are some complex regions over the diploid genomes that are not solved by either reference-based or de novo approaches.
+We believe that both reference-based and de novo approaches can be lifted up to solve the complex and repetitive regions over the genome based on the current available datasets.
+Currently available datasets provide a good signal to generate near complete and accurate diploid genomes.
+In a de novo context, different graph parameters such as tree-width, maximum branching factor, copy number or other parameters can be explored to solve the problem.
+In linear context, ILP, a greedy heuristic or other parameterized approaches have the power to solve complex instances.
+
+The techniques used in this thesis on longer reads can also help to solve higher ploidy genomes. It is possible to separate the alleles into haplotypes using longer reads.
+The next obvious step will be to separating species based on long read data, solving the meta-genome assembly problem.
+Solving this problem involves generalizing the techniques or framework presented in this thesis.
+Almost the same argument could be used for transcriptome
+assembly of RNA sequences. The main challenge is scalability, and therefore, efficient data structure and algorithms need to be developed to address these challenges.
+
+In complex regions, detecting SVs independently in an accurate manner was not possible.
+These variants include single nucleotide or larger genomic ranges by substitution, insertion, deletion, copy number. 
+Haplotypes can help in detecting structural variants in complex regions and perform SV analyses properly.
+Therefore, algorithms for haplotyping can further help in SV detection and analysis.
+
+In coming years, it is expected that reads become longer and error rates will be reduced.
+Constant algorithmic efforts are required to handle the datasets that will arise from new sequencing technologies.
+The methods proposed in this thesis could be continued in many ways,
+with refinements, new applications or integration of other kinds of information. 
+Future advances may include technological innovations, the application of standard metrics for evaluating haplotype quality, and the development of databases that link haplotypes to disease.
+
+% \paragraph{Clinical applications}
+% What are the applications for which genome-wide haplotype resolution is desirable or necessary? 
+% The first application is the accurate interpretation of personal genomes, particularly in the context of medical genetics. 
+% As humans are diploid organisms, haplotype information is essential to each personal genome, for instance, to assess the phase of potentially disease-causing recessive mutations (that is, compound heterozygosity).
+% In pharmacogenetics, the phasing of metabolically relevant variants onto haplotypes helps to predict the drug response profiles of patients, improve dosing and reduce the extent of adverse reactions.
+% 
+% Second, haplotype knowledge is useful in population genetics and human disease studies. 
+% For example, the inference of Neanderthal ancestry in non-Africans exploited the availability of a human reference genome that was derived from local segments of African and European ancestry.
+% More generally, haplotype inference and variant imputation are increasingly important parts of human disease studies involving large cohorts --- that is, rare variant-common disease and common variant-common disease study designs. 
+% 
+% Last, haplotype information can also facilitate non-invasive fetal genome sequencing. 
+% Accurate early inference of allelic inheritance genome-wide has the ability to simultaneously determine the risk of the thousands of individually rare, but collectively common, Mendelian disorders in a single test.
+% 
+% % http://www.annualreviews.org/doi/pdf/10.1146/annurev.med.56.082103.104540
+% Human leuokocyte antigen (HLA) matching is a clear example of how haplotypes
+% can be used in the clinic to improve outcome. In this scenario, transplant recipients
+% and donors are genotyped at several markers along the major histocompatibility
+% complex. The HLA haplotypes are then determined by ordering the alleles along
+% the chromosomes. Patients who match the donor haplotypes closely are predicted
+% to have a better transplant outcome than patients who do not. The development
+% of HLA haplotype matching has proved to be crucial in making transplantation
+% between unrelated patients and donors a success.
+% 
+% Finally, a new understanding of the biology of common disease must be achieved
+% to meaningfully link individual genotypes to complex phenotypes.
+% 
+% 
+% 
+% 
