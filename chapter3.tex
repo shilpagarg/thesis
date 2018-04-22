@@ -241,8 +241,8 @@ Similarly, we can compute partitions cost for all possible partitions by conside
 Let us compute the partition cost for column two shown in Figure~\ref{fig:pedmeccost4}, given the DP column for column one.
 For a partition and transmission value 00, we compute the initialization cost as we did before in column one. 
 For example, for green partition, we compute the initialization cost (=3) as before, but we now additionally consider different possibilities of recombination events between two consecutive variants.
-Therefore, we pay additional cost 91 from DP column with transmission value 01 at column one by allowing one recombination event, and 0 cost for no recombination event.
-In this way, we try all possibilities of recombination events (0, 1, 2) and take the minimum cost. For this example partition, the cost is 8.
+Therefore, we pay additional cost 91 if the DP cell at column one has transmission value 01, with one recombination event. We do not pay any cost without any recombination event.
+In this way, when we compute the DP cell cost, we try all possibilities of recombination events (0, 1, 2) with the previous cells and then take the minimum cost. For this example partition, it is easy to see that the cost is 8.
 Similarly, we compute partition cost for other partitions by trying all transmissions values and store them in DP column.
 We recurse till the last column and can finally backtrace to get the haplotypes once we know the optimal partitions.
 

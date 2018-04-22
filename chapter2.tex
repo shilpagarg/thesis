@@ -98,12 +98,11 @@ without encoding the SNP values to 0, 1, and '−', as introduced in Chapter 1.
 Therefore, their  approach works even for tri- or tetra-allelic loci and homozygous sites. 
 Thus they reconstructed the haplotype considering the case marked as a homozygous locus by a sequence error in the original data. 
 
-Another approach to solve the haplotype determination using a MEC model is to transform the problem into a satisfiability (SAT) problem. 
+Another approach for solving haplotyping using the MEC is to reduce the problem into a satisfiability (SAT) problem. 
 \cite{he2010optimal} proposed a partial Max-SAT formulation for haplotype assembly. 
-\cite{mousavi2011effective} suggested a HapSat model by converting the haplotype determination problem to a Max-2-SAT problem,
-which is more general than the partial Max-SAT. 
-This approach can use the general Max-SAT solver and the formation is more generalized, 
-considering homozygous alleles that can appear due to sequence errors.
+\cite{mousavi2011effective} suggested a Max-2-SAT problem,
+which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances and the formation is more generalized, 
+considering homozygous alleles that can appear due to sequencing errors.
 
 Some studies tried to model haplotyping problems by using probabilistic approaches. 
 Since the fragments of the input SNP matrix stem from two haplotypes, 

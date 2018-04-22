@@ -1,12 +1,12 @@
 \chapter{Conclusions and perspectives}
 We summarize our algorithmic contributions to the four open problems introduced in Chapter 1 concerning the area of haplotyping.
-Furthermore, we provide broader perspectives on how these approaches can be utilized to answer different biological questions and save millions of lives.
+Furthermore, we provide broader perspectives on how these approaches can be utilized to answer different biological questions and potentially save millions of lives.
 
 \section{Conclusions}
 Deriving accurate and complete haplotypes from sequencing datasets helps in genome-engineering, evolutionary studies, and functional and comparative genomics.
 In this thesis, we have provided efficient algorithms to perform haplotyping based on different information sources.
 
-There are two ways to perform haplotyping using sequencing data: reference-based phasing and haplotype-aware denovo assembly.
+There are two ways to perform haplotyping using sequencing data: reference-based phasing and haplotype-aware de novo assembly.
 In reference-based phasing, reads are aligned to the reference genome and then the phasing is performed using aligned reads over the variants.
 The reference-based phasing for a single individual is formulated as the Minimum Error Correction (MEC) and its weighted version as wMEC (as explained in Chapter 1).
 Different types of sequencing datasets generate different types of instances such as MEC, Gapless-MEC, and Binary-MEC.
@@ -22,11 +22,11 @@ As a part of this thesis, we study the approximation status of \GMEC and conclud
 Proving \GMEC in QPTAS guarantees that the \GMEC is not in APX-hard.
 
 The main challenge in \GMEC instances is that we would like to sample sufficiently many rows such that we get haplotypes from end-to-end, otherwise missing its parts which may lead to an unbounded approximation.
-To handle this problem, we provided a dynamic programming approach that well captures the structure of instances.
+To handle this problem, we provided a dynamic programming approach that well captures the structure of the considered instances.
 
 We started with simple instances (SWC) such that all the rows start from one column and are ordered in the increasing length of the binary part.
 Such instances are simple to solve because we can apply the \BMEC algorithm for the sub-matrices starting from column one and then argue that we generate good solution strings.
-As soon as, we are at a sub-instance consisting of wildcards and binary values, we require to be extra careful and, therefore, we sample more rows and create a bias to generate haplotypes as explained in Chapter 3.
+As soon as, we are at a sub-instance consisting of wildcards and binary values, we require to be extra careful and, therefore, we sample more rows and consider a weighted mahority to generate haplotypes as explained in Chapter 3.
 Furthermore, we show that in expectation, the algorithm works well at each column and is in PTAS. 
 We have generalized this algorithm to solve complete SWC instances by using clever DP algorithms.
 
@@ -43,23 +43,23 @@ This dynamic programming provides good insights into the structure of instances,
 
 \subsection{Parameterized algorithm for phasing individual genomes}
 There are different sequencing technologies available to sequence the genome, one of them is strand-specific technology and others are long-read technologies.
-The strand-specific technology provides global but sparse information about the haplotypes. The main advantage of strand-seq technology is that it provides Illumina reads along with the directionality information.
+The strand-specific technology provides global but sparse information about the haplotypes. The main advantage of Strand-Seq technology is that it provides Illumina reads along with the directionality information.
 The downside of Strand-Seq data is its sparseness, which creates a necessity to integrate with other available local long-read information sources such as PacBio and ONT to get complete haplotypes.
 
 We have presented an integrative phasing strategy, which is a parameterized algorithm, to generate accurate, contiguous and complete haplotypes. 
 The parameterized algorithm has coverage as a parameter, which is usually small enough in practice that makes it feasible to solve these instances faster.
 We have provided a dynamic programming to solve these instances. The main idea is to go column wise from left to right. At each column, we store the best allele assignment score for each bipartition.
 In the recurrence step, when we compute the bipartition at $k+1$ column, we consider the bipartition from the previous column $k$ 
-such that the reads assigned to different haplotypes remain same over two consecutive columns and we store the best allele assignment for the corresponding bipartition in DP table.
-In this way, we re-curse until the last column and finally backtrace to generate the haplotypes.
+such that the reads assigned to different haplotypes remain the same over two consecutive columns and we store the best allele assignment for the corresponding bipartition in DP table.
+In this way, we recurse until the last column and finally backtrace to generate the haplotypes.
 
 We have demonstrated the effectiveness of this algorithm on the real human genome. 
 We have performed a comprehensive coverage analysis on the level of coverage required from each sequencing technology in this integrative framework.
 
-In the situation, when the strand-seq data is not available to provide global information about the haplotypes, it is better to utilize the information from pedigrees.
+In the situation, when the Strand-Seq data is not available to provide global information about the haplotypes, it is better to utilize the information from pedigrees.
 \subsection{Parameterized algorithm for phasing pedigrees}
 For pedigree of genomes, we have extended the parameterized algorithm for a single individual to incorporate the pedigree information.
-In the model, we want to find two haplotypes for each individual in a pedigree such that we obey Mendelian laws of inheritance.
+In the model, we want to find two haplotypes for each individual in a pedigree such that we obey the Mendelian laws of inheritance.
 We formulated the combination of read-based phasing and genetic haplotyping into an integrative framework known as MEC on pedigrees (PedMec).
 
 % We solve the parameterized algorithm using dynamic programming manner. 
@@ -72,9 +72,9 @@ with additional constraints that the reads from child partitions belong to eithe
 The constraint is represented by the transmission value, which means which haplotype from each parent is transmitted to the child.
 We compute the best allele assignment score for these four partitions at each column and store them in a DP table.
 The recurrence step proceeds similarly to the single individual case, but with additional step of trying all possibilities of recombination in mother or father.
-We continue this process till the last column and re-curse to find haplotypes for each individual in a pedigree.
+We continue this process until the last column and recurse to find haplotypes for each individual in a pedigree.
 
-The running time increases by a factor of $2^t$, where $t$ is the number of trio-relationships, but it still remains linear in the number of variants.
+The running time of pedigree algorithm increases by a factor of $2^t$, where $t$ is the number of trio-relationships, but it still remains linear in the number of variants.
 Therefore, the algorithm is suitable for long-read technologies.
 
 We demonstrate the effectiveness of our algorithm on both real and simulated data. We considered the AJ trio from Genome in a Bottle Consortium (GIAB).
@@ -84,16 +84,16 @@ The main conclusion is we require low coverages of 2$\times$ for each individual
 In all these approaches, we performed phasing based on the reads aligned to the reference genome. Therefore, there is a reference bias attached to it.
 Additionally, we are also interested in phasing sequences or variants that are unique to the genome.
 
-\subsection{Haplotype-aware denovo assembly}
+\subsection{Haplotype-aware de novo assembly}
 To overcome the problem of reference bias, we proposed a new approach to reconstructing the genome sequences of diploid organisms directly from the reads.
 The process of obtaining haplotype sequences from reads is called haplotype-aware denovo assembly.
 Constructing these sequences is very important to understanding the true characteristics of diploid organisms.
 
 Current assemblers collapse the heterozygosity information represented by bubbles in assembly graphs and therefore generate a haploid consensus sequence.
 A popular diploid assembler --- Falcon Unzip, which is purely PacBio based --- has the ability to generate diploid assemblies.
-The main disadvantages of Falcon Unzip method are that it breaks for low coverage datasets and for genomes with a low heterozygosity rate.
+The main disadvantages of Falcon Unzip method are that it fails for low coverage datasets and for genomes with a low heterozygosity rate.
 
-In order to handle these problems, we have provided a novel graph based diploid assembly pipeline, which is basically a hybrid of short accurate and long read data.
+In order to handle these problems, we have provided a novel graph-based diploid assembly pipeline, which is basically a hybrid of short accurate and long error-prone read data.
 The pipeline involves constructing the base assembly graph using Illumina data such that it acts as a backbone for subsequent steps.
 Using accurate data, it is possible to accurately detect SNVs represented by bubbles in the assembly graph.
 Furthermore, we aligned the long reads to this graph to span over the bubbles and detect the bubble chains.
@@ -108,28 +108,38 @@ Additionally, we have pointed out that we can detect and phase large structural 
 \section{Perspectives}
 A major revolution in approaches to the haplotyping problem occurred due to the third generation sequencing technologies.
 Using long reads delivered by these technologies, it has become possible to generate accurate, contiguous and complete haplotypes.
-Indeed, there are some complex regions over the diploid genomes that are not solved by either reference-based or de novo approaches.
-We believe that both reference-based and de novo approaches can be lifted up to solve the complex and repetitive regions over the genome based on the current available datasets.
-Currently available datasets provide a good signal to generate near complete and accurate diploid genomes.
-In a de novo context, different graph parameters such as tree-width, maximum branching factor, copy number or other parameters can be explored to solve the problem.
-In linear context, ILP, a greedy heuristic or other parameterized approaches have the power to solve complex instances.
+Indeed, there are some complex regions over the diploid genomes that are not yet solved by current available approaches, either reference-based or de novo approaches.
+We believe that both reference-based and de novo approaches can be lifted up to solve the complex and repetitive regions over the genome based on available long-read datasets.
+% Currently available datasets provide a good signal to generate near complete and accurate diploid genomes.
+In a de novo context, different graph parameters such as tree-width, maximum branching factor, copy number or other parameters can be explored to solve the complex regions of genome.
+In a reference-based context, ILP, a greedy heuristic or other parameterized approaches have the power to solve complex instances efficiently.
 
-The techniques used in this thesis on longer reads can also help to solve higher ploidy genomes. It is possible to separate the alleles into haplotypes using longer reads.
-The next obvious step will be to separating species based on long read data, solving the meta-genome assembly problem.
-Solving this problem involves generalizing the techniques or framework presented in this thesis.
-Almost the same argument could be used for transcriptome
-assembly of RNA sequences. The main challenge is scalability, and therefore, efficient data structure and algorithms need to be developed to address these challenges.
+The techniques used in this thesis on longer reads can also help to solve higher ploidy genomes. For higher ploidy genomes, the current WhatsHap algorithm directly leads to running time of $k^c$, where $k$ is the ploidy and $c$ is the coverage.
+More efficient ways could be explored to further improve the running time by pruning the search space.
+Another extension of WhatsHap algorithm is to separate species based on long read data, thus solving the popular meta-genome assembly problem.
+Using some efficient computation techniques or greedy heuristic approaches, the algorithm can be implemented in practice. 
+Another possible direction is producing of transcriptome
+assembly of RNA sequences. In all these problem, the main challenge is scalability, and therefore, efficient data structure and algorithms need to be developed to address these challenges.
 
-In complex regions, detecting SVs independently in an accurate manner was not possible.
+Detecting large structural variants in complex regions was not possible earlier.
 These variants include single nucleotide or larger genomic ranges by substitution, insertion, deletion, copy number. 
 Haplotypes can help in detecting structural variants in complex regions and perform SV analyses properly.
 Therefore, algorithms for haplotyping can further help in SV detection and analysis.
 
-In coming years, it is expected that reads become longer and error rates will be reduced.
+In a general view, it is expected that in coming years the reads get longer and error rates will be reduced.
 Constant algorithmic efforts are required to handle the datasets that will arise from new sequencing technologies.
-The methods proposed in this thesis could be continued in many ways,
-with refinements, new applications or integration of other kinds of information. 
-Future advances may include technological innovations, the application of standard metrics for evaluating haplotype quality, and the development of databases that link haplotypes to disease.
+The methods proposed in this thesis could be refined, new applications or integration of other kinds of information could be incorporated.
+
+Besides algorithmic contributions to haplotyping, this thesis also offers some haplotyping tools, which enable haplotype-resolved studies of genetic variation and genome instability.
+Accurate and complete haplotypes help in investigating mechanisms behind complex phenotypes in humans, consisting of ageing and common diseases including cancer. 
+The deep insights into biological mechanisms of disease can be achieved, which further help in improving drug response.
+Also, the haplotype knowledge is useful in population genetics.
+The question on how evolution has shaped the genomic architecture can be answered by haplotype comparisons and various genome features can be investigated.
+
+In summary, haplotype information is essential to the complete description of individual genomes. The haplotype resolved approaches enable us to discover novel genome features, that were previously hidden or not recognized.
+Haplotype-aware methods are a promising next step to address a lot of open biological questions and improve our understanding of functioning of genome.
+The impact of haplotype-resolved approaches to genomics in biomedical research and clinical medicine is everlasting.
+
 
 % \paragraph{Clinical applications}
 % What are the applications for which genome-wide haplotype resolution is desirable or necessary? 

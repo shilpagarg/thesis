@@ -1,9 +1,8 @@
 \chapter{Algorithmic Background}
 % http://web.stanford.edu/group/hopes/cgi-bin/hopes_test/an-introduction-to-dna-and-chromosomes-text-and-audio/#what-is-dna-making-the-single-strand
-As we have seen haplotyping can be formulated as a combinatorial optimization problem, thus we utilize the tools from  the existing algorithmic theory to solve it.
-In this chapter, we provide algorithmic background which is essential to understand rest of the thesis.
-Since the haplotyping instances are NP-hard \citep{Cilibrasi2007}, it rules out the possibility for polynomial time exact algorithm under the assumption $P \neq NP$.
-Nevertheless, we want to find the haplotypes, so we explore algorithms that find the near optimal solution and work well in practice.
+Haplotyping can be formulated as a combinatorial optimization problem, thus we utilize the tools from  the existing algorithmic theory to solve it.
+As we studied in the previous chapter that the haplotyping instances are NP-hard \citep{Cilibrasi2007}, it rules out the possibility for polynomial time exact algorithm under the assumption $P \neq NP$.
+Nevertheless, we want to find the haplotypes. Thus, we present some background details on algorithms that find the near optimal solution and work well in practice.
 
 
 % The NP hardness is one of the most common characteristics of the vast majority of interesting computational biological problems.
@@ -19,24 +18,25 @@ Nevertheless, we want to find the haplotypes, so we explore algorithms that find
 % Furthermore, we discuss about the challenges to solve the problem and provide the main contributions of this thesis.
 \section{Overview}
 % http://people.csail.mit.edu/rrw/presentations/marx-approx.pdf
-Many computational problems that arise in practice from biological data sets are optimization problems.
+Many computational problems that arise in practice from biological experimental data sets are optimization problems.
 For optimization problems, the goal is to minimize or maximize some objective function (e.g. cost, quality or other measures) over the set of possible solutions that satisfy some constraints.
 These optimization problems often turn out to be NP-hard and, the
 NP-hardness of an optimization problem implies that, unless P = NP, there is no polynomial-time algorithm
 that finds the optimal value of the objective function. 
 The next step would be looking for algorithms that provide near optimal solutions and works fast in practice. 
-The main insight involves unraveling the relevant structure and finding algorithmic
-techniques to exploit it. 
+The main insight involves unraveling the relevant structure and designing algorithmic
+techniques to exploit these structures.
 
 To design and analyze algorithms for these problems, we explore the theory of parameterized algorithms and the theory of approximation algorithms.
 In both theories, the structure of different instances are analyzed properly, which helps to design polynomial time algorithms.
-In parameterized complexity the instances are looked in finer detail and some parameters are considered based on the structural or other properties of input or output.
+In parameterized complexity the instances are looked in finer detail and some parameters are considered based on the structural and other properties of input or output.
 Instead of expressing running time only as a function
 of input size, we analyze the effect of these parameters on the running time. 
 The goal is to identify those parameters for which the overall running time is small when their values are small, even if the input size is large. 
 In approximation algorithms, we relax the optimality criterion i.e. instead of looking for an exact optimal solution,
-we allow solutions for which the objective function is close to the optimal solution within some guaranteed bound. 
-The goal is to come up with an algorithm whose run time is polynomial in the input size, under such relaxation. 
+we allow solutions for which the objective function is close to the optimal solution within some worse case bound.
+We guarantee that the quality of the approximate solution is not worse than that bound.
+With some relaxation, designing algorithms whose run times are polynomial in the input size becomes feasible. 
 
 \section{Types of algorithms}
 In this thesis, we concern the following three broad categories of algorithms for solving computational problems.
@@ -51,9 +51,9 @@ Let us begin with a small example as illustrated by \cite{cygan2015parameterized
 Imagine that you are a security guard of a bar
 in a small town of Germany. On Friday, several people come at the bar for party. 
 There are some people who often fight with each other at the bar. Therefore, the guard is aware of these people who usually fight.
-In order to have peaceful party without any fights, the guard plans ahead and,
+In order to have a peaceful party without any fights, the guard plans ahead and,
 only admit people if they will not be fighting with anyone else at the
-bar. At the same time, he does not want to reject many people, for example $k$, in order to maximize profit.
+bar. At the same time, he does not want to reject many people, for example $k$, in order to gain maximum profit.
 
 The above situation can be formalized in the context of an optimization problem. Let us suppose that there are $n$ people who come to the bar, 
 and the constraint is that for each pair of people, we know whether or not they will have fight between them if the pair is allowed inside the bar. 
@@ -72,38 +72,40 @@ Let us solve the above problem in a naive manner by trying all possibilities.
 If the problem instance is small, for example, $n=100$ people, then the number of possibilities are $2^{100}$ in a brute-force manner.
 Even for such a small instance, the algorithm takes a long time, thus can not give answer in a reasonable amount of time.
 Another approach to this problem is to reject small number of guests, let's say, $k \le 10$.
-In this case, the total number of possibilities are $1000 \choose 10$. This approach is better compared to brute-force manner, but still not feasible.
+In this case, the total number of possibilities are $100 \choose 10$. This approach is better compared to brute-force manner, but still not feasible.
 
 Let us look closer into the problem and, try to identify some peaceful people and troublemakers.
 In particular, we want to identify persons who do not conflict with anyone and also identifying a person who fights with at-least $k+1$ other persons.
 The example for this case is shown in Figure~\ref{fig:parameter_dia1}. 
 There are seven persons shown by nodes and there is an edge between nodes if the two persons fight between each other.
 Here, we want to find a person that fights with at-least four persons for $k=3$. In this example, the person is D, whom we want to reject from the party, reducing $k$ by one.
-We proceed ahead in a similar manner, we might left with no such person, then we know that each person fight with at most $k$ other persons.
+We proceed ahead in a similar manner. If we might left with no such person, then we know that each person fight with at most $k$ other persons.
 Thus, rejecting any single person resolves at most $k$ potential conflicts.
-In the case when there are more than $k^2$ potential conflicts, it is not possible to have good party by rejecting only $k$ persons.
+If there are more than $k^2$ potential conflicts, then it is not possible to have a good party by rejecting only $k$ persons.
 Taken together, the persons can be classified into two important classes; one, those who participate in at-least one potential conflict and second, those who participate in at most $k$ conflicts. 
 Thus, in total, there are at most $k^2$ potential conflicts, which results in $2k^2$ persons for whom it is unknown.
-Now, if we try all the possibilities of $2k^2 \choose k$, the running time is reduced compared to previous approach, but still not feasible.
+Now, if we try all possibilities of $2k^2 \choose k$, the running time is reduced compared to previous approach, but still not feasible.
 
-After all above insights, the main observation to consider that every conflict has to be resolved, and the only way to resolve a conflict is to refuse at least one of the two persons.
-Let us suppose that there is at-least one conflict between person X and Y. 
+After all above insights, the main observation to consider is that every conflict has to be resolved, and the only way to resolve a conflict is to refuse at least one of the two persons.
+Let us suppose that there is at-least one conflict between persons X and Y. 
 If move one of them, let's say X, to the list of person to reject and, then run the algorithm recursively by rejecting at most $k-1$ persons.
-If it succeeds, we get the solution, otherwise we remove the person X from the reject list and, instead try moving Y to the reject list and run the algorithm recursively.
+If it succeeds, we get the solution, otherwise we remove the person X from the reject list and, instead try moving Y to the reject list and run this algorithm recursively.
 If this succeeds, we get the solution and otherwise, it is not possible to solve this problem by rejecting at most $k$ guests.
 
 To analyze the running time of this recursive algorithm, there are in total $O(2^k)$ recursion calls, $2^k$ leaves in the recursion tree.
 Each recursion call can be solved in linear time $O(m+n)$, where $m$ is the total number of possible conflicts.
-The good news is that the above recursive algorithm works well in practice and give solution in a reasonable time.
-Therefore, with good insights on the structure of the problem, it is possible to derive the algorithm which runs in time $O(2^k \cdot k \cdot n)$, 
-and much faster than the brute-force one which takes $O(n^k)$ time.
+The good news is that this recursive algorithm works well in practice and give solution in a reasonable time.
+This algorithm runs in time $O(2^k \cdot k \cdot n)$, 
+and faster than the brute-force one which takes $O(n^k)$ time.
+% Therefore, it is possible to design an efficient algorithm after having good insights on the structures of the problem instances.
+
 
 In $O(2^k \cdot k \cdot n)$--- time algorithm, the combinatorial explosion is restricted to parameter $k$,
 the running time is exponential in $k$, but linear in $n$.
-The main insight from the above example is that the problem instances can be solved in time linear in input size, if we fix a parameter. 
-The trick is to find such algorithms to solve a problem and then find a parameter which works well in practice. 
+The main insight from the above example is that the problem instances can be solved in time polynomial in input size, if we fix a parameter. 
+The trick is to finding such algorithms to solve a problem and then identifying fixed parameters that work well in practice. 
 
-We provide some definitions as by \cite{cygan2015parameterized}.
+We are now ready to provide some formal definitions on parameterized algorithms as defined by \cite{cygan2015parameterized}.
 
 \begin{definition}[Parameterized algorithms]
  Algorithms with running time $f(k)\cdot n^c$, for a constant $c$ independent of both $n$ and $k$, are called \textit{fixed-parameter algorithms} or FPT algorithms.
@@ -116,8 +118,8 @@ We provide some definitions as by \cite{cygan2015parameterized}.
 
 
 \subsubsection{The art of parameterization}
-In the previous section, we have seen that we can solve a complex problem in an efficient manner by cleverly framing an algorithm using relevant parameters.
-For some problem instances, it is easy to find such parameters, whereas it is difficult for others and requires some important insights.
+We have seen that we can solve a complex problem in an efficient manner by cleverly framing an algorithm using relevant parameters.
+For some problem instances, it is easy to find such parameters, whereas it is difficult for others and require some important insights.
 
 For example, let us consider the variant of above problem where we want to reject at most $k$ persons
 such that the number of conflicts are at most $l$.
@@ -126,7 +128,7 @@ In case of both parameters, the goal is to find an FPT algorithm with running ti
 depending only on $k$ and $l$. Thus, the above definition for a single parameter can be extended to considering a set of parameters at the same time.
 
 \begin{definition}[Parameterized algorithm (more than one parameter)]
-Formally, one can express parameterization by $k$ and $l$ simply by defining the value $k+l$ to be the parameter:
+Formally, one can express parameterization by $k$ and $l$, by defining the value $k+l$ to be the parameter:
 an $f(k,l)\cdot n^c$ algorithm exists if and only if an $f(k+l) \cdot n^c$ algorithm exists.
 \end{definition}
 
@@ -138,9 +140,9 @@ indicating the kind of solution to find.
 The bottom-line is that we can find different parameters for a problem based on the structure and other special properties of problem instances.
 The parameterized complexity field then allows one to devise an algorithm which is exponential in these parameters, but overall linear in the input size.
 
-There could be different parameters corresponding to the domain of the problem. For example, 
-for the string or sequence problems related to genomics, one can parameterize by the maximum read-length, by the maximum coverage,
-by the size of alphabet, by the number of alleles in a variant.
+There could be different parameters corresponding to domain of the problem. For example, 
+for the string or sequence problems related to genomics, one can parameterize by the maximum read length, by the maximum coverage,
+by the size of alphabet or by the number of alleles in a variant.
 
 Parameterized complexity allows us to study how different parameters influence the complexity of the problem.
 A successful parameterization of a problem needs to satisfy two properties:
@@ -154,13 +156,15 @@ Selecting the right parameter(s) for a particular problem is an art.
 We follow the formal foundation of parameterized complexity by \cite{cygan2015parameterized}.
 
 \begin{definition}
- A parameterized problem is a language $L \in \sum^* \times N$, where $\sum$ is a fixed, finite alphabet. For an instance $(x,k) \in \sum^* \times N$, $k$ is called the parameter.
+ A parameterized problem is a language $L \in \sum^* \times \N$, where $\sum$ is a fixed, finite alphabet. For an instance $(x,k) \in \sum^* \times \N$, $k$ is called the parameter.
 \end{definition}
 
 We define the size of an instance $(x,k)$ of a parameterized problem as $|x| + k$. 
+ One interpretation of this convention is that, when given to the algorithm on the input, the parameter $k$ is encoded in unary.
+
 
 \begin{definition}
- A parameterized problem $L \subset \sum^* \times N$ is called \textit{fixed-parameter tractable} (FPT) if there exists an algorithm $\mathcal{A}$ (called a fixed-parameter algorithm),
+ A parameterized problem $L \subset \sum^* \times \N$ is called \textit{fixed-parameter tractable} (FPT) if there exists an algorithm $\mathcal{A}$ (called a fixed-parameter algorithm),
  a computable function $f: \N \rightarrow \N$ and a constant $c$ such that, given $(x,k) \in \sum^* \times \N$, the algorithm $\mathcal{A}$ correctly decides
  whether $(x,k) \in L$ in time bounded by $f(k). |(x,k)|^c$.
  The complexity class containing all fixed-parameter tractable problems is called FPT.
@@ -195,13 +199,13 @@ For example, for random variables, $X_1, X_2 \ldots$, the linearity of expectati
 Here we provide an example of randomized version of Quick-sort for illustration. 
 Quick-sort is a sorting technique which proceeds as follows.
 Pick an element $p$ of the array as the pivot.
-Reorder the array elements such that all the elements with values less than the pivot are to the left and the greater ones are to the right. After doing this, the pivot is at its final position.
-The next step is to recursively apply the above steps at left and right parts.
+Reorder the array elements such that all the elements with values less than the pivot are to the left and the greater ones are to the right. After reordering operation, the pivot is at its final position.
+The next step is to recursively apply the above steps of randomly picking the pivot and reordering operation, at left and right parts.
 
 The different versions of Quick-sort depend on how the pivot element is picked.
 If the pivot element is picked up randomly, then it is known as randomized version.
 For any given array $A$ of size $n$, it is easy to show that the expected time of this algorithm is $O(n \log n)$ using linearity of expectation \citep{motwani2010randomized}.
-This is called a Worst-case Expected-Time bound, which is better than an average-case bound because we are no longer assuming any special properties
+% This is called a Worst-case Expected-Time bound, which is better than an average-case bound because we are no longer assuming any special properties
 of the input. It is a little peculiar that making the algorithm probabilistic gives us more control over the running time.
 % As illustrated by \cite{motwani2010randomized}, let us consider the example of \textit{binary planar partition} of a set of $n$ disjoint line segments in the plane.
 % The goal is to build a small linear decision tree that has at most one line segment or its pieces in each cell.
@@ -244,8 +248,8 @@ of the input. It is a little peculiar that making the algorithm probabilistic gi
 % Thus unless P=NP, there are no efficient algorithms to find optimal solutions to such problems. We define an efficient algorithm is the one that is solved in time polynomial in input size.
 % What should we do next? How about we find a near-optimal solution which can be found in polynomial time? Furthermore, we focus on finding 
 % polynomial-time algorithms for some special cases of the problem, instead of any instance.
-In this section, we introduce some fundamental definitions and concepts in the
-field of approximation algorithms \citep{vazirani2013approximation}.
+In this section, we present some fundamental definitions and concepts in the
+field of approximation algorithms.
 % Informally, an NP-Optimization problem $X$ is either a minimization or a
 % maximization problem. $X$ defines a set of valid instances, and for each instance
 % $I$, a non-empty set of feasible solutions. Moreover an objective function value is
@@ -260,6 +264,8 @@ field of approximation algorithms \citep{vazirani2013approximation}.
 Approximation algorithms are the techniques to find approximate solution for optimization problems that are NP hard.
 If the approximate solution is close enough to the optimal solution and the algorithm runs faster, then it is good enough for most practical purposes. 
 Based on this motivation, we define the notion of $\alpha$-approximation, which basically represents how far is the solution computed by our algorithm from optimum.
+
+We follow the basic definitions of \cite{vazirani2013approximation}.
 
 \begin{definition}
  A polynomial-time algorithm $A$ for an optimization problem $X$
@@ -401,7 +407,7 @@ total profit. This problem is also called as the 0/1 knapsack problem because ea
 item can be either included or not in the knapsack. 
 
 \paragraph{PTAS for Knapsack}
-We present an algorithm \citep{lawler1979fast} by assuming that we know the optimal solution $OPT$.
+We present an algorithm based on \cite{lawler1979fast} where it is assumed that we know the optimal solution $OPT$.
 Let us assume that the set $O \subset S$ is considered by the optimal solution.
 Another set $Q \in O$ contains the items with value $\ge \epsilon. OPT$.
 We try all possibilities for sets $Q$ such that $|Q| \le 1/\epsilon$.
