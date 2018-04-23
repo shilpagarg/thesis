@@ -343,15 +343,15 @@ Asymptotic PTAS or APTAS for problem $X$ if $A(\epsilon, .)$ is an asymptotic $(
 
 There are several advantages of designing approximation algorithms.
  \begin{itemize}
-  \item An approximation algorithm provides a way to find the near-optimal solutions when the optimal solution is not required and NP hard to find.
+  \item An approximation algorithm provides a way to find the near-optimal solutions when the optimal solution is not required and finding an optimal solution for the problem is NP hard to find.
   \item It give us an idea about how to devise a heuristic that will perform well in practice for the actual problem.
-  \item It provides a mathematically rigorous basis on which to study heuristics.
+  \item It provides a mathematically rigorous basis to study heuristics and helps in unraveling structures of problem instances.
   \item The field of approximation algorithms gives us a means of distinguishing between various optimization problems in terms of how well they can be approximated.
  \end{itemize} 
 %  https://web.cs.ship.edu/~tbriggs/dynamic/
 Let us consider a classic example to illustrate the motivation and design of an approximation algorithm. 
-Imagine that a thief entered a house when the people were on vacation.
-The thief has a knapsack which is of fixed size. In the house, there are many valuable things to steal such as gold, TV, mobile phone, and other stuff.
+Imagine that a thief entered a house when the people from the house have gone on a vacation.
+The thief has a knapsack which is of fixed size. In the house, the thief has multiple options for valuable items to steal such as gold, TV, mobile phone, and other stuffs.
 Each of these items has a fixed price and weight shown in Table~\ref{table:knapsack}. 
 Since the knapsack has a fixed weight of 12, the thief can not steal and put all the items into his knapsack. 
 The thief's goal is to steal the items such that he gains the maximum profit from the items that fit into his knapsack. 
@@ -373,13 +373,15 @@ The thief's goal is to steal the items such that he gains the maximum profit fro
 \label{table:knapsack}
 \end{table}
 \end{center}
-The first approach that a thief thinks of, is to try all possibilities of items and then choose the best.
+\paragraph{Efficient approach}
+The naive approach that a thief thinks of, is to try all possibilities of items and then choose the best.
 The total number of possible combinations are $2^5$, which takes long time to compute the final solution. 
 
 The next approach a thief follows is sorting the items in non-decreasing order based on the price.
 A thief would first include an item in the knapsack with the maximum price and so on.
 In this example, a thief first includes gold ring and then, mobile, which results in a weight of 11 and price of 30.
-This approach does not always give the optimal solution. In this example, the optimal solution consists of items 1, 3 and 4, for a total weight of 31.
+This approach is basically a greedy approach and does not always give the optimal solution. 
+For instance, in this example, the optimal solution consists of items 1, 3 and 4, for a total weight of 31.
 
 The other technique that a thief follows is the dynamic programming manner. 
 The thief considers item-wise and computes the profit by trying both possibilities of considering and ignoring an item in a knapsack.
@@ -394,9 +396,11 @@ The main idea is that the thief does not have to re-compute some sub-problems, w
 % However, following the same pattern for the fourth item, it is clear that algorithm works by showing that including the fourth item in place of any other item is not required.
 
 \textit{Running time.} The run-time of this approach depends on the size of the DP table. 
-Its two factors were $k$ rows (determined by the target capacity), and the $n$ columns (the number of items in the set. So, the run-time is $\theta(k.n)$. 
-The main point here is that $k$ is not a constant, and its size may be considerably larger than the number of items $n$ in the set. Therefore, it is inefficient to solve it using deterministic algorithm.
-However, we would like to solve it in practice, thus we can look into its approximate solution.
+Its two factors are $k$ rows (determined by the target capacity), and the $n$ columns (the number of items in the set. So, the run-time is $\theta(k.n)$. 
+The main point here is that $k$ is not a constant, and its size may be considerably larger than the number of items $n$ in the set. 
+Therefore, it is inefficient to solve this problem using a deterministic algorithm.
+However, these instances often arise in practice and we would like to solve them. 
+Thus we want to look into its approximate solution such that the algorithm to generate this solution is faster than a deterministic algorithm.
 
 The above thief problem actually is popular Knapsack Problem and we now provide its formal definition and its approximate solution.
 
@@ -407,18 +411,17 @@ total profit. This problem is also called as the 0/1 knapsack problem because ea
 item can be either included or not in the knapsack. 
 
 \paragraph{PTAS for Knapsack}
-We present an algorithm based on \cite{lawler1979fast} where it is assumed that we know the optimal solution $OPT$.
+We present an algorithm, which is proposed by \cite{lawler1979fast}, where it is assumed that we know the optimal solution $OPT$.
 Let us assume that the set $O \subset S$ is considered by the optimal solution.
 Another set $Q \in O$ contains the items with value $\ge \epsilon. OPT$.
 We try all possibilities for sets $Q$ such that $|Q| \le 1/\epsilon$.
 For some $Q$, we remove an item from a set with value $\ge \epsilon.OPT$ and then run greedy algorithm to obtain set $G$.
 The final solution is the best value obtained by the union of $Q$ and $G$.
-
-To analyze, consider a case when $Q$ is guessed correctly, then the loss from greedy algorithm is at most $\epsilon.OPT$.
-This happens due to the bound on the size on items that are removed, which are bounded by $\epsilon.OPT$.
-Therefore, it is easy to see that $p(Q \cup G) = OPT - \epsilon.OPT = (1-\epsilon)OPT$.
 The running time of this algorithm is $(n+1)^{1/\epsilon} . \poly(n)$.
 
+For analysing this algorithm, let us consider a case when $Q$ is guessed correctly, then the loss from greedy algorithm is at most $\epsilon.OPT$.
+This happens due to the bound on the size on items that are removed, which are bounded by $\epsilon.OPT$.
+Therefore, it is easy to see that $p(Q \cup G) = OPT - \epsilon.OPT = (1-\epsilon)OPT$.
 % A clever approach involves utilizing jointly the brute-force and greedy method, meaning, using brute-force of part of the solution and
 % then using the greedy algorithm on the rest. In particular, consider all $O(n^k)$
 % possible subsets of $k$ items from $n$ items, where $k$ is some fixed constant.
@@ -478,11 +481,11 @@ The running time of this algorithm is $(n+1)^{1/\epsilon} . \poly(n)$.
 % where $1/\epsilon = k + 1$. The resulting running time is $O(1/\epsilon \cdot n^{1/\epsilon})$, so the approximation
 % scheme is polynomial in $n$ but not $1/\epsilon$. 
 
-The Knapsack Problem also exhibits full polynomial time approximation scheme (FPTAS).
+The above analysis shows that the Knapsack problem is in PTAS. In addition, the problem exhibits full polynomial time approximation scheme (FPTAS).
 
 \section{Discussion}
 In this chapter, we have explored different types of algorithms such as parameterized, randomized and approximation algorithms using classical examples.
-With this background chapter on algorithms, we set up a good foundation to solve phasing problem explained in next chapters.
+With this background chapter on algorithms, we set up a good foundation to solving the phasing problem explained in next chapters.
 
 %  Let us consider an example of vertex cover in Figure~\ref{fig:approx_dia1} to explain approximation algorithm. 
 % %  https://www.cs.dartmouth.edu/~ac/Teach/CS105-Winter05/Notes/wan-ba-scribe.pdf

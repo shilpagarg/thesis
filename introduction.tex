@@ -319,7 +319,7 @@ For the simplest version \BMEC, it is easy to see that finding its optimal solut
 The H2S problem was introduced by \cite{KPR98_segmentation,KPR04_segmentation} and is known to be $\NP$-hard \citep{Fei14_np,KPR04_segmentation}.
 The optimization version of \BMEC  differs from H2S, in the former we minimize the number of mismatches instead of maximizing the number of matches.
 In particular, the $\NP$-hardness of H2S directly implies the $\NP$-hardness of \BMEC, \GMEC, and \MEC.
-\GMEC and \MEC were shown to be $\NP$-hard by \citep{Cilibrasi2007}.\footnote{Their result predates the hardness result of \cite{Fei14_np} for H2S. The proof of the claimed $\NP$-hardness of H2S by ~\cite{KPR98_segmentation} was never published.}
+\GMEC and \MEC were shown to be $\NP$-hard by \cite{Cilibrasi2007}.\footnote{Their result predates the hardness result of \cite{Fei14_np} for H2S. The proof of the claimed $\NP$-hardness of H2S by ~\cite{KPR98_segmentation} was never published.}
 
 To guarantee approximation status, \cite{OR02_polynomial} obtained a polynomial time approximation scheme (PTAS) (see Definition~\ref{def:ptas}) for \BMEC based on random embeddings.
 Building on the work of \cite{LMW02_finding}, \cite{JXL04_k} presented a deterministic PTAS for \BMEC.
@@ -338,13 +338,13 @@ Therefore, there is a gap on the approximation status of \GMEC,  whether it is a
 \end{gaps}
 
 \subsubsection{Approaches in practice}
-In the following, we discuss exact, as well as heuristic approaches for solving haplotype assembly.
+Here, we discuss exact, as well as heuristic approaches, which are generally used in practice for solving haplotype assembly problem.
 \paragraph{Exact approaches} The exact approaches, which solve the problem optimally, include integer linear programming \citep{Fouilhoux2012,CDW13_exact}, and fixed-parameter tractable (FPT) algorithms \citep{he2010optimal,Patterson2015,Pirola2015}.
 
 \textit{Integer Linear Programming (ILP)} consists of two parts, constraints or conditions and objective function. Additionally, the objective function and the constraints are linear.
 An ILP in standard form is expressed as
 \[{\begin{aligned}&{\text{maximize}}&&\mathbf {c} ^{\mathrm {T} }\mathbf {x} \\&{\text{subject to}}&&A\mathbf {x} +\mathbf {s} =\mathbf {b} ,\\&&&\mathbf {s} \geq \mathbf {0} ,\\&{\text{and}}&&\mathbf {x} \in \mathbb {Z} ^{n},\end{aligned}}\]
-where $\displaystyle \mathbf {c} ,\mathbf {b} $, $\mathbf {x}$ and $\mathbf {s}$ are vectors and $\displaystyle A $ is a matrix, where entries in $\mathbf {x}$ are integers.
+where $\displaystyle \mathbf {c} ,\mathbf {b} $, $\mathbf {x}$ and $\mathbf {s}$ are vectors, $\displaystyle A $ is a matrix and entries in $\mathbf {x}$ are integers.
 
 \cite{CDW13_exact} focused on MEC formulation for haplotype assembly problem and proposed an ILP-based approach to solving this problem.
 Basically, they consider the binary variables for each row and column and their corresponding values are supposed to be dependent on haplotypes.
@@ -359,46 +359,47 @@ Before enumerating the candidate solutions of a branch, the branch is compared t
 and bound algorithm to finding haplotypes as optimal path in a binary tree. This approach solves the problem in an exact way, but does not scale well for large datasets.
 
 \textit{Parameterized algorithms.} 
-The parameterized algorithms consists of choosing fixed parameters and the sophisticated algorithms that allow to solve some problems in time exponential only in the size of a fixed parameter, but polynomial in the input size. 
-Such an algorithm is called a fixed-parameter tractable (fpt-)algorithm, because the problem can be solved efficiently for small values of the fixed parameter.
+The parameterized algorithms consist of choosing fixed parameters and the sophisticated algorithms that allow to solving some problems in time exponential only in the size of a fixed parameter, but polynomial in the input size. 
+Such an algorithm is called a fixed-parameter tractable (fpt-) algorithm, because the problem can be solved efficiently for small values of the fixed parameter.
 
 Based on NGS data analysis, there are several parameters, such as read length, coverage and sequencing errors, that can help in solving genomics problems efficiently. 
-The art of choosing a parameter, that is small enough to work in practice, is crucial.
-In the works by \cite{he2010optimal,Patterson2015,Pirola2015}, different parameters are proposed to solve the MEC formulation of haplotyping problem using NGS data. 
-Additionally, it is shown that the parameterized algorithms work well in practice for haplotyping using different types of sequencing datasets independently \citep{martin2016whatshap}. 
+Choosing a parameter, that is small enough to work in practice, is an art.
+In the works by \cite{he2010optimal,Patterson2015,Pirola2015}, different parameters are proposed to solve the MEC formulation of haplotyping problem using NGS datasets.
+It is shown that the parameterized algorithms using different types of NGS datasets independently, work well in practice for solving haplotyping \citep{martin2016whatshap, klau2017guided}. 
 
-As described in Section~\ref{sec:dna_seq}, the datasets from various sequencing technologies have their inherent challenges and benefits and, no technology independently enables producing the complete haplotypes.
-For instance, long-read technologies have high sequencing error rates and short-read technologies produce short reads, which are not sufficient to producing the whole genome.
-This necessitates to take advantage of all technologies available at hand, in a joint framework, in order to facilitate to producing the whole genome sequences.
-Previously, there is no work that provides an efficient algorithm to solve haplotyping by combining all sequencing datasets in an integrative framework.
-For independent technologies, it is shown that the parameterized algorithms for haplotyping problem works well in practice \citep{klau2017guided} and, 
-therefore developing a parameterized algorithm for this integrative framework and deciding parameters, that work well in practice, is very important. 
-
-\begin{gaps}
-Finding an FPT formulation for a version of MEC that uses multiple sequencing technologies in an integrative framework, is an open problem.
-\label{gap:gap2}
-\end{gaps}
 \begin{example}
- The corresponding \MEC instances for a single genome from different technologies such Illumina, PacBio and Strand-Seq technologies are shown in Figure~\ref{fig:ex_all_datas}. 
- Shown is the toy example of \MEC instances for a human genome that consists of heterozgous variants, one in every 1000 bp. Over these variants, we observe that the matrix from Illumina data contains more gaps compared to binary values in every row because of the short read nature.
+ The corresponding \MEC instances for a single genome from different technologies such as Illumina, PacBio and Strand-Seq technologies are shown in Figure~\ref{fig:ex_all_datas}. 
+ Shown is the toy example of \MEC instances for a human genome that consists of heterozygous variants, one in every 1000 bp. Over these variants, we observe that the matrix from Illumina data contains more gaps compared to binary values in every row because of the short read nature.
  The matrix from long-read technologies such as PacBio and ONT contain more binary values in every row. The matrix from Strand-Seq data is very sparse with more gaps, and arbitrary positioning of gaps and binary values. 
  The reads from any technology independently do not fill all the columns in the matrix with binary values and therefore, cannot generate end-to-end haplotypes.
  The joint matrix from different combinations of technologies contains binary values in all the columns and thus can produce end-to-end haplotypes.
 \end{example}
+
+As described in Section~\ref{sec:dna_seq}, the NGS datasets have their inherent challenges and benefits and, no technology independently enables producing the complete haplotypes.
+For instance, long-read technologies have high sequencing error rates and short-read technologies produce short reads, which are not sufficient to producing the whole genome.
+This necessitates to optimally combine the advantages of all technologies available at hand, in a joint framework, in order to facilitate producing the whole genome sequences.
+However, an efficient algorithm to solve haplotyping, by combining all sequencing datasets in an integrative framework, is unknown.
+Therefore developing a parameterized algorithm for this integrative framework and deciding parameters that work well in practice is very important. 
+
+\begin{gaps}
+Finding a parameterized algorithm for a version of MEC that uses multiple sequencing technologies in an integrative framework, is an open problem.
+\label{gap:gap2}
+\end{gaps}
+
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{{pedigree}.pdf}
 \caption{Seven SNP loci covered by reads (horizontal bars) in three individuals. Unphased genotypes are indicated by labels 0/0, 0/1 and 1/1. The alleles that a read supports are printed in white.}
 \label{fig:ex_pedigree}
 \end{figure}
 \paragraph{Heuristic approaches}
-A heuristic algorithm is one that is designed to solve a problem in a faster and more efficient fashion in terms of speed and memory requirements than optimal methods by sacrificing optimality.
+A heuristic algorithm is one that is designed to solve a problem in a faster and more efficient fashion in terms of speed and memory requirements, at the cost of sacrificing optimality.
 Heuristic algorithms are most often employed when approximate solutions are sufficient and exact solutions are necessarily computationally expensive.
 
 There is a lot of literature that relies on heuristic approaches for haplotyping.
-HASH (haplotype assembly for single human) used a Markov chain Monte Carlo (MCMC) algorithm and graph partitioning approach to assemble haplotypes 
+HASH (haplotype assembly for single human) used a Markov chain Monte Carlo (MCMC) algorithm and graph partitioning approach to assemble haplotypes,
 given a list of heterozygous variants and a set of shotgun sequence reads mapped to a reference genome assembly \citep{bansal2008mcmc}. 
-In the work by \cite{wang2007clustering}, a clustering algorithm is used to split the rows of $\mathcal{F}$ in two sets based on MEC formulation.
-HapCut utilized the overlapping structure of the fragment matrix and max-cut computations to find the optimum minimum error correction (MEC) solution for haplotype assembly \citep{Bansal2008}. 
+In the work by \cite{wang2007clustering}, a clustering algorithm is deployed into split the rows of $\mathcal{F}$ in two sets based on MEC formulation.
+HapCut \citep{Bansal2008} utilized the overlapping structure of the fragment matrix and max-cut computations to find the minimum error correction (MEC) solution for haplotype assembly. 
 \cite{Duitama2010} followed a heuristic approach for max-cut to find haplotypes efficiently. 
 MixSIH \citep{matsumoto2013mixsih} utilized a probabilistic mixture model to solve haplotyping.
 H-BOP \citep{xie2012fast} followed a heuristic algorithm for optimizing a combination of the MEC and Maximum Fragments Cut models.
@@ -432,24 +433,27 @@ ProbHap \citep{Kuleshov2014b} fundamentally employed a similar approach to Whats
 % is reduced to the problem of finding a max-cut in $G(H)$. To solve max-cut problem, HapCut initializes the random haplotype pair, and then iteratively attempts to refine the haplotype pair to reduce \MEC score
 % till it is no longer possible to further reduce it.
 
-Other than approaches for a single individual that are explained above, there are some pedigree based approaches for performing haplotype assembly.
+In addition, there are some pedigree based approaches for performing haplotype assembly for single individuals.
 
 \subsection{Pedigree of genomes}
-There is an another approach to haplotyping when we have sequencing datasets from families of genomes.
-Specifically, we can take advantage of two things: one is the sequencing data itself of each individual and the other is the principles of the Mendelian segregation of alleles in pedigrees. 
-There are alleles that are specific to a single founding chromosome within a pedigree, which we refer to as lineage-specific alleles. These are highly informative for identifying haplotypes that are identical-by-descent between individuals within a pedigree.
+Another approach to haplotyping takes into account the sequencing datasets from families of genomes.
+Specifically, such an approach takes advantage of two things: one is the sequencing data itself of each individual and the other is the principles of the Mendelian segregation of alleles in pedigrees. 
+There are alleles that are specific to a single founding chromosome within a pedigree, which are referred to as lineage-specific alleles. 
+These are highly informative for identifying haplotypes that are identical-by-descent (IBD) between individuals within a pedigree.
 At the simplest level of a family trio (both parents and one child), very simple rules indicate which alleles in the child were inherited from each parent, thus largely separating the two haplotypes in the child.  
 Nevertheless, genetic analysis cannot phase positions in which all family members are heterozygous. 
-Furthermore, it is not always feasible to recruit the required participants for family-based studies. 
-In the absence of a family context, molecular haplotyping is an excellent choice because it does not require DNA samples from other family members. 
-The sequencing based haplotyping largely supplant the need for genetic analysis.
+In cases where genetic analysis information is missing, using sequencing dataset is an excellent choice.
+The genetic analysis largely supplement with the sequencing datasets for complete haplotype assembly.
+% Furthermore, it is not always feasible to recruit the required participants for family-based studies. 
+% In the absence of a family context, molecular haplotyping is an excellent choice because it does not require DNA samples from other family members. 
+% The sequencing based haplotyping largely supplement the need for genetic analysis.
 
-The Haploscribe method ~\citep{Roach2011} phased whole-genome data based on genetic analysis. Haploscribe followed a parsimony approach to generate
+The Haploscribe method \citep{Roach2011} phased whole-genome data based on genetic analysis. Haploscribe followed a parsimony approach to generate
 meiosis-indicator (inheritance state) vectors and obtained haplotypes by modeling haplotyping problem using a hidden Markov model (HMM). 
-Other tools by \cite{abecasis2002merlin, williams2010rapid} are based on genetic analysis information. 
+Other tools by \cite{abecasis2002merlin, williams2010rapid} are also based on genetic analysis information. 
 
 All these previous approaches lack the joint usage of both information sources based on IBD and sequencing datasets of individuals in the pedigree. 
-Finding an efficient method that uses both sequencing data and genetic inheritance principles in an integrative fashion, for performing phasing, is very important to generate complete haplotypes.
+Finding an efficient method that uses both sequencing data and genetic inheritance principles in an integrative fashion, for performing phasing, is very important to generating complete haplotypes.
 
 
 \begin{gaps}
@@ -464,8 +468,8 @@ All genotypes at SNP 3 are heterozygous.
 Thus, its phasing cannot be inferred by genetic phasing, that is, using only the given genotypes and not the reads. SNP 4, 
 in contrast, is not covered by any read in the child. When only using reads in the child (corresponding to single-individual read-based phasing), 
 no inference can be made about the phase of SNP 4 and neither about the phase between SNP 3 and SNP 5. 
-By observing that all seven child genotypes are compatible with the combination of brown and green haplotypes from the parents, 
-however, these phases can be easily inferred. This example demonstrates that using pedigree information, genotypes and sequencing reads jointly are very powerful for establishing phase information.
+The phases of all SNPs for child can be easily inferred based on the observation that all seven child genotypes are compatible with the combination of brown and green haplotypes from the parents. 
+This example demonstrates that using pedigree information, genotypes and sequencing reads jointly are very powerful for establishing phase information.
 \end{example}
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{{assembly_graphs}.pdf}
@@ -476,33 +480,31 @@ however, these phases can be easily inferred. This example demonstrates that usi
 In summary, we have presented an overview of computational approaches for performing haplotype assembly by using reference genome as a backbone. 
 The main point is the reference genome used, which may hinder the correct downstream analyses in some cases.
 First, we cannot phase variants that are de novo or rare in the target genome.
-We make the prior hypothesis that the genome to assemble is very close to the reference.
-This may mislead the assembly to something too similar to the reference. Secondly,
-the method is obviously not self-sufficient since a prior reference needs to be
+Second, we make the prior hypothesis that the target genome is very close to the reference, which may not always be true in reality.
+Third, the method is obviously not self-sufficient since a prior reference needs to be
 constructed. For these reasons, we additionally consider \textit{haplotype-aware de novo} (without reference) assembly, which is also known as \textit{diploid} assembly.
 
 \section{Diploid assembly}\label{sec:dip}
 In diploid assembly, the reads from the diploid genome are directly used to assemble the haplotype sequences. The obtained haplotype sequences are known as diploid assemblies.
-The diploid assembly is the process of gluing together the reads in proper order from different haplotypes separately to produce diploid assemblies.
-Therefore, we want to know the \textit{ordering} and \textit{haplotypic} identity of these reads, in order to generate these assemblies. 
+The diploid assembly process involves partitioning the input read set into two sets and then gluing together the reads from each set in proper order to produce diploid assemblies.
+Therefore, it is necessary to know the \textit{ordering} and \textit{haplotypic} identity of these reads. 
 The diploid assembly process is challenging due to short read lengths, incomplete data, sequencing errors and repetitive regions on the genome.
-More particularly, reads are very short compared to the genome size and are not long enough to span the whole repeats.
+% The other challenges occur are, reads are very short compared to the genome size and are not long enough to span the whole repeats.
 
-We will see how we can formulate the diploid assembly problem to finding the ordering and haplotypic identity of reads for producing diploid assemblies, while avoiding misassemblies in complex repetitive regions.
+How to formulate the diploid assembly problem to finding the ordering and haplotypic identity of reads for producing diploid assemblies, while avoiding misassemblies in complex repetitive regions, is discussed below.
 
 \subsection{Diploid assembly as graph problem}
 The diploid assembly from sequencing reads is modeled as the assembly graph problem.
-The assembly graph restores reliable information about the \textit{ordering} of reads, meaning relative position of reads.
-For assembling genomes, assembly graphs can be categorized into two families: overlap graphs and de Bruijn graphs.
-\paragraph{Overlap Layout Consensus}
+The assembly graph restores reliable information about the \textit{ordering} of reads.
+Assembly graphs can be categorized into two families: overlap graphs and de Bruijn graphs.
+\paragraph{Overlap graph}
 Given a set of reads, the overlap graph consists of nodes that represent reads and the edges represent the overlap between read sequences.
 The weight on the edges represents the maximal overlap length between two sequences. As illustrated in Figure~\ref{fig:assembly_graphs}b, 
 given four reads, the goal is to reconstruct the haplotypes sequences H0 and H1.
 In overlap graph, there are four nodes R1, R2, R3 and R4 for these reads and there are edges between these nodes based on the overlap, for example, there is a link between R1 and R2 with a weight of 3.
 
 The overlap graphs can be simplified to string graphs by the transitive reduction of edges.
-Also, the contained reads ---reads that are substring of some
-other reads --- are removed.
+Also, the contained edges are removed, which occur when one read is a substring of other reads.
 
 Most of the assemblers generate only one sequence and the algorithm to construct this sequence (instead of two) can be outlined as follows.
 \begin{itemize}
@@ -519,7 +521,7 @@ are generated by removing sequencing errors. The complex repetitive regions are 
 This paradigm was used with long Sanger sequences and for relatively small
 genomes. Currently, the OLC-based algorithms are also used with PacBio datasets. 
 Because of the cost of the pairwise overlaps computation, the OLC is too time
-consuming for large numbers of short reads from NGS. Thus, other solutions are required to deal with the amount of reads to assemble large genomes.
+consuming for large NGS datasets. Thus, other solutions are required to deal with the amount of reads to assemble large genomes.
 \bigskip
 
 \begin{figure}[t!]\centering
@@ -534,8 +536,8 @@ The bubbles in the sequence graph (bottom) show three different heterozygous var
 In this type of assembly graph, each read is broken into a sequence of overlapping k-mers. The distinct
 k-mers are added as vertices to the graph, and k-mers that originate from adjacent positions in
 a read are linked by an edge.
-In Figure~\ref{fig:assembly_graphs}a, the reads are divided into words of fixed length $k$, where $k=4$ here.
-Each node in the graph is a word and the connection between the nodes is based on the overlap between nodes.
+In Figure~\ref{fig:assembly_graphs}a, the reads are divided into words of fixed length $k$, where $k=4$. Here,
+each node in the graph is a word and the connection between the nodes is based on the overlap between nodes.
 Basically, the de Bruijn graph is a directed graph representing overlaps
 between sequences of symbols, named after Nicolass Govert de Bruijn \citep{todd1933combinatorial}. Given an
 alphabet $\sigma$ of $n$ symbols, a $k$ dimensional de Bruijn graph has the following properties.
@@ -566,16 +568,16 @@ OLC. The de Bruijn graph was first proposed as an alternative structure \citep{p
 was less sensible to repeats. Repeats that were problematic in the OLC, creating very
 complex and edges heavy zones, are collapsed in the de Bruijn graph.
 
-We have seen that the ordering of reads can be modelled using assembly graphs. Furthermore, it becomes important to look closely into the structures in assembly graphs. 
-We now discuss the special structures in assembly graphs, that can occur due to repeats and heterozgous regions.
+From the above, it follows that the assembly graphs contain the information about ordering of reads. 
+We now discuss the special structures in assembly graphs, that can occur due to repeats and heterozygous regions.
 
-\paragraph{Graph structures} There are mainly two types of structures that occur in the assembly graphs for diploid genomes.
+\paragraph{Graph structures} There are mainly two types of structures (bubbles and repeats) that occur in the assembly graphs for diploid genomes.
 
 \textit{Bubbles.}
 Bubbles are defined as a set of disjoint paths that share the same start and end nodes.
 Bubbles in the graph represent heterozygosity for the diploid organism.
 Bubbles can contain simple SNVs with only one allele difference, or even large complex structural variations in the order of a few kilo-bases.  
-Figure~\ref{fig:ex_sv} illustrates how the bubbles in an assembly graph can contain both small variants (SNPs and indels up to several dozen base-pairs in length) and larger structural variants.
+Figure~\ref{fig:ex_sv} illustrates how the bubbles in an assembly graph can contain both small variants (SNPs and indels up to several dozen base-pairs in length) and large structural variants.
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{repeats.pdf}
 \caption{At the top, shown are the heterozygosity (in vertical bars) and repetitive regions (in red) over the genome. At the bottom, shown is the graph with nodes as heterozygous or repetitive region, and connections are based on the successive read overlap.
@@ -615,14 +617,14 @@ These hybrid assemblers have the power to deliver highly accurate, repeat-resolv
 
 The main drawback of above state-of-the-art assemblers is that they generate only one consensus sequence even for diploid organisms. To date, there is only one assembler that can produce diploid assemblies for diploid genomes.
 
-\textit{Diploid assembly.} A recent and currently available only diploid assembly method --- Falcon Unzip \citep{chin2016phased} --- is purely PacBio based diploid assembler.
+\textit{Diploid assembly.} A recent and currently only available diploid assembly method --- Falcon Unzip \citep{chin2016phased} --- is purely PacBio based diploid assembler.
 Falcon Unzip generates haplotype contigs or ``haplotigs'' that represent the diploid genome with correctly phased homologous chromosomes.
 Falcon Unzip involves constructing a string graph from long PacBio reads, and generating haplotigs in a greedy manner using local conservative approach.
 
 
 For generating haplotigs, Falcon Unzip first identifies phase for each read based on the condition that the read covers at-least one SNV for phasing.
 In the regions over the genome where the SNVs are at a long distance to each other, the Falcon Unzip can not phase those regions, resulting in incomplete assemblies.
-Therefore, the Falcon Unzip can not phase large structural variants or regions with high heterozygosity. 
+Additionally, the Falcon Unzip cannot phase all large structural variants and regions with high heterozygosity. 
 
 % The pipeline is given in Figure~\ref{fig:falcon_unzip}.
 % Falcon Unzip begins by using reads to construct a string graph that contains sets of ``haplotype-fused contigs'' , also called as ``primary contigs'', as well as bubbles representing divergent regions between homologous sequences (Fig.~\ref{fig:falcon_unzip}a). 
