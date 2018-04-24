@@ -1,6 +1,6 @@
 \chapter{Approximation algorithm for phasing individual genome}
 
-In this chapter, we study the approximation status of \GMEC, which is a variant of \MEC problem (see Problem~\ref{prob:mec}) introduced in Chapter 1.
+In this chapter, we study the approximation status of \GMEC, which is a variant of \MEC problem (see Problem~\ref{prob:mec} introduced in Chapter~\ref{ref:chp1}).
 In other words, the minimum error correction problem (\MEC) is a segmentation problem where we have to partition a set of length $m$ strings into two classes.
 A \MEC instance is an $n \times m$ matrix $M$ with entries from $\{0,1,-\}$. 
     Feasible solutions are composed of two binary $m$-bit strings, together with an assignment of each row of $M$ to one of the two strings.
@@ -1159,8 +1159,10 @@ arguing that the expected number of errors at each column is at most $(1+O(\epsi
 (see Lemma~\ref{lem:length-class}).
 This finishes the proof of Theorem~\ref{thm:qptas}.
 \section{Discussion}
-The approximation status of \GMEC instances has been open for 10 years. We have studied the problem by unraveling its structures and identifying cases where the PTAS algorithm for \BMEC can not be directly applied for \GMEC.
-Based on the ideas of the algorithm for \BMEC, we build our own dynamic programming algorithm, by additionally including some deep insights. We have proved that the dynamic programming algorithm is in QPTAS.
+The approximation status of \GMEC instances has been open for 10 years. 
+We have studied the problem by unraveling its structures and identifying cases where the PTAS algorithm for \BMEC can not be directly applied for \GMEC.
+Based on the ideas of the algorithm for \BMEC, we build our own dynamic programming algorithm, by additionally including some deep insights. 
+We have proved that the dynamic programming algorithm is in QPTAS.
 Proving that the \GMEC in QPTAS rules out the possibility of this problem to be in APX-hard and also provides a hint that this problem can exhibit a PTAS.
 
 Unfortunately, due to the nested nature of dynamic programming, the algorithm can not be used to solve the \GMEC instances in practice.

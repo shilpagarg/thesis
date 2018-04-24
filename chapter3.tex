@@ -27,10 +27,18 @@ On the other hand, it is less accurate for single mother-father-child trios and 
 Third, the sequences of the two haplotypes can be determined experimentally, called \emph{molecular haplotyping}.
 Many techniques do not resolve the full-length haplotypes but yield blocks of varying sizes.
 Approaches furthermore largely differ in the amount of work, DNA, and money they require.
-On one end of the scale, next-generation sequencing (NGS) instruments generate local phase information of the length of a sequenced fragment at ever-decreasing costs.
-Another approach consists in breaking both homologous chromosomes into (larger) fragments and separating them into a number of pools such that each pool is unlikely to contain fragments from the same locus of both haplotypes.
+As discussed in Chapter~\ref{ref:chp1}, on one end of the scale, next-generation sequencing (NGS) instruments generate local phase information of the length of a sequenced fragment at ever-decreasing costs.
+On the other end, upcoming long-read technologies such as Pacific Biosciences and Oxford Nanopore technologies produce long reads in the order of magnitude of kilo-bases.
+The sequencing cost of these technologies is decreasing at an exponential rate.
+There is a lot of literature on several computational approaches that utilize data from these technologies to produce haplotypes \citep{rhee2016survey}.
+As discussed in Chapter~\ref{ref:chp2}, WhatsHap is an efficient parameterized approach for phasing a single individual.
+It basically uses long read data from PacBio technology and performs the Minimum Error Correction of reads in a haplotype aware manner, to produce two haplotypes.
+
+Another sequencing approach consists in breaking both homologous chromosomes into (larger) fragments and 
+separating them into a number of pools such that each pool is unlikely to contain fragments from the same locus of both haplotypes.
 This can, for instance, be achieved by dilution followed by bar-coded short-read sequencing.
-To achieve molecular haplotyping over the range of a full chromosome, protocols have been invented to physically separate the two homologous chromosomes, for example by microscopy-based chromosome isolation, fluorescence-activated sorting, or microfluidics-based sorting.
+To achieve molecular haplotyping over the range of a full chromosome, 
+protocols have been invented to physically separate the two homologous chromosomes, for example by microscopy-based chromosome isolation, fluorescence-activated sorting, or microfluidics-based sorting.
 These and other experimental techniques for molecular haplotyping have been surveyed by \cite{Snyder2015}.
 They are of great interest because they facilitate phasing of rare variants for single individuals.
 Rare variants have been postulated to contribute considerably to clinical traits and are hence of major interest.
@@ -114,7 +122,7 @@ $t_{m\to c},t_{f\to c}\in\{0,1\}^M$ & Sought transmission vectors for trio $(m,f
 \end{table*}
 
 \section{The Weighted Minimum Error Correction Problem on Pedigrees}
-Thus far, read-based phasing has predominantly been formulated as the Minimum Error Correction (MEC) problem \citep{Cilibrasi2007} and its weighted sibling wMEC \citep{Greenberg2004}.
+As discussed in Chapter~\ref{ref:chp1}, read-based phasing has predominantly been formulated as the Minimum Error Correction (MEC) problem \citep{Cilibrasi2007} and its weighted sibling wMEC \citep{Greenberg2004}.
 
 We now generalize wMEC (see Problem~\ref{prob:wmec}) to account for multiple individuals in a pedigree simultaneously while modeling inheritance and recombination.
 An overview of notation we use is provided in Table~\ref{tab:notation}.
@@ -202,18 +210,24 @@ This variant of the MEC problem is a special case of PedMEC-G with $\mathcal{I}=
 \end{figure}
 \section{Example on PedMEC}
 Let us take an example to illustrate on how to solve the PedMEC instance shown in Figure~\ref{fig:pedmec4}.
-Consider a trio with three individuals, mother, father and child. As input, given SNP matrices $\mathcal{F}_i$ and their corresponding weight matrices $\mathcal{i}$ for an each individual of a trio.
-Additionally, there is a recombination vector $\mathcal{X}$ given, representing the likelihood of recombination between two consecutive variants.
-The sequencing errors present in reads create conflicts in matrices. The goal is to generate the conflict-free matrices such that we obey Mendelian laws of inheritance.
-We can achieve this objective by jointly minimizing the flipping cost of set of entries over all the individuals and, additionally for every trio relationships, allowing recombination in mother, father or both.
-As an output, we obtain two haplotypes for an each individual in a trio.
+Consider a trio with three individuals, mother, father and child. As input, the sequencing reads of each individual are represented as SNP matrices $\mathcal{F}_i$
+Also, given corresponding weight matrices $\mathcal{W}_i$ that represent the likelihood of sequencing errors in each entry of matrices.
+Also, we have a recombination vector $\mathcal{X}$, representing the likelihood of recombination between two consecutive variants.
+The sequencing errors present in reads create conflicts in these matrices. 
+The objective here is to generate the conflict-free matrices such that we obey Mendelian laws of inheritance.
+This objective is achieved by jointly minimizing the flipping cost of set of entries over all the individuals and, additionally 
+allowing minimum recombination events in mother, father or both, for every trio relationships.
+As an output, we obtain two haplotypes for each individual in a trio.
 
-In this example, it is easy to see that the entries marked in in red boxes create conflicts in matrices. 
-Therefore, the cheapest solution is to flip these bits by paying a cost of 3 and 5, plus allow one recombination event in mother (with cost 22).
-In this way, we generate two haplotypes for an each individual in a trio.
+In this small example, it is easy to compute that the entries marked in red boxes create conflict in matrices. 
+Therefore, the cheapest solution is to flip these bits by paying a cost of 3 and 5, plus allowing one recombination event in mother for a cost of 22.
+In this way, when we get conflict matrices for an each individual, we can assemble an each individual separately to generate two haplotypes for them.
 
 Let us see on how we can solve this PedMEC instance using a dynamic programming based approach. 
-Let us assume there are two haplotypes masked in green and purple for mother, and brown and blue for child shown in Figure~\ref{fig:pedmeccost1}.
+Let us assume there are two haplotypes marked in green and purple for mother, and brown and blue for father shown in Figure~\ref{fig:pedmeccost1}.
+The haplotypes for child can be determined based on the haplotypes transmitted from mother and father.
+% We now explain the algorithm to solve PedMEC instances to generate two haplotypes for each individual.
+
 In a DP, we go column wise from left and right. 
 Let us consider first column and compute DP cell value for partitions shown in Figure~\ref{fig:pedmeccost1} and transmission value 00; 
 the least significant bit 0 represents the haplotype green is transmitted to child, otherwise purple; and the most significant bit 0 tells that the
@@ -239,11 +253,12 @@ As before, we compute the minimum allele assignment cost for each partition and 
 Similarly, we can compute partitions cost for all possible partitions by considering different transmission value and store them in DP column.
 
 Let us compute the partition cost for column two shown in Figure~\ref{fig:pedmeccost4}, given the DP column for column one.
-For a partition and transmission value 00, we compute the initialization cost as we did before in column one. 
+For a partition and transmission value 00, we compute the initialization cost as we computed before in column one. 
 For example, for green partition, we compute the initialization cost (=3) as before, but we now additionally consider different possibilities of recombination events between two consecutive variants.
 Therefore, we pay additional cost 91 if the DP cell at column one has transmission value 01, with one recombination event. We do not pay any cost without any recombination event.
 In this way, when we compute the DP cell cost, we try all possibilities of recombination events (0, 1, 2) with the previous cells and then take the minimum cost. For this example partition, it is easy to see that the cost is 8.
 Similarly, we compute partition cost for other partitions by trying all transmissions values and store them in DP column.
+
 We recurse till the last column and can finally backtrace to get the haplotypes once we know the optimal partitions.
 
 With this example, we are now ready to provide a formal dynamic programming algorithm.

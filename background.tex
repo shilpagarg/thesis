@@ -1,8 +1,10 @@
 \chapter{Algorithmic Background}
 % http://web.stanford.edu/group/hopes/cgi-bin/hopes_test/an-introduction-to-dna-and-chromosomes-text-and-audio/#what-is-dna-making-the-single-strand
-Haplotyping can be formulated as a combinatorial optimization problem, thus we utilize the tools from  the existing algorithmic theory to solve it.
-As we studied in the previous chapter that the haplotyping instances are NP-hard \citep{Cilibrasi2007}, it rules out the possibility for polynomial time exact algorithm under the assumption $P \neq NP$.
-Nevertheless, we want to find the haplotypes. Thus, we present some background details on algorithms that find the near optimal solution and work well in practice.
+Various algorithms can be used for solvng the haplotyping problem formulated as a combinatorial optimization problem.
+Further, our focus here is on algorithms which are useful for solving the haplotyping instances, which are NP-hard \citep{Cilibrasi2007}, as discussed in Chapter~\ref{ref:chp1}. 
+It is pertinent to state here that the NP-hardness rules out the possibility for finding optimal solution in polynomial time under the assumption $P \neq NP$.
+Nevertheless, we want to find the haplotypes. Therefore, we sacrifice the optimality condition and present a brief description of the category of algorithms that 
+find the near optimal solution and work well in practice.
 
 
 % The NP hardness is one of the most common characteristics of the vast majority of interesting computational biological problems.
@@ -18,28 +20,29 @@ Nevertheless, we want to find the haplotypes. Thus, we present some background d
 % Furthermore, we discuss about the challenges to solve the problem and provide the main contributions of this thesis.
 \section{Overview}
 % http://people.csail.mit.edu/rrw/presentations/marx-approx.pdf
-Many computational problems that arise in practice from biological experimental data sets are optimization problems.
+As discussed in Chapter~\ref{ref:chp1}, many computational problems that arise in practice from biological experimental data sets are optimization problems.
 For optimization problems, the goal is to minimize or maximize some objective function (e.g. cost, quality or other measures) over the set of possible solutions that satisfy some constraints.
 These optimization problems often turn out to be NP-hard and, the
 NP-hardness of an optimization problem implies that, unless P = NP, there is no polynomial-time algorithm
 that finds the optimal value of the objective function. 
 The next step would be looking for algorithms that provide near optimal solutions and works fast in practice. 
-The main insight involves unraveling the relevant structure and designing algorithmic
+The main insight involves unraveling the relevant structures and designing algorithmic
 techniques to exploit these structures.
 
-To design and analyze algorithms for these problems, we explore the theory of parameterized algorithms and the theory of approximation algorithms.
-In both theories, the structure of different instances are analyzed properly, which helps to design polynomial time algorithms.
-In parameterized complexity the instances are looked in finer detail and some parameters are considered based on the structural and other properties of input or output.
-Instead of expressing running time only as a function
-of input size, we analyze the effect of these parameters on the running time. 
+To design and analyze algorithms for these optimization problems, we explore the theory of parameterized algorithms and the theory of approximation algorithms.
+% In both the theories, the structures of different instances are analyzed that helps to design polynomial time algorithms.
+In parameterized complexity, the instances are looked in finer detail and some parameters are considered based on the structural and other properties of input or output.
+The running time of parameterized algorithms is expressed as a function of these parameters. 
 The goal is to identify those parameters for which the overall running time is small when their values are small, even if the input size is large. 
 In approximation algorithms, we relax the optimality criterion i.e. instead of looking for an exact optimal solution,
 we allow solutions for which the objective function is close to the optimal solution within some worse case bound.
 We guarantee that the quality of the approximate solution is not worse than that bound.
-With some relaxation, designing algorithms whose run times are polynomial in the input size becomes feasible. 
+
+Thus, designing algorithms whose run times are polynomial in the input size become feasible, under the scenario of relaxation in the condition of optimality, 
+in other words, accepting the approximate solutions.
 
 \section{Types of algorithms}
-In this thesis, we concern the following three broad categories of algorithms for solving computational problems.
+In this thesis, we consider the following three broad categories of algorithms for solving computational problems.
 \begin{enumerate}
  \item Parameterized algorithms
  \item Approximation algorithms 
@@ -49,15 +52,15 @@ In this thesis, we concern the following three broad categories of algorithms fo
 \subsection{Parameterized algorithms}
 Let us begin with a small example as illustrated by \cite{cygan2015parameterized}. 
 Imagine that you are a security guard of a bar
-in a small town of Germany. On Friday, several people come at the bar for party. 
-There are some people who often fight with each other at the bar. Therefore, the guard is aware of these people who usually fight.
+in a small town of Germany. On Friday, several people come at the bar for a party. 
+There are some people who often fight with each other at the bar and the guard takes note of them.
 In order to have a peaceful party without any fights, the guard plans ahead and,
-only admit people if they will not be fighting with anyone else at the
+only admit people who do not fight with anyone else at the
 bar. At the same time, he does not want to reject many people, for example $k$, in order to gain maximum profit.
 
 The above situation can be formalized in the context of an optimization problem. Let us suppose that there are $n$ people who come to the bar, 
 and the constraint is that for each pair of people, we know whether or not they will have fight between them if the pair is allowed inside the bar. 
-The goal here is to identify the number of people inside the bar to incur maximum profit such that there are at most $k$ people who are prohibited.
+The goal here is to identify the number of people allowed inside the bar to incur maximum profit such that there are at most $k$ people who are prohibited.
 Figure~\ref{fig:parameter_dia1} shows an instance of the problem and a solution for
  k = 3.  It can be easily checked that this instance has no solution with k = 2.
  
@@ -69,13 +72,13 @@ Figure~\ref{fig:parameter_dia1} shows an instance of the problem and a solution 
  
 \paragraph{Efficient algorithms}
 Let us solve the above problem in a naive manner by trying all possibilities.
-If the problem instance is small, for example, $n=100$ people, then the number of possibilities are $2^{100}$ in a brute-force manner.
-Even for such a small instance, the algorithm takes a long time, thus can not give answer in a reasonable amount of time.
+If the problem instance is small, i.e.\, $n=100$ people, then the number of possibilities are $2^{100}$.
+Even for such a small instance, the algorithm takes a long time, and cannot give answer in a reasonable amount of time.
 Another approach to this problem is to reject small number of guests, let's say, $k \le 10$.
-In this case, the total number of possibilities are $100 \choose 10$. This approach is better compared to brute-force manner, but still not feasible.
+In this case, the total number of possibilities are $100 \choose 10$. This approach is better compared to the brute-force approach, but even this approach takes a long time.
 
 Let us look closer into the problem and, try to identify some peaceful people and troublemakers.
-In particular, we want to identify persons who do not conflict with anyone and also identifying a person who fights with at-least $k+1$ other persons.
+In particular, we want to identifying persons who do not conflict with anyone and also identifying a person who fights with at-least $k+1$ other persons.
 The example for this case is shown in Figure~\ref{fig:parameter_dia1}. 
 There are seven persons shown by nodes and there is an edge between nodes if the two persons fight between each other.
 Here, we want to find a person that fights with at-least four persons for $k=3$. In this example, the person is D, whom we want to reject from the party, reducing $k$ by one.
@@ -84,7 +87,7 @@ Thus, rejecting any single person resolves at most $k$ potential conflicts.
 If there are more than $k^2$ potential conflicts, then it is not possible to have a good party by rejecting only $k$ persons.
 Taken together, the persons can be classified into two important classes; one, those who participate in at-least one potential conflict and second, those who participate in at most $k$ conflicts. 
 Thus, in total, there are at most $k^2$ potential conflicts, which results in $2k^2$ persons for whom it is unknown.
-Now, if we try all possibilities of $2k^2 \choose k$, the running time is reduced compared to previous approach, but still not feasible.
+Now, if we try all possibilities of $2k^2 \choose k$, the running time is reduced compared to previous approach, but even this approach takes a long time.
 
 After all above insights, the main observation to consider is that every conflict has to be resolved, and the only way to resolve a conflict is to refuse at least one of the two persons.
 Let us suppose that there is at-least one conflict between persons X and Y. 
@@ -94,7 +97,7 @@ If this succeeds, we get the solution and otherwise, it is not possible to solve
 
 To analyze the running time of this recursive algorithm, there are in total $O(2^k)$ recursion calls, $2^k$ leaves in the recursion tree.
 Each recursion call can be solved in linear time $O(m+n)$, where $m$ is the total number of possible conflicts.
-The good news is that this recursive algorithm works well in practice and give solution in a reasonable time.
+The good news is that this recursive algorithm gives solution in a reasonable time.
 This algorithm runs in time $O(2^k \cdot k \cdot n)$, 
 and faster than the brute-force one which takes $O(n^k)$ time.
 % Therefore, it is possible to design an efficient algorithm after having good insights on the structures of the problem instances.
@@ -206,7 +209,7 @@ The different versions of Quick-sort depend on how the pivot element is picked.
 If the pivot element is picked up randomly, then it is known as randomized version.
 For any given array $A$ of size $n$, it is easy to show that the expected time of this algorithm is $O(n \log n)$ using linearity of expectation \citep{motwani2010randomized}.
 % This is called a Worst-case Expected-Time bound, which is better than an average-case bound because we are no longer assuming any special properties
-of the input. It is a little peculiar that making the algorithm probabilistic gives us more control over the running time.
+It is a little peculiar that making the algorithm probabilistic gives us more control over the running time.
 % As illustrated by \cite{motwani2010randomized}, let us consider the example of \textit{binary planar partition} of a set of $n$ disjoint line segments in the plane.
 % The goal is to build a small linear decision tree that has at most one line segment or its pieces in each cell.
 % This problem can be represented by a binary tree.
@@ -385,8 +388,8 @@ For instance, in this example, the optimal solution consists of items 1, 3 and 4
 
 The other technique that a thief follows is the dynamic programming manner. 
 The thief considers item-wise and computes the profit by trying both possibilities of considering and ignoring an item in a knapsack.
-The thief stores the information ``the best knapsack so far'' in a DP table.
-The main idea is that the thief does not have to re-compute some sub-problems, which helps in saving a lot.
+The thief stores the information ``the best knapsack so far''for these sub-problems in a DP table.
+The main idea is that the thief does not have to re-compute some sub-problems, which helps in saving a lot of time.
 
 % The main difference of DP algorithm to previous greedy approach is seen at processing the third item. 
 % First, notice that the best knapsack that can consist, up until size four, does not include the third item. 
@@ -485,7 +488,7 @@ The above analysis shows that the Knapsack problem is in PTAS. In addition, the 
 
 \section{Discussion}
 In this chapter, we have explored different types of algorithms such as parameterized, randomized and approximation algorithms using classical examples.
-With this background chapter on algorithms, we set up a good foundation to solving the phasing problem explained in next chapters.
+With this background chapter on algorithms, we set up a good foundation to solving the phasing problem explained in subsequent chapters.
 
 %  Let us consider an example of vertex cover in Figure~\ref{fig:approx_dia1} to explain approximation algorithm. 
 % %  https://www.cs.dartmouth.edu/~ac/Teach/CS105-Winter05/Notes/wan-ba-scribe.pdf

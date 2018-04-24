@@ -1,11 +1,11 @@
-\chapter{Parameterized algorithm for phasing individual genomes}
+\chapter{Parameterized algorithm for phasing individual genomes}\label{ref:chp2}
 Dense and accurate chromosome-length haplotypes are necessary to completely understand the biology of diploid organisms.  
-In this chapter, we provide a parameterized algorithm, which is basically an integrative phasing framework which uses different datasets for solving the phasing problem. 
+In this chapter, we provide a parameterized algorithm, which is basically an integrative phasing framework using different datasets for solving the phasing problem. 
 This phasing algorithm is applied to the combination of global, but sparse haplotypes obtained from strand-specific single cell sequencing (Strand-seq) with dense, yet local haplotype information available through long-read or linked-read sequencing.
 This results in dense and accurate chromosome-length haplotypes at reasonable costs. 
 Furthermore, we provide comprehensive guidance on the required sequencing depths and reliably assign more than 95\% of alleles (NA12878) to their parental haplotypes using as few as 10 Strand-seq libraries in combination with 10-fold coverage PacBio data or, alternatively, 10X Genomics linked-read sequencing data.
 
-\section{The power of combining different sequencing technologies}
+\section{The need for combining different sequencing technologies}
 Constructing genome-wide chromosome-length haplotypes is important for different biological applications.
 Currently, methods used to chart the unique variation of individual human genomes rely largely on 2nd and 3rd generation DNA sequencing and can include specialized experimental protocols \citep{Snyder2015, Porubsky2016, de2014targeted, amini2014haplotype, selvaraj2013whole}. 
 Sequencing technologies sample the human genome in the form of relatively short molecules (reads) and every read that spans at least two heterozygous variants 
@@ -74,34 +74,36 @@ Formulation &  Approach  & Authors \\
 \end{table}
 \end{center}
 \section{Further related work}
-The methods for haplotype assembly are mainly categorized using their objective functions: minimum error correction (MEC), minimum letter flip (MLF), maximum fragment cut (MFC), and others shown in Table~\ref{tab:related_work}.
+The methods for haplotype assembly are mainly categorized using their problem formulations: minimum error correction (MEC), minimum letter flip (MLF), maximum fragment cut (MFC), and others shown in Table~\ref{tab:related_work}.
+The explanation of these problem formulations is given in Chapter~\ref{ref:chp1}.
 
-A haplotype problem can be modeled as a binary tree and haplotypes can be viewed as the optimal path in this tree. 
-\cite{wang2005haplotype} applied a branch
+In the work by \cite{wang2005haplotype}, a haplotype problem is modelled as a binary tree and haplotypes are viewed as the optimal path in this tree. 
+They applied a branch
 and bound algorithm to solve this haplotype problem. 
-The algorithm searches an optimal path in a binary tree, in which
+This algorithm searches an optimal path in a binary tree, in which
 the node on the $j$-th level denotes the $j$-th fragment and the
 branch on the path connecting its child denotes its
-corresponding haplotype type. 
-The root node represents the first fragment, and the
-algorithm adds a fragment and calculates the MEC score. 
-Then, if the calculated score is bigger than the previous score, it would be divided. 
+corresponding category of haplotype. The algorithm starts from root node by adding the first fragment and calculates the MEC score. 
+Then, if the calculated score is bigger than the previous score, the node will be divided. This process is continued until all the fragments are considered.
+This results in a binary tree and then the optimal haplotype path is computed in this tree.
+
 The branch and bound algorithm
 can find the exact optimal solution, but the running time is exponential in the number of
 fragments. Therefore, it is not useful on large datasets. 
+
 \cite{lim2012individual} first identified the initial upper bound using a local search algorithm and 
 reduced the search space of the branch and bound algorithm based on this computed upper bound.
 Thus, they solved the MEC problem in reasonable time.
 
 Instead of the MEC score, \cite{wang2012using} used Hamming distance to calculate the difference between a haplotype and a fragment, 
-without encoding the SNP values to 0, 1, and '−', as introduced in Chapter 1. 
+without encoding the SNP values to 0, 1, and ``-'', as introduced in Chapter~\ref{ref:chp1}. 
 Therefore, their  approach works even for tri- or tetra-allelic loci and homozygous sites. 
 Thus they reconstructed the haplotype considering the case marked as a homozygous locus by a sequence error in the original data. 
 
 Another approach for solving haplotyping using the MEC is to reduce the problem into a satisfiability (SAT) problem. 
 \cite{he2010optimal} proposed a partial Max-SAT formulation for haplotype assembly. 
 \cite{mousavi2011effective} suggested a Max-2-SAT problem,
-which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances and the formation is more generalized, 
+which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances. Their formation is more generalized, 
 considering homozygous alleles that can appear due to sequencing errors.
 
 Some studies tried to model haplotyping problems by using probabilistic approaches. 
@@ -113,34 +115,34 @@ in each SNP site was selected to determine the haplotype sequence.
 Therefore, the two haplotypes could be reconstructed with a possible high probability. 
 HASH by \cite{bansal2008mcmc} and HAPCUT by \cite{Bansal2008} also used probabilistic models based on graph structure. 
 They constructed a graph with the input matrix. The node is the column of the matrix. 
-If there is a fragment that includes the two sites, the two nodes are connected by an edge. 
+If there is a fragment that includes two sites, the two nodes are connected by an edge. 
 The weight of the edge is the difference between the number of fragments matched to the haplotype sites and the unmatched fragment. 
 HASH used a graph-cut algorithm and constructs a Markov chain, 
 but HAPCUT optimized the MEC score by using a Max-Cut algorithm. 
 In these two methods, the distance to both haplotypes was calculated for all fragments, and the fragments with the lowest distance are selected. 
 By calculating the overall MEC scores and using a greedy algorithm, the best pair of haplotypes was determined by using the best MEC score.
 
-Another method used dynamic programming to determine the haplotype for a single individual \citep{he2010optimal}. 
-For the input reads encoded in binary values, this approach first solved the partial instances optimally and then extended the partial obtained haplotypes by one bit repeatedly to obtain the full-length haplotypes. 
+Another method used dynamic programming to determine the haplotypes for a single individual \citep{he2010optimal}. 
+For the input reads encoded in binary values, this approach first solves the partial instances optimally and then extends the partial obtained haplotypes by one bit repeatedly to obtain the full-length haplotypes. 
 They showed that the method can be applied to whole-genome sequencing datasets. However, the method does not scale with increasing SNP sites.
 To solve this drawback, \cite{deng2013highly} combined this dynamic programming method with a heuristic approach. 
-This method first applied a heuristic to obtain a subset of the input matrix $\mathcal{F}$ by using a randomized sampling approach and then carried out the dynamic programming. 
-Once it produced an initial solution from the submatrix, it refined the haplotypes by comparing the initial haplotype with all fragments. 
-By repeating the initial solution and refinement steps, the haplotypes were determined.
-They showed that the heuristic algorithm gave very accurate solutions.
+This method first applies a heuristic to obtain a subset of the input matrix $\mathcal{F}$ by using a randomized sampling approach and then carries out the dynamic programming. 
+Once it produces an initial solution from the submatrix, it refines the haplotypes by comparing the initial haplotype with all fragments. 
+By repeating the initial solution and refinement steps, the haplotypes are determined.
+They showed that the heuristic algorithm gives very accurate solutions.
 More recently, \cite{Pirola2015} considered a restricted variant of MEC, in which up to $k$ corrections were allowed per SNP position, 
 and presented an FPT algorithm that runs in time exponential in $k$.
 
-The first ILP formulation for MEC was given by \cite{Fouilhoux2012} and was based on a reduction to the maximum bipartite induced sub-graph problem. 
-Another ILP approach, by \cite{CDW13_exact}, the binary variable $x_k$ for column $\mathcal{F}(k)$ 
+In another approach, the first ILP formulation for MEC was given by \cite{Fouilhoux2012} and was based on a reduction to the maximum bipartite induced sub-graph problem. 
+In another ILP approach by \cite{CDW13_exact}, the binary variable $x_k$ for column $\mathcal{F}(k)$ 
 was considered such that its value is supposed to be 1, if and only if the $k^{th}$ bits of $h^0$ and $h^1$ are 1 and 0 respectively.
 Moreover, the binary variable $y_j$ for row $\mathcal{F}(j)$ was considered such that its value is supposed to be 1, if and only 
 if the read corresponding to $\mathcal{F}(j)$ is aligned to $h^0$ and otherwise 0.
-The constraints on all the binary variables for all the rows and columns, was that the binary variables should belong to 0 or 1.
+The constraints on all the binary variables for all the rows and columns, were that the binary variables should belong to 0 or 1.
 The objective function was to minimize the number of flips in each entry from all the rows such that all rows can be assigned to the original haplotypes $h^0$ or $h^1$ without any conflict. 
 By using some auxiliary variables, ILP can be reduced to a linear program, that gives an optimal solution to the problem.
 
-Another approach by \cite{wang2007clustering} considered a clustering algorithm is used to split the rows of $\mathcal{F}$ in two sets. 
+Another approach by \cite{wang2007clustering} considered a clustering algorithm that is used to split the rows of $\mathcal{F}$ in two sets. 
 The main contribution consists in the combination of the two distance functions used by the clustering algorithm. 
 The first distance is the Hamming distance as defined in Equation~\ref{eq:distance}, which basically computes the number of mismatches between two fragments. 
 The second distance $D'$ considers the number of matches between the two fragments.
@@ -148,10 +150,10 @@ The main idea is based on the intuition that, given a certain fixed number of mi
 Using the above distance functions, a simple iterative clustering procedure is given as follows.
 The hamming distance is computed for each possible pair of fragments in the SNP matrix.
 Let the two fragments $r_1$ and $r_2$ have the highest Hamming distance and the clusters are initialized as $C1 = r_1$ and $C2 = r_2$.
-Let the computed consensus strings are H1 and H2 from two clusters C1 and C2 such that all the fragments are compared with H1 and H2 and assigned to the corresponding closer set. The ambiguity in the assignment of fragments to both consensus strings is broken based on the distance $D'$.
+Let the computed consensus strings are H1 and H2 from these two clusters C1 and C2 such that all the fragments are compared with H1 and H2 and assigned to the corresponding closer set. The ambiguity in the assignment of fragments to both consensus strings is broken based on the distance $D'$.
 Once all fragments are assigned, the consensus strings H1 and H2 are updated and the algorithm iterates. The procedure loops until a stable haplotype pair is found (i.e. when the consensus haplotypes are the same before and after the update).
 
-There were some approaches to solve other objective functions such as MFR, MSR introduced in Chapter 1.
+There were some approaches to solve other objective functions such as MFR and MSR.
 They mainly used graphs, dynamic programming and other heuristic methods to solve haplotyping problem.
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{{Figure2}.pdf}
@@ -167,9 +169,9 @@ we depict two non-overlapping groups of reads (gray rectangles) that can be stit
 \label{fig:fig2}
 \end{figure}
 \section{Integrative phasing framework}
-We present the integrative phasing method that is a framework to solve phasing jointly using different sequencing datasets presented in previous section.
+We have developed a novel integrative phasing method that is a framework to solve phasing jointly using different sequencing datasets and the same is presented in this section.
 To solve it, we present MEC instances to jointly include the read alignment or initial haplotypes from different technologies.
-For example, For example, the haplotypes are generated using strand-specific cells or 10x Genomics, are added to the matrix F. $\mathcal{F}$. Furthermore, the read-alignments over the variants using different technologies such as PacBio or Illumina are then additionally incorporated in $\mathcal{F}$.
+For example, For example, the haplotypes are generated using strand-specific cells or 10x Genomics, are added to the matrix $\mathcal{F}$. Furthermore, the read-alignments over the variants using different technologies such as PacBio or Illumina are then additionally incorporated in $\mathcal{F}$.
 The goal is to partition the rows in $\mathcal{F}$ into two non-conflicting sets.
 The input matrix and the bipartition of the rows is illustrated in Fig.~\ref{fig:fig2}.
 
@@ -444,6 +446,16 @@ in order to reach global and accurate haplotypes for a depicted number of indivi
 	The integrative phasing strategy, which is a parameterized algorithm, paves the way to leveraging Strand-seq to obtain chromosome-length dense and accurate haplotypes at a manageable cost and labor investment. 
 	Based on the comprehensive evaluation presented above, we recommend three different combinations of Strand-seq with a complementary technology (Fig.~\ref{fig:fig4}(b)).
 	
+	\bigskip
+	
+	\bigskip
+	
+	\bigskip
+	
+	\bigskip
+	
+	\bigskip
+	
 	As one option, one can combine Strand-seq with standard Illumina sequencing. Although the power of Illumina data for phasing is limited, mainly due to short insert sizes and read lengths, it still has some merit for adding additional variants to Strand-seq haplotypes. 
 	This might be of interest to many researchers since Illumina sequencing still constitutes the most common technology and there is an abundance of Illumina sequence data currently available for many sample genomes. 
 	To completely phase these preexisting data, we recommend generating at least 40 Strand-seq libraries for the sample genome, which is sufficient to phase >68\% of all heterozygous variants genome-wide with good accuracy 
@@ -478,7 +490,7 @@ in order to reach global and accurate haplotypes for a depicted number of indivi
 % 	We emphasize that the strategy we present here works for single individuals without relying on other family members or statistical inference from haplotype reference panels. 
 % 	In contrast to such population-based phasing approaches, the method we advocate here allows insights into rare and de novo variants and long-range epistatic effects.
 	
-	In the next chapter, we will analyze how we can generalize the parameterized algorithm to incorporate trio information to performing phasing. 
+	In the next chapter, we will analyze how we can generalize this parameterized algorithm to incorporate trio information to performing phasing. 
 	This will provide possibilities to generate good quality haplotypes for pedigrees, which will have profound implications to the study of variability of personal genomes in health and disease.
 
 

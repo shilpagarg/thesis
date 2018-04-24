@@ -130,31 +130,32 @@ The main point that only a fraction of k-mers need to be directly stored as vert
 technique was used to improve the memory consumption of the popular SOAPdenovo assembler \citep{luo2012soapdenovo2}.
 
 Several algorithms that particularly consider the mate-pair information during assembly have been developed .
- In the works of \citep{butler2008allpaths, bankevich2012spades}, the assembler attempts to enumerate all the paths connecting the endpoints of a mate pair.
+ In the works of \cite{butler2008allpaths, bankevich2012spades}, the assembler attempts to enumerate all the paths connecting the endpoints of a mate pair.
 The paired de Bruijn graph \citep{medvedev2011paired} approach modifies the de Bruijn graph
-structure to implicitly encode the mate-pair information, thereby resolving segments of the graph based on the mate-pair information.
+structure to implicitly encode the mate-pair information, thereby simplifying and resolving segments of the graph based on the mate-pair information.
 \paragraph{Long-read assemblers}
 Although these short-read assemblers can generate consensus sequences to span entire chromosomes, they are very fragmented and lack the finer resolution required to improve contig lengths. 
 Instead, the biggest gains in contig lengths stem from single-molecule sequencing, which generates long-read datasets.
-These long-read technologies such as PacBio and ONT can generate reads much longer than Illumina. 
+These long-read technologies such as PacBio and ONT can generate reads longer than Illumina. 
 More specifically, these reads are long enough to cover the most common repeats in both microbial and vertebrate genomes and can therefore generate highly continuous assemblies. 
 Subsequent efforts have been devoted to handling long read lengths and decreasing error rates to generate good quality assemblies.
-This includes assembly tools designed specifically for long-read PacBio and Nanopore data: Canu \citep{koren2017canu}, HINGE \citep{kamath2017hinge}, Racon \citep{vaser2017fast}, Falcon \citep{chin2016phased}, and Miniasm \citep{li2016minimap}.
+Several assembly tools are specifically designed for long-read PacBio and Nanopore data such as Canu \citep{koren2017canu}, HINGE \citep{kamath2017hinge}, Racon \citep{vaser2017fast}, Falcon \citep{chin2016phased}, and Miniasm \citep{li2016minimap}.
 
 Canu, which is based on Celera Assembler, has been specifically designed for noisy single-molecule sequences.
-Canu follows an adaptive overlapping strategy based on tf-idf weighted MinHash \citep{berlin2015assembling} and a sparse assembly graph construction.
-It was mainly designed to support long-read data, to be efficient in terms of run-time and coverage requirements, and additionally perform repetition and haplotype separation.
-Racon corrects assemblies by finding a consensus sequence between reads and the assembly through the construction of partial order alignment (POA) graphs.
-After aligning the reads by a mapper of choice (e.g. Minimap or Graphmap),
-Racon segments the sequence and finds the best alignment between a POA graph of the reads and the assembly.
+Canu followed an adaptive overlapping strategy based on tf-idf weighted MinHash \citep{berlin2015assembling} and constructed a sparse assembly graph.
+It was mainly designed to support long-read data, while being efficient in terms of run-time and coverage requirements, and additionally perform repetition and haplotype separation.
+Racon corrected assemblies by finding a consensus sequence between reads and the assembly through the construction of partial order alignment (POA) graphs.
+After aligning the reads by mapping tools available (e.g. Minimap or Graphmap),
+Racon segmented the sequence and found the best alignment between a POA graph of the reads and the assembly.
 The HGAP (Hierarchical Genome Assembly Process) pipeline
 was developed to assemble PacBio-generated data without requiring correction using short-read
-data \citep{chin2013nonhybrid}. HGAP is a hierarchical pipeline; it selects the longest PacBio reads to form the basis
-of the assembly and error-corrects this subset of reads using the remaining data. The corrected
-long reads are then assembled, and a consensus sequence is generated using the complete data
-set. This method often generates single-contig assemblies of bacterial genomes.
-The FALCON assembler follows the design of the hierarchical genome assembly process (HGAP) but uses more computationally optimized components. It uses string graph algorithm for genome assembly and being best suited for PacBio reads.
-It includes several important steps: error correction of raw reads, pre-assembly error correction, overlap filtering, graph construction from overlaps and contig construction from graph.
+data \citep{chin2013nonhybrid}. HGAP was a hierarchical pipeline; it selected the longest PacBio reads to form the basis
+of the assembly and performed their error-correction. The corrected
+long reads were then assembled, and a consensus sequence was generated using the complete data
+set. This method often generated single-contig assemblies of bacterial genomes.
+The FALCON assembler followed the design of the hierarchical genome assembly process (HGAP) but used more computationally optimized components. 
+It used string graph algorithm for genome assembly and being best suited for PacBio reads.
+It included several important steps: error correction of raw reads, pre-assembly error correction, overlap filtering, graph construction from overlaps and contig construction from graph.
 
 \paragraph{Hybrid assemblers}
 Besides short and long-read assemblers, the hybrid approaches to combine different sequencing datasets provide another avenue for generating accurate, contiguous and complete assemblies. 
@@ -171,12 +172,14 @@ Along the similar lines, \cite{rice2017improved} demonstrates on using in vitro 
 Another sequencing technique is the barcoding of short reads to tag groups of ``linked reads'' that all originate from a larger, single molecule of DNA. 
 For these synthetic long-read data, \cite{weisenfeld2017direct} introduces a new assembler, Supernova, for the de novo assembly of diploid human genomes. 
 Additionally, in the latest version of the ABySS assembler, \cite{jackman2017abyss} explores linked reads and optical mapping for improved scaffolding.
+
+In addition to haploid assemblers, there also exists an only available diploid assembler that has the ability to generate diploid assemblies for diploid organisms.  
 \paragraph{Diploid assemblers}
 To date, there is only one diploid assembler, Falcon Unzip. It's pipeline is given in Figure~\ref{fig:falcon_unzip}.
-Falcon Unzip first constructs a string graph by using PacBio reads and then collapse the bubbles representing divergent regions between homologous sequences (Fig.~\ref{fig:falcon_unzip}a) to generate sets of ``haplotype-fused contigs'' , also called ``primary contigs''. 
-Next, Falcon-Unzip identifies phase of reads using aligned reads over heterozygous SNVs. (Fig.~\ref{fig:falcon_unzip}b). 
-The aligned reads provides information on how alleles at heterozygous positions are connected. Based on the aligned reads, Falcon Unzip identifies haplotypes for the genome and phases each read using greedy approach.
-Phased reads are then used to assemble haplotigs and primary contigs (Fig.~\ref{fig:falcon_unzip}c) 
+Falcon Unzip first constructs a string graph by using PacBio reads and then collapses the bubbles representing divergent regions between homologous sequences (Fig.~\ref{fig:falcon_unzip}a) to generate sets of ``haplotype-fused contigs'' , also called ``primary contigs''. 
+Next, Falcon Unzip aligns reads to the primary contigs and then identifies phases of reads using aligned reads over heterozygous SNVs. (Fig.~\ref{fig:falcon_unzip}b). 
+Afterwards, Falcon Unzip identifies haplotypes for the genome and phases each read using greedy approach.
+Phased reads are then used to assemble haplotigs (Fig.~\ref{fig:falcon_unzip}c) 
 that form the final diploid assembly with phased single-nucleotide polymorphisms (SNPs) and structural variants (SVs).
 \begin{figure}[t!]\centering
 \includegraphics[width=.8\columnwidth]{pipeline.pdf}
@@ -184,14 +187,15 @@ that form the final diploid assembly with phased single-nucleotide polymorphisms
 \label{fig:pipeline}
 \end{figure}
 
-\textit{Phasing using primary contigs.}
-In Falcon Unzip, the reads are aligned to primary contigs and heterozygous SNPs (het-SNPs) are called by considering signal from sequence alignments over these hets.
-A simple phasing algorithm is followed to identify phased SNPs using greedy approach. 
-Along each contig, the algorithm assigns phasing blocks where ``chained phased SNPs'' can be identified. 
-In a contig, the phase to aligned reads to that contig can be assigned unambiguously if read covers sufficient heterozygous SNVs.
-Based on the information from primary contig and phased read set, Falcon Unzip assigns a phased tag.
-Some reads might not have enough phasing information. For example, if there are not enough het-SNP sites covered by a read, it assigns a special 'un-phased tag' for each un-phased read.
-The initial assembly graph is fused using phased reads and the haplotigs are generated in a greedy manner using local conservative approach.
+We now explain the phasing process followed by Falcon Unzip.
+The reads are aligned to primary contigs and heterozygous SNPs (het-SNPs) are called by considering signal from sequence alignments.
+A simple phasing algorithm based on greedy approach is followed to phase ``chain of SNPs''. 
+% Along each contig, the algorithm assigns phasing blocks where ``chained phased SNPs'' can be identified. 
+Additionally, the phase to aligned reads can be assigned unambiguously if read covers sufficient heterozygous SNVs.
+If a read covers sufficient het-SNPs, then Falcon Unzip assigns a phased tag to each read.
+Some reads might not have enough phasing information, thus do not contain phased tag.
+For example, if there are not enough het-SNP sites covered by a read, it assigns a special 'un-phased tag' for each un-phased read.
+Furthermore, the initial assembly graph is updated according to phased reads and the haplotigs are generated in a greedy manner using local conservative approach.
 % \todo{maybe add example how haplotigs from haplotype fused assembly graph works?}
 
 \section{Diploid assembly pipeline}
@@ -664,19 +668,6 @@ There are 2 haplotigs that are not phased by our approach; this is due to the la
 In comparison, there are 77 (out of 123) contigs that are not phased by Falcon Unzip.
 % We believe that the haplotig completeness and contiguity using the graph-based approach is mainly derived from aligning PacBio reads to the sequence graph, and additionally performing bubble calling and phasing them (as illustrated in Figure~\ref{fig:ex_graph_approach}).
 In summary, our graph-based approach delivers complete and contiguous haplotype sequences even at a relatively low coverage of 10$\times$.
-\begin{figure*}[t!]
-\begin{center}
-\includegraphics[width=\textwidth]{bubble-breakdown}%
-\end{center}
-\caption{Structural variation analysis of phased bubbles from our graph-based approach.
-a: Joint distribution of allele length and Hamming distance, for pure substitutions.
-b. Distribution of size difference between the two alleles, for mixed bubbles and indels. 
-Pure substitutions always have a size difference of 0, and are not included in the figure.
-c. Joint distribution of the length of the longer allele and the substitution rate, for mixed bubbles.
-With a higher substitution rate, the bubble has more substitutions, and with a lower rate more indels.
-}
-\label{fig:bubble_breakdown}
-\end{figure*}
 
 \textit{Bubble characterization}.
 We attempted to characterize the nature of the heterozygous genomic variation encoded in the phased bubbles.
@@ -710,6 +701,19 @@ To further elucidate the nature of the sequence differences, Figure~\ref{fig:bub
 % \caption{Structural variation analysis of phased bubbles from Falcon Unzip. The x axis and y axis show edit distance and maximum size for the two haplotype paths going through each bubble. The color shows the density of bubbles.}
 % \label{fig:sv_scatter_falcon}
 % \end{figure}
+\begin{figure*}[t!]
+\begin{center}
+\includegraphics[width=\textwidth]{bubble-breakdown}%
+\end{center}
+\caption{Structural variation analysis of phased bubbles from our graph-based approach.
+a: Joint distribution of allele length and Hamming distance, for pure substitutions.
+b. Distribution of size difference between the two alleles, for mixed bubbles and indels. 
+Pure substitutions always have a size difference of 0, and are not included in the figure.
+c. Joint distribution of the length of the longer allele and the substitution rate, for mixed bubbles.
+With a higher substitution rate, the bubble has more substitutions, and with a lower rate more indels.
+}
+\label{fig:bubble_breakdown}
+\end{figure*}
 
 \section{Discussion}
 The Falcon Unzip method \citep{chin2016phased} is based purely on PacBio reads, which exhibit a high error rate; it is therefore not suitable for lower coverages.
