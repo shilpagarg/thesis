@@ -1,0 +1,44 @@
+%*******************************************************
+% Acknowledgments
+%*******************************************************
+%\pdfbookmark[1]{Acknowledgements}{acknowledgements}
+\chapter*{Acknowledgements}
+
+I would like to express my deep gratitude to all people who supported me during this work.
+
+First and foremost, I thank my supervisor Dr Tobias Marschall who introduced me to this haplotyping problem.
+I am grateful for his guidance and helping me to develop problem solving skills for solving a research problem.
+I am also thankful for his support and great mentorship.
+I would like to offer special thanks to Prof Thomas Lengauer for providing me financial support.
+Thanks a million to Prof George Church for his willingness to give time to review this thesis.
+
+I am deeply grateful to Richard Durbin whose lab I visited for my research internship.
+Your enthusiasm for genomics and kind guidance on future career prospects has largely motivated me.
+Tobias Mömke has been great source of inspiration and advice for me.
+Your problem solving abilities and your enthusiasm for solving ambitious problems have encouraged me.
+
+I am immensely thankful to all collaborators and coauthors for their support and assistance.
+It was great working with David Porubsky and Ashley Sanders, and learning the magic of Strand-Seq technology.
+Thanks to Mikko Rautiainen and vgteam for great discussions on the graph world of genomics.
+
+I appreciate the discussions with my officemate Ali Ghaffaari on violin and classical music.
+Special thanks to Jana for always providing a friendly support and guidance.
+I would like to extend my thanks to my group mates, who organised different events at weekends. The events were enjoyable experiences.
+
+
+
+Jana, Fabio, Lara, Prabhav and Adam proofread a few chapters of this thesis and I greatly appreciate their valuable remarks and feedback.
+I would like to thank Prof Thomas Lengauer for providing valuable remarks on this thesis that helped me in giving it a proper shape.
+
+I appreciate the travel financial support from Michelle Carnell, technical help from Achim, George and MPII-IST and other administrative help from Susanne and Ruth.  
+
+Finally, I would like to express the gratitude to my family and friends, who greatly helped me in this journey.
+
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

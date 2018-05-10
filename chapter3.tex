@@ -124,7 +124,8 @@ $t_{m\to c},t_{f\to c}\in\{0,1\}^M$ & Sought transmission vectors for trio $(m,f
 \section{The Weighted Minimum Error Correction Problem on Pedigrees}
 As discussed in Chapter~\ref{ref:chp1}, read-based phasing has predominantly been formulated as the Minimum Error Correction (MEC) problem \citep{Cilibrasi2007} and its weighted sibling wMEC \citep{Greenberg2004}.
 
-We now generalize wMEC (see Problem~\ref{prob:wmec}) to account for multiple individuals in a pedigree simultaneously while modeling inheritance and recombination.
+In this section, we present a novel formulation for jointly phasing individuals in a pedigree.
+To this end, we generalize wMEC (see Problem~\ref{prob:wmec}) to account for multiple individuals in a pedigree simultaneously while modeling inheritance and recombination.
 An overview of notation we use is provided in Table~\ref{tab:notation}.
 We assume our pedigree to contain a set of $N$ individuals $\mathcal{I}=\{1,\ldots,N\}$.
 Relationships between individuals are given as a set of (ordered) mother-father-child triples $\mathcal{T}$.
@@ -205,7 +206,7 @@ For the classical MEC problem, additionally assuming that all sites to be phased
 This variant of the MEC problem is a special case of PedMEC-G with $\mathcal{I}=\{1\}$ and $\mathcal{T}=\emptyset$ and $g_1(k)=1$ for all $k$.
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{{pedmeccost1}.pdf}
-\caption{Example shows biparition cost for a particular transmission 00 at column one.}
+\caption{Example shows bipartition cost for a particular transmission 00 at column one.}
 \label{fig:pedmeccost1}
 \end{figure}
 \section{Example on PedMEC}
@@ -238,7 +239,7 @@ For the green partition, we pay cost 0 if we flip all the entries in the partiti
 Similarly, we compute the allele assignment costs for other partitions too.
 We further take the minimum allele assignment for each partition and add the costs from all partitions, which results in cost 5 for this example.
 Let us consider a different transmission value 01. For this transmission value, the haplotype purple is transmitted to child.
-Accordingly, the partitions change and their corresponding allele assignment costs. For the green partition, which now does not span across individuals, cost 0 if flip bits to 0 and otherwise cost 22.
+Accordingly, the partitions change and their corresponding allele assignment costs. For the green partition, which now does not span across individuals, cost 0 if we flip bits to 0 and otherwise cost 22.
 As before, we compute the minimum allele assignment cost for each partition and resultant cost is 37 for this example.
 % \begin{figure}[t!]\centering
 % \includegraphics[width=\columnwidth]{{pedmeccost2}.pdf}
@@ -253,13 +254,15 @@ As before, we compute the minimum allele assignment cost for each partition and 
 Similarly, we can compute partitions cost for all possible partitions by considering different transmission value and store them in DP column.
 
 Let us compute the partition cost for column two shown in Figure~\ref{fig:pedmeccost4}, given the DP column for column one.
-For a partition and transmission value 00, we compute the initialization cost as we computed before in column one. 
-For example, for green partition, we compute the initialization cost (=3) as before, but we now additionally consider different possibilities of recombination events between two consecutive variants.
-Therefore, we pay additional cost 91 if the DP cell at column one has transmission value 01, with one recombination event. We do not pay any cost without any recombination event.
-In this way, when we compute the DP cell cost, we try all possibilities of recombination events (0, 1, 2) with the previous cells and then take the minimum cost. For this example partition, it is easy to see that the cost is 8.
-Similarly, we compute partition cost for other partitions by trying all transmissions values and store them in DP column.
+In Figure~\ref{fig:pedmeccost4}, shown are partitions with transmission value 00, we compute the initialization cost as we computed before in column one. 
+For example, for green partition, we compute the initialization cost (=3) as before, but we now additionally consider different possibilities of recombination events between two consecutive columns.
+Therefore, we pay additional cost 91 if the DP cell at column one has transmission values 01 or 10, by allowing one recombination event for both cases. We do not pay any recombination cost without any recombination event.
+In this way, when we compute the DP cell cost, we try all possibilities of recombination events (00, 01, 10, 11) with the previous cells and then take the minimum cost. 
+Additionally, we consider the recursion cost from the column one such that the partitions are consistent.
+For this example partition, it is easy to see that the total cost is 8.
+Similarly, we compute partition cost for other partitions by trying all transmissions values and store them in DP column two.
 
-We recurse till the last column and can finally backtrace to get the haplotypes once we know the optimal partitions.
+We recurse this process till the last column. Once we know the optimal partitions at last column, we can finally backtrace to get the haplotypes for each individual.
 
 With this example, we are now ready to provide a formal dynamic programming algorithm.
 
@@ -576,8 +579,8 @@ Most remarkingly, the presented approach is able to deliver outstanding performa
 
 The disadvantage of PedMec framework is that we can not phase variants that are heterozygous in all individuals.
 Additionally, the variants that are unique to the genome can not be phased due to the reference genome being included in the pipeline.
-The next step is to generalize the approach by excluding reference genome from the pipeline and perform phasing directly from reads.
-In next chapter, we discuss the approach to generate haplotypes directly from reads.
+The next step is to generalize this approach by excluding a reference genome from the pipeline and perform phasing directly from reads.
+In the next chapter, we discuss the generalized approach to generate haplotypes directly from reads.
 
 % \paragraph{Future work.}
 % We plan to implement phasing of \emph{de novo} variants observed in the child, which would be impossible with pure genetic haplotyping but is straightforward with our approach.

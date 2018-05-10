@@ -1,0 +1,34 @@
+%*******************************************************
+% Abstract
+%*******************************************************
+%\pdfbookmark[1]{Abstract}{Abstract}
+\chapter*{Abstract}
+
+Genomics has paved a new way to comprehend life and its evolution, and also to investigate causes of diseases and their treatment.
+One of the important problems in genomic analyses is haplotype assembly. Constructing complete and accurate haplotypes plays an essential role in understanding population genetics and how species evolve.
+In this thesis, we focus on computational approaches to haplotype assembly from third generation sequencing technologies.
+This involves huge amounts of sequencing data, and such data contain errors due to the single molecule sequencing protocols employed. 
+Taking advantage of combinatorial formulations helps to correct for these errors to solve the haplotyping problem.
+Various computational techniques such as dynamic programming, parameterized algorithms, and graph algorithms are used to solve this problem.
+
+This thesis presents several contributions concerning the area of haplotyping. First, a novel algorithm based on dynamic programming is proposed to provide approximation guarantees for phasing a single individual.
+Second, an integrative approach is introduced to combining multiple sequencing datasets to generating complete and accurate haplotypes.
+The effectiveness of this integrative approach is demonstrated on a real human genome.
+Third, we provide a novel efficient approach to phasing pedigrees and demonstrate its advantages in comparison to phasing a single individual.
+Fourth, we present a generalized graph-based framework for performing haplotype-aware de novo assembly. 
+Specifically, we present a different representation of assembly graphs and a hybrid pipeline for generating complete haplotypes from data steming from multiple sequencing technologies.
+
+In summary, this thesis introduces novel computational approaches to generating haplotypes, which make a significant contribution to
+the field of genetics, further opening up avenues for developing life saving technologies.
+
+\chapter*{Kurzfassung}
+
+Abstrakt geht hier...
+
+
+ 
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

@@ -83,9 +83,12 @@ and bound algorithm to solve this haplotype problem.
 This algorithm searches an optimal path in a binary tree, in which
 the node on the $j$-th level denotes the $j$-th fragment and the
 branch on the path connecting its child denotes its
-corresponding category of haplotype. The algorithm starts from root node by adding the first fragment and calculates the MEC score. 
+corresponding category of haplotype. 
+A binary string is used to express an individual code which represents a classification of fragments (a feasible solution to the MEC model).
+The algorithm starts from root node by adding the first fragment and calculates the MEC score. 
 Then, if the calculated score is bigger than the previous score, the node will be divided. This process is continued until all the fragments are considered.
 This results in a binary tree and then the optimal haplotype path is computed in this tree.
+
 
 The branch and bound algorithm
 can find the exact optimal solution, but the running time is exponential in the number of
@@ -101,10 +104,14 @@ Therefore, their  approach works even for tri- or tetra-allelic loci and homozyg
 Thus they reconstructed the haplotype considering the case marked as a homozygous locus by a sequence error in the original data. 
 
 Another approach for solving haplotyping using the MEC is to reduce the problem into a satisfiability (SAT) problem. 
-\cite{he2010optimal} proposed a partial Max-SAT formulation for haplotype assembly. 
+\cite{he2010optimal} proposed a partial Max-SAT formulation for haplotype assembly.
+% Given a set of clauses (a clause is a disjunction of Boolean literals), the MaxSAT problem asks for a complete assignment of all variables that maximizes the number of clauses the assignment satisfies.
+Solvers such as Clone and WBO are used to solve the resulting MaxSAT problems.
 \cite{mousavi2011effective} suggested a Max-2-SAT problem,
-which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances. Their formation is more generalized, 
+which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances. Their formulation is more generalized, 
 considering homozygous alleles that can appear due to sequencing errors.
+Also, their Max-SAT formulation results in instances with fewer variables and clauses than those of the Partial Max-SAT formulation.
+The heuristic Max-SAT solver irots provided in the UBCSAT package is used.
 
 Some studies tried to model haplotyping problems by using probabilistic approaches. 
 Since the fragments of the input SNP matrix stem from two haplotypes, 
@@ -114,13 +121,14 @@ In the input fragment matrix $\mathcal{F}$, the fragments were divided into two 
 in each SNP site was selected to determine the haplotype sequence. 
 Therefore, the two haplotypes could be reconstructed with a possible high probability. 
 HASH by \cite{bansal2008mcmc} and HAPCUT by \cite{Bansal2008} also used probabilistic models based on graph structure. 
-They constructed a graph with the input matrix. The node is the column of the matrix. 
+They constructed a graph with the input matrix. The nodes are the columns of the matrix. 
 If there is a fragment that includes two sites, the two nodes are connected by an edge. 
 The weight of the edge is the difference between the number of fragments matched to the haplotype sites and the unmatched fragment. 
 HASH used a graph-cut algorithm and constructs a Markov chain, 
 but HAPCUT optimized the MEC score by using a Max-Cut algorithm. 
 In these two methods, the distance to both haplotypes was calculated for all fragments, and the fragments with the lowest distance are selected. 
-By calculating the overall MEC scores and using a greedy algorithm, the best pair of haplotypes was determined by using the best MEC score.
+Using a greedy algorithm, the best pair of haplotypes was determined by using the best MEC score.
+Although HASH and HapCut achieve reasonably good results, they are stochastic and therefore can not guarantee optimal solutions.
 
 Another method used dynamic programming to determine the haplotypes for a single individual \citep{he2010optimal}. 
 For the input reads encoded in binary values, this approach first solves the partial instances optimally and then extends the partial obtained haplotypes by one bit repeatedly to obtain the full-length haplotypes. 
@@ -128,7 +136,7 @@ They showed that the method can be applied to whole-genome sequencing datasets. 
 To solve this drawback, \cite{deng2013highly} combined this dynamic programming method with a heuristic approach. 
 This method first applies a heuristic to obtain a subset of the input matrix $\mathcal{F}$ by using a randomized sampling approach and then carries out the dynamic programming. 
 Once it produces an initial solution from the submatrix, it refines the haplotypes by comparing the initial haplotype with all fragments. 
-By repeating the initial solution and refinement steps, the haplotypes are determined.
+By repeating the initial solution and refinement steps, the final haplotypes are determined.
 They showed that the heuristic algorithm gives very accurate solutions.
 More recently, \cite{Pirola2015} considered a restricted variant of MEC, in which up to $k$ corrections were allowed per SNP position, 
 and presented an FPT algorithm that runs in time exponential in $k$.
@@ -169,14 +177,14 @@ we depict two non-overlapping groups of reads (gray rectangles) that can be stit
 \label{fig:fig2}
 \end{figure}
 \section{Integrative phasing framework}
-We have developed a novel integrative phasing method that is a framework to solve phasing jointly using different sequencing datasets and the same is presented in this section.
+In this section, we present a novel integrative phasing method that is a framework to solve phasing jointly using different sequencing datasets.
 To solve it, we present MEC instances to jointly include the read alignment or initial haplotypes from different technologies.
 For example, For example, the haplotypes are generated using strand-specific cells or 10x Genomics, are added to the matrix $\mathcal{F}$. Furthermore, the read-alignments over the variants using different technologies such as PacBio or Illumina are then additionally incorporated in $\mathcal{F}$.
 The goal is to partition the rows in $\mathcal{F}$ into two non-conflicting sets.
 The input matrix and the bipartition of the rows is illustrated in Fig.~\ref{fig:fig2}.
 
 Mathematically, aligned reads from Illumina or PacBio (or pre-phased 10X Genomics haplotype segments) and sparse Strand-seq haplotypes are jointly represented in the form of a fragment matrix, where each  row represent either one read (in case of Illumina and PacBio), 
-one pre-phased haplotype segment (in case of 10X Genomics) or one sparse global haplotype (in case of StrandSeq data) and columns represent the variant sites (Fig.~\ref{fig:fig2}). 
+one pre-phased haplotype segment (in case of 10X Genomics) or one sparse global haplotype (in case of Strand-Seq data) and columns represent the variant sites (Fig.~\ref{fig:fig2}). 
 The matrix is filled with 0, 1 and ‘-’ entries, where 0 and 1 indicate that the corresponding read supports the reference or alternative allele, respectively,  and ‘-’ means the information is missing 
 (e.g. because a read does not cover this variant site). WhatsHap selects a subset of rows and solves the wMEC problem optimally on these rows. 
 The result is a maximum likelihood bipartition of rows, which corresponds to the two sought haplotypes.
@@ -190,13 +198,19 @@ Based on Definition~\ref{def:feasible-mec}, we would like to generate a conflict
 % \todo{1. present MEC matrix example for different technologies like pacbio, illumina, 10xG haps, SS haps. 2. Now state the common observation from all the examples. 3. Then provide a intuition to solve it. 
 % 4. Finally provide the DP algorithm like in book DPChange of chapter 6.}
 \subsection{StrandPhaseR pipeline}
-	To build whole genome haplotypes from Strand-seq data we used a new sorting-based pipeline, called StrandPhaseR. 
-	StrandPhaseR implements an improved phasing algorithm based on a binary sorting strategy of two parallel matrices, storing haplotype information obtained from single cell Strand-seq libraries.
-	The goal of sorting is to minimize the conflicts at variable positions in each matrix.
-	Haplotype informative WC regions were localized in every Strand-seq library  by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads in equally sized regions (default 1 Mb). 
-	We used Fisher's exact test to calculate the probability that a region contained approximately equal numbers of Crick and Watson reads and agreed with the expected 50:50 ratio of a WC region \citep{sanders2016characterizing}. 
-	Alleles at variable positions (supplied as set of SNVs obtained from Illumina platinum haplotypes) were identified separately for W and C reads in every informative region to generate low density single cell haplotypes 
-	that are then sorted by the phasing algorithm. 
+% 	To build whole genome haplotypes from Strand-seq data we used 
+	A new sorting-based pipeline, called StrandPhaseR, is developed to generating whole genome haplotypes from Strand-seq data.
+	In StrandPhaseR phasing algorithm, a binary sorting based strategy of parallel matrices is used, in order to storing haplotype information obtained from single cell Strand-seq libraries. 
+% 	StrandPhaseR implements an improved phasing algorithm based on a binary sorting strategy of two parallel matrices, storing haplotype information obtained from single cell Strand-seq libraries.
+	Due to sequencing errors, there are conflicts in each matrix and the goal of sorting is to minimizing these conflicts in each matrix.
+% 	The goal of sorting is to minimize the conflicts at variable positions in each matrix.
+        The whole genome is divided into windows of equal size and WC regions for every Strand-seq library were identified by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads.
+% 	Haplotype informative WC regions were localized in every Strand-seq library  by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads in equally sized regions (default 1 Mb). 
+% 	We used Fisher's exact test to calculate the probability that a region contained approximately equal numbers of Crick and Watson reads and agreed with the expected 50:50 ratio of a WC region \citep{sanders2016characterizing}. 
+% 	We identify alleles at SNVs for W and C reads in every informative region to generate haplotypes and then the sorting algorithm is performed.
+% 	Alleles at variable positions (supplied as set of SNVs obtained from Illumina platinum haplotypes) were identified separately for W and C reads 
+% 	in every informative region to generate low density single cell haplotypes 
+% 	that are then sorted by the phasing algorithm. 
  
 	
 \subsection{WhatsHap Algorithm}\label{sec:algorithm}
@@ -278,15 +292,15 @@ For instance, the DP column cell for the above example for different bipartition
 Similarly, we can compute $\Delta_C(1,.)$ for other bipartitions $(\{r_1,r_2\},\{r_3\}),(\{r_1,r_3\},\{r_2\}),$\\
 $(\emptyset,\{r_1,r_2,r_3\}), (\{r_3\},\{r_1,r_2\}), (\{r_2\},\{r_1,r_3\})$.
 
-Now, let us consider second column and see how we can compute DP column cell $C(2,.)$ for different bipartitions:
+Now, let us consider second column and see how to compute DP column cell $C(2,.)$ for different bipartitions:
 \[C(2, (\{r_1,r_2,r_3\},\emptyset)) = \min\{11+0, 5+0\}  + \min\{C(1, (\{r_1,r_2,r_3\},\emptyset)\} = 5+3 = 8 \]
 
 In the above recurrence, we make sure that we follow the conditions imposed by Definition~\ref{def:bipartite-extend}.
-To fill DP column $C(2,.)$, we can analogously compute this for the remaining bipartitions $(\{r_1,r_2\},\{r_3\})$,
+To fill DP column $C(2,.)$, we can analogously compute the cost for the remaining bipartitions $(\{r_1,r_2\},\{r_3\})$,
 $(\{r_1,r_3\},\{r_2\})$, $(\emptyset,\{r_1,r_2,r_3\})$, $(\{r_3\},\{r_1,r_2\})$, and $(\{r_2\},\{r_1,r_3\})$.
 
 Finding optimal haplotypes is similar to finding the optimal bipartition of reads. Once we reach the last column and know the optimal bipartition, we can backtrace to get the optimal haplotypes.
-We obverse that the running time is linear in the number of variants, so therefore, it is possible to solve large instances in practice.
+We obverse that the running time is linear in the number of variants, so therefore, it is independent of read length.
 
 \section{Evaluation metrics}
 To assess the quality of assembled haplotypes in this study, we calculated different metrics described in the following.
@@ -445,16 +459,6 @@ in order to reach global and accurate haplotypes for a depicted number of indivi
 	Strand-seq has been successfully prepared from a wide range of cell types taken from various organisms \citep{Porubsky2016, falconer2012dna, sanders2017single} and is currently being adopted by an increasing number of researchers. 
 	The integrative phasing strategy, which is a parameterized algorithm, paves the way to leveraging Strand-seq to obtain chromosome-length dense and accurate haplotypes at a manageable cost and labor investment. 
 	Based on the comprehensive evaluation presented above, we recommend three different combinations of Strand-seq with a complementary technology (Fig.~\ref{fig:fig4}(b)).
-	
-	\bigskip
-	
-	\bigskip
-	
-	\bigskip
-	
-	\bigskip
-	
-	\bigskip
 	
 	As one option, one can combine Strand-seq with standard Illumina sequencing. Although the power of Illumina data for phasing is limited, mainly due to short insert sizes and read lengths, it still has some merit for adding additional variants to Strand-seq haplotypes. 
 	This might be of interest to many researchers since Illumina sequencing still constitutes the most common technology and there is an abundance of Illumina sequence data currently available for many sample genomes. 

@@ -1,5 +1,5 @@
 \chapter{Conclusions and discussion}
-We summarize our algorithmic contributions to the four open problems introduced in Chapter 1 concerning the area of haplotyping.
+We summarize our algorithmic contributions to the four open problems introduced in Chapter~\ref{ref:chp1} concerning the area of haplotyping.
 Furthermore, we provide broader perspectives on how these approaches can be utilized to answer different biological questions and further help in developing new life saving techniques.
 
 \section{Conclusions}
@@ -26,7 +26,7 @@ To handle this problem, we provided a dynamic programming approach that well cap
 
 We started with simple instances (SWC) such that all the rows start from one column and are ordered in the increasing length of the binary part.
 Such instances are simple to solve because we can apply the \BMEC algorithm for the sub-matrices starting from column one and then argue that we generate good solution strings.
-As soon as, we are at a sub-instance consisting of wildcards and binary values, we require to be extra careful and, therefore, we sample more rows and consider a weighted mahority to generate haplotypes as explained in Chapter 3.
+As soon as, we are at a sub-instance consisting of wildcards and binary values, we require to be extra careful and, therefore, we sample more rows and consider a weighted majority to generate haplotypes as explained in Chapter 3.
 Furthermore, we show that in expectation, the algorithm works well at each column and is in PTAS. 
 We have generalized this algorithm to solve complete SWC instances by using clever DP algorithms.
 
@@ -81,11 +81,12 @@ We demonstrate the effectiveness of our algorithm on both real and simulated dat
 We showed that we provided long-range chromosomal-length accurate haplotypes by incorporating trio information.
 The main conclusion is we require low coverages of 2$\times$ for each individual with family relationship information as opposed to a single individual at 15$\times$ coverage.
 
-In all these approaches, we performed phasing based on the reads aligned to the reference genome. Therefore, there is a reference bias attached to it.
+In all these approaches, we performed phasing based on the reads aligned to the reference genome. Therefore, there is a reference bias.
 Additionally, we are also interested in phasing sequences or variants that are unique to the genome.
+Therefore, we propose a new approach which does not require reference genome.
 
 \subsection{Haplotype-aware de novo assembly}
-To overcome the problem of reference bias, we proposed a new approach to reconstructing the genome sequences of diploid organisms directly from the reads.
+We have proposed a new approach to reconstructing the genome sequences of diploid organisms directly from the reads.
 The process of obtaining haplotype sequences from reads is called haplotype-aware denovo assembly.
 Constructing these sequences is very important to understanding the true characteristics of diploid organisms.
 
