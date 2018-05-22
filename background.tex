@@ -1,4 +1,4 @@
-\chapter{Algorithmic Background}
+\chapter{Algorithmic Background}\label{ref:chp2}
 % http://web.stanford.edu/group/hopes/cgi-bin/hopes_test/an-introduction-to-dna-and-chromosomes-text-and-audio/#what-is-dna-making-the-single-strand
 % Various algorithms can be used for solving combinatorial optimization problems.
 % As discussed in Chapter~\ref{ref:chp1}, the haplotyping problem can be formulated as a combinatorial optimization problem.
@@ -45,7 +45,7 @@ The approximation algorithms and the parameterized algorithms can be determinist
 % in other words, accepting the approximate solutions.
 
 \section{Types of algorithms}
-In this thesis, we consider the following broadly defined categories of algorithms for solving computational problems: Parameterized algorithms, Approximation algorithms and Randomized algorithms.
+In this thesis, we consider the following broadly defined categories of algorithms for solving computational problems: parameterized algorithms, approximation algorithms and randomized algorithms.
 
 \subsection{Parameterized algorithms}
 Let us begin with a small example as illustrated by \cite{cygan2015parameterized}. 
@@ -76,14 +76,14 @@ Another approach to this problem is to reject a small number of guests, let's sa
 In this case, the total number of possibilities are $100 \choose 10$. This approach is better compared to the brute-force approach, but even this approach takes a long time.
 
 Let us look closer into the problem and, try to identify some peaceful people and troublemakers.
-In particular, we want to identifying persons who do not have a conflict with anyone, and also identifying a person who fights with at aleast $k+1$ other persons.
+In particular, we want to identifying persons who do not have a conflict with anyone, and also identifying a person who fights with at atleast $k+1$ other persons.
 The example for this case is shown in Figure~\ref{fig:parameter_dia1}. 
 There are seven persons shown by nodes and there is an edge between nodes if the two persons fight between each other.
-Here, we want to find a person that fights with at aleast four persons for $k=3$. In this example, the person whom we want to reject from the party is D, reducing $k$ by one.
+Here, we want to find a person that fights with at atleast four persons for $k=3$. In this example, the person whom we want to reject from the party is D, reducing $k$ by one.
 We proceed ahead in a similar manner. If we are left with no such person then we know that each remaining person will fight with at most $k$ other persons.
 Thus rejecting any single person resolves at most $k$ potential conflicts.
 If there are more than $k^2$ potential conflicts, then it is not possible to have a good party by rejecting only $k$ persons.
-Taken together, the persons can be classified into two important classes; one, those who participate in at aleast one potential conflict and second, those who participate in at most $k$ conflicts. 
+Taken together, the persons can be classified into two important classes; one, those who participate in at atleast one potential conflict and second, those who participate in at most $k$ conflicts. 
 Thus, in total, there are at most $k^2$ potential conflicts, which results in $2k^2$ persons for whom it is unknown.
 Now, if we try all possibilities of $2k^2 \choose k$, the running time is reduced compared to previous approach, but even this approach takes a long time.
 
@@ -144,7 +144,7 @@ for the string or sequence problems that are related to genomics, one can parame
 by the size of alphabet or by the number of alleles in a variant.
 
 Parameterized complexity allows us to study how different parameters influence the time complexity of the problem.
-Additionally, it allows us to solve the problem effiicently.
+Additionally, it allows us to solve the problem efficiently.
 % A successful parameterization of a problem needs to satisfy two properties:
 % First, there should be specific reason for the choice of parameters for different applications.
 % Second, we need efficient algorithms where the combinatorial explosion is restricted to the parameter(s), that is, we want the problem to be in FPT with this parameterization.

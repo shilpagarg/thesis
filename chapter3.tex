@@ -1,4 +1,4 @@
-\chapter{Parameterized algorithm for phasing pedigrees}
+\chapter{Parameterized algorithm for phasing pedigrees}\label{ref:chp5}
 Read-based phasing deduces the haplotypes of an individual from sequencing reads that cover multiple variants, while genetic phasing takes only genotypes as input and applies the rules of Mendelian inheritance to infer haplotypes within a pedigree of individuals.
 Combining both into an approach that uses these two independent sources of information -- reads and pedigree -- has the potential to deliver results better than each individually.\\
 
@@ -7,21 +7,21 @@ We show that leveraging reads of related individuals jointly in this way yields 
 Coverages as low as 2$\times$ for each member of a trio yield haplotypes that are as accurate as when analyzed separately at 15$\times$ coverage per individual.
 
 \section{Introduction}\label{sec:intro}
-With sequencing cost decreasing at an exponential rate, it has now become possible to sequence pedigree of genomes.
-As a result, the sequencing datasets from pedigrees are becoming publicly available.
-Thus to come up with an algorithm, that solves the haplotyping problem for pedigrees in a joint framework by considering both information sources, from sequencing reads and principles of Mendelian inheritance is very important.
+With sequencing cost decreasing at an exponential rate, it has now become affordable\footnote{\scriptsize{\url{https://www.genome.gov/27565109/the-cost-of-sequencing-a-human-genome/}}} to sequence the genomes of multiple related individuals in a pedigree.
+As a result, sequencing datasets from pedigrees are becoming publicly available.
+Thus designing algorithms that solve the haplotyping problem for pedigrees in a joint framework by considering both information sources, sequencing reads and principles of Mendelian inheritance, is very important.
 
-Over the last few years, there has been considerable efforts devoted to phasing using reference panels, phasing pedigrees using genotype data and molecular haplotyping using NGS data.
-Broadly, the methods for phasing are classified into three classes. 
+% % Over the last few years, there has been considerable efforts devoted to phasing using reference panels, phasing pedigrees using genotype data and molecular haplotyping using NGS data.
+We recall that phasing methods can be classified into three classes. 
 First, haplotypes can be inferred from genotype information of large cohorts based on the idea that common ancestry gives rise to shared haplotype tracts, as reviewed by \cite{Browning2011, loh2016fast, loh2016reference}.
 This approach is known as \emph{statistical} or \emph{population-based phasing}.
-The idea is to explain the genotypes of the target genome by finding the maximum likelihood paths from the reference panel (large set of haplotypes from the population).
+The idea is to explain the genotypes of the target genome by finding maximum likelihood paths through a reference panel (large set of haplotypes from the population).
 It can be applied to unrelated individuals and only requires genotype data, which can be measured at low cost.
 While very powerful for common variants, this technique is less accurate for phasing rare variants and cannot be applied at all to private or \textit{de novo} variants.
 %
 Second, haplotypes can be determined based on genotype data of related individuals, known as \emph{genetic haplotyping} \citep{Glusman2014}.
 To solve the phasing problem, one seeks to explain the observed genotypes under the constraints imposed by the Mendelian laws of inheritance, while being parsimonious in terms of recombination events.
-For larger pedigrees, such as parents with many children, this approach yields highly accurate phasing \citep{Roach2011, abecasis2002merlin, williams2010rapid}.
+For larger pedigrees, such as parents with many children, this approach yields highly accurate haplotypes \citep{Roach2011, abecasis2002merlin, williams2010rapid}.
 On the other hand, it is less accurate for single mother-father-child trios and has the intrinsic limitation of not being able to phase variants that are heterozygous in all individuals.
 %
 Third, the sequences of the two haplotypes can be determined experimentally, called \emph{molecular haplotyping}.
@@ -29,19 +29,19 @@ Many techniques do not resolve the full-length haplotypes but yield blocks of va
 Approaches furthermore largely differ in the amount of work, DNA, and money they require.
 As discussed in Chapter~\ref{ref:chp1}, on one end of the scale, next-generation sequencing (NGS) instruments generate local phase information of the length of a sequenced fragment at ever-decreasing costs.
 On the other end, upcoming long-read technologies such as Pacific Biosciences and Oxford Nanopore technologies produce long reads in the order of magnitude of kilo-bases.
-The sequencing cost of these technologies is decreasing at an exponential rate.
-There is a lot of literature on several computational approaches that utilize data from these technologies to produce haplotypes \citep{rhee2016survey}.
+% The sequencing cost of these technologies is decreasing at an exponential rate.
+For reviews of several computational approaches that utilize data from these technologies to produce haplotypes \citep{rhee2016survey, sedlazeck2018piercing}.
 As discussed in Chapter~\ref{ref:chp2}, WhatsHap is an efficient parameterized approach for phasing a single individual.
-It basically uses long read data from PacBio technology and performs the Minimum Error Correction of reads in a haplotype aware manner, to produce two haplotypes.
+It can, for instance, use long read data from PacBio technology and solve the Minimum Error Correction problem to produce two haplotypes.
 
-Another sequencing approach consists in breaking both homologous chromosomes into (larger) fragments and 
-separating them into a number of pools such that each pool is unlikely to contain fragments from the same locus of both haplotypes.
-This can, for instance, be achieved by dilution followed by bar-coded short-read sequencing.
-To achieve molecular haplotyping over the range of a full chromosome, 
-protocols have been invented to physically separate the two homologous chromosomes, for example by microscopy-based chromosome isolation, fluorescence-activated sorting, or microfluidics-based sorting.
-These and other experimental techniques for molecular haplotyping have been surveyed by \cite{Snyder2015}.
-They are of great interest because they facilitate phasing of rare variants for single individuals.
-Rare variants have been postulated to contribute considerably to clinical traits and are hence of major interest.
+% Another sequencing approach consists in breaking both homologous chromosomes into (larger) fragments and 
+% separating them into a number of pools such that each pool is unlikely to contain fragments from the same locus of both haplotypes.
+% This can, for instance, be achieved by dilution followed by bar-coded short-read sequencing.
+% To achieve molecular haplotyping over the range of a full chromosome, 
+% protocols have been invented to physically separate the two homologous chromosomes, for example by microscopy-based chromosome isolation, fluorescence-activated sorting, or microfluidics-based sorting.
+% These and other experimental techniques for molecular haplotyping have been surveyed by \cite{Snyder2015}.
+% They are of great interest because they facilitate phasing of rare variants for single individuals.
+% Rare variants have been postulated to contribute considerably to clinical traits and are hence of major interest.
 
 \paragraph{Hybrid Approaches.}
 The ideas underlying population-based phasing, genetic haplotyping, and read-based phasing have been combined in many ways to create hybrid methods.
@@ -73,15 +73,15 @@ Beyond this approach, we are not aware of prior work to leverage family informat
 % \label{fig:ex_pedigree}
 % \end{figure}
 \paragraph{Contributions.}
-Here, we build upon our previous approach WhatsHap \citep{Patterson2014,Patterson2015} and generalize it to jointly handle sequencing reads of related individuals.
-WhatsHap is an FPT approach that solves the (weighted) MEC problem optimally, exponentially in time with maximum coverage, but linearly in the number of variants.
-In particular the run-time does not explicitly depend on the read length.
-These properties make it particularly apt for current long-read data. 
-This has also been observed by \citet{Kuleshov2014b}, who approached the weighted MEC problem in a message-passing framework and, by doing so, independently arrived at the same DP algorithm used in WhatsHap.
-The exponential run-time in the maximum coverage does not constitute a problem in practice because reads can be removed in regions of excess coverage without loosing much information.
-The evaluation by \cite{Patterson2015} suggests that pruning data to a maximum coverage of 15$\times$ yields excellent results while an even higher coverage does not deliver a significant additional improvement.
-
-Here, we introduce a unifying formal framework to fully integrate read-based and genetic haplotyping.
+Here, we build upon WhatsHap \citep{Patterson2014,Patterson2015} and generalize it to jointly handle sequencing reads of related individuals.
+% WhatsHap is an FPT approach that solves the (weighted) MEC problem optimally, exponentially in time with maximum coverage, but linearly in the number of variants.
+% In particular the run-time does not explicitly depend on the read length.
+% These properties make it particularly apt for current long-read data. 
+% This has also been observed by \citet{Kuleshov2014b}, who approached the weighted MEC problem in a message-passing framework and, by doing so, independently arrived at the same DP algorithm used in WhatsHap.
+% The exponential run-time in the maximum coverage does not constitute a problem in practice because reads can be removed in regions of excess coverage without loosing much information.
+% The evaluation by \cite{Patterson2015} suggests that pruning data to a maximum coverage of 15$\times$ yields excellent results while an even higher coverage does not deliver a significant additional improvement.
+% 
+% Here, we introduce a unifying formal framework to fully integrate read-based and genetic haplotyping.
 To this end, we define the Weighted Minimum Error-Correction on Pedigrees Problem, termed PedMEC, which generalizes the (weighted) MEC problem and accounts for Mendelian inheritance and recombination.
 This problem is NP-hard.
 We generalize the WhatsHap algorithm for solving this problem optimally and thereby show that PedMEC is fixed-parameter tractable.
@@ -204,42 +204,51 @@ Let the same input be given as for Problem~\ref{prob:pedmec} (PedMEC) and, addit
 
 For the classical MEC problem, additionally assuming that all sites to be phased are heterozygous is common \citep{CDW13_exact}.
 This variant of the MEC problem is a special case of PedMEC-G with $\mathcal{I}=\{1\}$ and $\mathcal{T}=\emptyset$ and $g_1(k)=1$ for all $k$.
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{pedmeccost1}.pdf}
-\caption{Example shows bipartition cost for a particular transmission 00 at column one.}
-\label{fig:pedmeccost1}
-\end{figure}
-\section{Example on PedMEC}
-Let us take an example to illustrate on how to solve the PedMEC instance shown in Figure~\ref{fig:pedmec4}.
-Consider a trio with three individuals, mother, father and child. As input, the sequencing reads of each individual are represented as SNP matrices $\mathcal{F}_i$
-Also, given corresponding weight matrices $\mathcal{W}_i$ that represent the likelihood of sequencing errors in each entry of matrices.
+
+\section{Example of PedMEC}
+In the following, we will see how the ideas of WhatsHap algorithm can be extended for solving PedMEC and PedMEC-G.
+The basic idea is to use the same technique on the union of the sets of active reads across all individuals $i\in\mathcal{I}$, while adding some extra book-keeping to satisfy the additional constraints imposed by pedigree and genotypes.
+
+We consider the example in Figure~\ref{fig:pedmec4} to illustrate how to solve a PedMEC instance.
+% Let us take an example to illustrate on how to solve the PedMEC instance shown in Figure~\ref{fig:pedmec4}.
+Consider a trio with three individuals, mother, father and child. As input, the sequencing reads of each individual are represented as SNP matrices $\mathcal{F}_i$ for $i \in \mathcal{I}=\{A,B,C\}$.
+Also, we are given corresponding weight matrices $\mathcal{W}_i$ that represent the likelihood of sequencing errors in each entry of the fragment matrices.
 Also, we have a recombination vector $\mathcal{X}$, representing the likelihood of recombination between two consecutive variants.
 The sequencing errors present in reads create conflicts in these matrices. 
-The objective here is to generate the conflict-free matrices such that we obey Mendelian laws of inheritance.
-This objective is achieved by jointly minimizing the flipping cost of set of entries over all the individuals and, additionally 
-allowing minimum recombination events in mother, father or both, for every trio relationships.
-As an output, we obtain two haplotypes for each individual in a trio.
+The objective here is to generate conflict-free matrices such that we obey the Mendelian laws of inheritance.
+This objective is achieved by jointly minimizing the flipping cost of the selected set of entries for all individuals and the cost of recombination events in mother, father or both.
+As an output, we obtain two haplotypes for each individual.
 
-In this small example, it is easy to compute that the entries marked in red boxes create conflict in matrices. 
-Therefore, the cheapest solution is to flip these bits by paying a cost of 3 and 5, plus allowing one recombination event in mother for a cost of 22.
-In this way, when we get conflict matrices for an each individual, we can assemble an each individual separately to generate two haplotypes for them.
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{pedmeccost1}.pdf}
+\caption{Example showing bipartition cost for the transmission vector 00 at column one.}
+\label{fig:pedmeccost1}
+\end{figure}
 
-Let us see on how we can solve this PedMEC instance using a dynamic programming based approach. 
-Let us assume there are two haplotypes marked in green and purple for mother, and brown and blue for father shown in Figure~\ref{fig:pedmeccost1}.
-The haplotypes for child can be determined based on the haplotypes transmitted from mother and father.
+In this small example, it is easy to see that the entries marked in red boxes create conflict in matrices. 
+The cheapest solution is to flip these bits by paying a cost of 3 and 5, plus allowing one recombination event in mother for a cost of 22.
+% In this way, when we get conflict matrices for an each individual, we can assemble an each individual separately to generate two haplotypes for them.
+
+Let us see how we can solve this PedMEC instance using a dynamic programming approach. 
+We assume that there are two haplotypes marked in green and purple for the mother, and in brown and blue for the father as shown in Figure~\ref{fig:pedmeccost1}.
+The haplotypes for the child can be determined based on the haplotypes transmitted from mother and father.
 % We now explain the algorithm to solve PedMEC instances to generate two haplotypes for each individual.
 
-In a DP, we go column wise from left and right. 
-Let us consider first column and compute DP cell value for partitions shown in Figure~\ref{fig:pedmeccost1} and transmission value 00; 
-the least significant bit 0 represents the haplotype green is transmitted to child, otherwise purple; and the most significant bit 0 tells that the
-brown haplotype from father is transmitted to child, otherwise blue. 
-To compute the minimum allele assignment for each partition, we try different possibilities of alleles assignments.
-For example, first, we flip all the entries in the partition to 1; and pay cost based on weights for the corresponding entries from weight matrices and, second we try to flip entries to 0 and pay cost accordingly.
-For the green partition, we pay cost 0 if we flip all the entries in the partition to 0 and otherwise 15+7+32+27 = 81.
+In our DP, we go column-wise from left to right. 
+Let us consider the first column and compute DP cell value for the partitions shown in Figure~\ref{fig:pedmeccost1} and a transmission value of 00; 
+where the two digits indicate which haplotype is transmitted from mother to child and father to child respectively. Here, a value of 00 means 
+that the mother transmits the green haplotype and the father transmits the brown haplotype.
+% % the least significant bit 0 represents the haplotype green is transmitted to child, otherwise purple; and the most significant bit 0 tells that the
+% brown haplotype from father is transmitted to child, otherwise blue. 
+To compute the minimum-cost allele assignment for each partition, we try different possible allele assignments.
+For example, first, we flip all the entries in the partition to 1; and pay costs based on the weights of the corresponding entries and, second, we try to flip entries to 0 and pay costs accordingly.
+For the green partition, we pay a cost of 0 if we flip all entries to 0 and otherwise 15+7+32+27 = 81 for flipping all entries to 1.
 Similarly, we compute the allele assignment costs for other partitions too.
 We further take the minimum allele assignment for each partition and add the costs from all partitions, which results in cost 5 for this example.
-Let us consider a different transmission value 01. For this transmission value, the haplotype purple is transmitted to child.
-Accordingly, the partitions change and their corresponding allele assignment costs. For the green partition, which now does not span across individuals, cost 0 if we flip bits to 0 and otherwise cost 22.
+Let us consider a different transmission value 01. For this transmission value, the purple haplotype is transmitted from mother to child.
+Accordingly, the partitions change and their corresponding allele assignment costs change correspondingly. 
+For the green partition, which is now transmitted to the child, costs of 0 if we flip all bits to 0 and otherwise we obtain 
+costs 22 for flipping all bits to 1.
 As before, we compute the minimum allele assignment cost for each partition and resultant cost is 37 for this example.
 % \begin{figure}[t!]\centering
 % \includegraphics[width=\columnwidth]{{pedmeccost2}.pdf}
@@ -248,28 +257,27 @@ As before, we compute the minimum allele assignment cost for each partition and 
 % \end{figure}
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{{pedmeccost4}.pdf}
-\caption{Example shows bipartition cost for a particular transmission 00 at column two, given DP column for column one.}
+\caption{Example showing bipartition cost for the transmission vector 00 at column two, given DP column one.}
 \label{fig:pedmeccost4}
 \end{figure}
-Similarly, we can compute partitions cost for all possible partitions by considering different transmission value and store them in DP column.
+Similarly, we can compute partitions cost for all possible partitions by considering different transmission value and store them in a column of our DP table.
 
 Let us compute the partition cost for column two shown in Figure~\ref{fig:pedmeccost4}, given the DP column for column one.
-In Figure~\ref{fig:pedmeccost4}, shown are partitions with transmission value 00, we compute the initialization cost as we computed before in column one. 
+Figure~\ref{fig:pedmeccost4} shows partitions for transmission value 00, we compute the initialization cost as we computed before in column one. 
 For example, for green partition, we compute the initialization cost (=3) as before, but we now additionally consider different possibilities of recombination events between two consecutive columns.
-Therefore, we pay additional cost 91 if the DP cell at column one has transmission values 01 or 10, by allowing one recombination event for both cases. We do not pay any recombination cost without any recombination event.
+Therefore, we pay an additional cost of 91 if the considered DP cell at column one has transmission values 01 or 10, by allowing one recombination event for both cases.
+% We do not pay any recombination cost without any recombination event.
 In this way, when we compute the DP cell cost, we try all possibilities of recombination events (00, 01, 10, 11) with the previous cells and then take the minimum cost. 
 Additionally, we consider the recursion cost from the column one such that the partitions are consistent.
 For this example partition, it is easy to see that the total cost is 8.
 Similarly, we compute partition cost for other partitions by trying all transmissions values and store them in DP column two.
 
-We recurse this process till the last column. Once we know the optimal partitions at last column, we can finally backtrace to get the haplotypes for each individual.
+We recurse this process until the last column. Once we know the optimal partitions at the last column, we can finally backtrace to get the haplotypes for each individual.
 
-With this example, we are now ready to provide a formal dynamic programming algorithm.
+Next, we describe the full algorithm more formally.
 
 \section{Algorithm}\label{sec:algorithm}
 \paragraph{Algorithm Overview: Solving PedMEC and PedMEC-G.}
-In the following, we will see how the ideas of WhatsHap algorithm can be extended for solving PedMEC and PedMEC-G.
-The basic idea is to use the same technique on the union of the sets of active reads across all individuals $i\in\mathcal{I}$, while adding some extra book-keeping to satisfy the additional constraints imposed by pedigree and genotypes.
 Let $A_i(k)$ be the set of active reads in column $k$ of $\mathcal{F}_i$.
 We now define $A(k)=\bigcup_{i\in\mathcal{I}}A_i(k)$.
 % For convenience, we write $i(r)$ to denote the individual where read $r\in A(k)$ originated from, i.e.\ $r\in A_{i(r)}(k)$ for all $r\in A(k)$.
@@ -389,8 +397,8 @@ We emphasize that this phasing is solely based on genotypes and does not use pha
 In the following, we refer to the original genotypes from the GIAB call set (without phase information) restricted to this set of SNPs as \emph{ground truth unphased genotypes}, which we use as input for read-based phasing experiments described below.
 
 \paragraph{PacBio Data.} For each individual, we downloaded aligned Pacific Biosciences (PacBio) reads\footnote{\scriptsize{\url{ftp://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/data/AshkenazimTrio/(HG002_NA24385_son|HG003_NA24149_father|HG004_NA24143_mother)/PacBio_MtSinai_NIST/MtSinai_blasr_bam_GRCh37/}}},  
-which had an average coverage of 42.3$\times$ in mother, 46.8$\times$ in father and 60.2$\times$ in child, respectively.
-The average mapped read length across mother was 8,328 bp, father was 8,471 bp and child was 8,687 bp.
+which had an average coverage of 42.3$\times$ for the mother, 46.8$\times$ for the father and 60.2$\times$ for the child, respectively.
+The average mapped read length across mother was 8,328 bp, 8,471 bp and child 8,687 bp, for mother, father, and child, respectively.
 For each individual, we separately downsampled the aligned reads to obtain data sets of 2$\times$, 3$\times$, 4$\times$, 5$\times$, 10$\times$, and 15$\times$ average coverage.
 
 \paragraph{10XGenomics Data.}
@@ -422,9 +430,9 @@ As before for the real data, the aligned reads for each individual were downsamp
 
 \subsection{Compared Methods}
 Our main goal is to analyze the merits of the PedMEC-G model in comparison to wMEC; in particular with respect to the coverage needed to generate a high-quality phasing.
-The algorithms to solve wMEC and PedMEC-G described in Section~\ref{sec:algorithm} have been implemented in the WhatsHap software package\footnote{\scriptsize{\url{https://bitbucket.org/whatshap/whatshap}}}, distributed as Open Source software under the terms of the MIT license.
+The algorithms to solve wMEC and PedMEC-G described in Section~\ref{sec:algorithm} have been implemented in the WhatsHap software package\footnote{\scriptsize{\url{https://bitbucket.org/whatshap/whatshap}}}.
 We emphasize that WhatsHap solves wMEC and PedMEC-G optimally.
-Since the focus of this paper is on comparing these two models, we do not include other methods for single-individual haplotyping.
+Since the focus of this study is on comparing these two models, we do not include other methods for single-individual haplotyping.
 We are not aware of other trio-aware read-based phasing approaches that PedMEC-G could be compared to additionally.
 
 The run-time depends exponentially on the maximum coverage.
@@ -438,9 +446,9 @@ Both wMEC and PedMEC-G were provided with the ground truth unphased genotypes fo
 PedMEC-G was additionally provided with the respective genetic map (original 1000G genetic map for real data and scaled by factor 10 for simulated data).
 \begin{figure}%
 \centering
-\includegraphics[width=\columnwidth,height=.7\columnwidth,keepaspectratio]{{simulated}.pdf}\\
+\includegraphics[width=.5\columnwidth,height=.5\columnwidth,keepaspectratio]{{simulated}.pdf}\\
 \centering
-\includegraphics[width=\columnwidth,height=.7\columnwidth,keepaspectratio]{{pedmec1}.pdf}%
+\includegraphics[width=.5\columnwidth,height=.5\columnwidth,keepaspectratio]{{pedmec1}.pdf}%
 \caption{Simulated data set (top) and real dataset (bottom): phasing error rate ($x$-axis) versus completeness in terms of the fraction of unphased SNPs ($y$-axis) for \mbox{PedMEC-G-5} (solid line), wMEC-5 (dashed line), and wMEC-15 (dotted line).
 Average coverage (per individual) of input data is encoded by circles of different sizes.}\label{fig:main-results}%
 \end{figure}
@@ -577,10 +585,18 @@ Genetic haplotyping alone cannot phase variants that are heterozygous in all ind
 We demonstrate that such an approach indeed yields better result and recommend its use whenever both reads and pedigree information are available.
 Most remarkingly, the presented approach is able to deliver outstanding performance even for coverages as low as 2$\times$ per individual, on par with performance delivered by single-individual haplotyping at 15$\times$ coverage per individual.
 
-The disadvantage of PedMec framework is that we can not phase variants that are heterozygous in all individuals.
-Additionally, the variants that are unique to the genome can not be phased due to the reference genome being included in the pipeline.
-The next step is to generalize this approach by excluding a reference genome from the pipeline and perform phasing directly from reads.
-In the next chapter, we discuss the generalized approach to generate haplotypes directly from reads.
+
+\bigskip
+
+\begin{center}{\fbox{\begin{minipage}{35em}
+ This chapter has been published at ISMB Proceedings/Bioinformatics 2016 \citep{garg2016read}, 
+ which has co-authors as Marcel Martin \& Tobias Marschall. The figures in this chapter are taken from the paper. 
+ I co-developed the algorithm with Tobias Marschall and co-wrote the paper with him.
+\end{minipage}}\end{center}
+% The disadvantage of PedMec framework is that we can not phase variants that are heterozygous in all individuals.
+% Additionally, the variants that are unique to the genome can not be phased due to the reference genome being included in the pipeline.
+% The next step is to generalize this approach by excluding a reference genome from the pipeline and perform phasing directly from reads.
+% In the next chapter, we discuss the generalized approach to generate haplotypes directly from reads.
 
 % \paragraph{Future work.}
 % We plan to implement phasing of \emph{de novo} variants observed in the child, which would be impossible with pure genetic haplotyping but is straightforward with our approach.

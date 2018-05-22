@@ -49,22 +49,18 @@ In this thesis, we focus on \textit{diploid} organisms. For example, humans are 
 There are differences between these two copies of each chromosome known as genetic variation. 
 % \todo{this para explained in more detail in biological background.}
 
-In the 1980s, a first genome sequencing method was developed \citep{church1984genomic} and the Huamn Genome Project was initialized \citep{cook1989alta}.
 In the early 2000s, a historic breakthrough happened with the sequencing of the human genome \citep{venter2001sequence, collins2003human}.
-Several efforts are made to provide open-access human genome to help in sharing and interpreting the sequencing datasets \citep{church2005personal}.
-\textit{Sequencing} is an operation that determines the base sequence of a DNA molecule.
+Moreover, sequencing datasets of the human genome are made available as open-access to help in their interpretation and understanding \citep{church2005personal}.
+Specifically, \textit{sequencing} is an operation that determines the base sequence of a DNA molecule.
 For sequencing genomes, there exist several kinds of sequencing technologies which share the following common properties.
 First, they yield genomes in fragments called ``reads''. Second, the position of reads along the genome sequence is unknown and also, mostly, the strand from which the read was sampled is unknown.
 Third, the reads contain errors.
 
-Huge amounts of sequencing data are routinely produced by next generation sequencing technologies (NGS). 
-The major challenge with these sequencing datasets is that genomic information is partial and erroneous. 
-Currently, no sequencing technology delivers data from which we can assemble a complete human genome without gaps.
-
+% Huge amounts of sequencing data are routinely produced by next generation sequencing technologies (NGS).  The major challenge with these sequencing datasets is that genomic information is partial and erroneous. 
 Sequencing technologies differ in terms of error rates and lengths of the produced reads. We define the error rate of a read as the ratio of the number of incorrectly sequenced bases to the length of the read.
-Broadly, the sequencing technologies can be categorized into four classes:
+Broadly, the sequencing technologies can be categorized into three classes:
 \begin{itemize}
-\item First generation sequencing: The first sequencing technologies were developed in 1977 by \cite{sanger1977dna} awarded a Nobel Prize in chemistry and \cite{maxam1977new}.
+\item First generation sequencing: The first sequencing technologies were developed in 1977 by \cite{sanger1977dna}, who is awarded a Nobel Prize in chemistry, and \cite{maxam1977new}.
 Sanger sequencing produces reads in the order of 800-1000 base pairs with an error rate $\le 1$\%.
  \item Second generation sequencing: It includes Illumina/Solexa sequencing \citep{bentley2008accurate}, which has been the most widespread technology. 
  This technology produces short reads (hundreds of bases) with an error rate $\le 1$\%. 
@@ -76,15 +72,17 @@ Sanger sequencing produces reads in the order of 800-1000 base pairs with an err
 %  \item Single-cell sequencing: This technology includes Strand specific sequencing (Strand-Seq), which produces Illumina reads, along with information on the directionality of DNA. Each single strand of a DNA molecule is labeled regarding its 5'–3' orientation \citep{falconer2012dna}.
 \end{itemize}
 
-There exist some sequencing protocols that provide long-range information.
+Furthermore, there exist some sequencing protocols that provide long-range information.
 One of the sequencing protocols is the Strand specific protocol (Strand-Seq), which includes preparation of single-cell libraries. 
-Illumina sequencing is performed from parental template strands in these libraries. The sequencing produces Illumina reads, along with information on the directionality of DNA. 
-Each single strand of a DNA molecule is labeled regarding its 5'–3' orientation \citep{falconer2012dna}.
+Also, each single strand of a DNA molecule is labeled regarding its 5'–3' orientation \citep{falconer2012dna}.
+Illumina sequencing is performed from parental template strands in these single-cell libraries.
+The sequencing results in Illumina reads, along with information on the directionality of DNA. 
 The other sequencing protocol is the 10x Genomics protocol \citep{eisenstein2015startups}, which adds a unique barcode to every short read (produced from Illumina platform) generated from an individual molecule.
 
-Furthermore, each sequencing technology has some bias due to the protocols employed.
-The high G/C content regions are sequenced less frequently by the short read technologies than the rest of the genome and the downstream end of reads exhibit a high error rate \citep{aird2011analyzing, dohm2008substantial}.
+% Furthermore, each sequencing technology has some bias due to the protocols employed.
+% The high G/C content regions are sequenced less frequently by the short read technologies than the rest of the genome and the downstream end of reads exhibit a high error rate \citep{aird2011analyzing, dohm2008substantial}.
 
+% Huge amounts of sequencing data are routinely produced by these sequencing technologies.
 Sequencing data is routinely used to reconstruct the underlying haplotypes for diploid genomes. Reconstructing haplotypes is required in order to correctly understand allele-specific expression and compound heterozygosity. 
 Compound heterozygosity is the phenomenon when the two homologous copies of a genomic region each contain unique sequence variants, 
 but at different positions in that region. These variants are responsible for different functioning of the two homologous copies of a gene, resulting in different phenotypes.
@@ -92,11 +90,11 @@ Thus, in settings in which compound heterozygosity play a role, the knowledge ab
 Haplotypes also help in investigating the genetic determinants of common diseases, and in performing population-genetic analyses of admixture, migration and selection \citep{tewhey2011importance, Glusman2014}. 
 Furthermore, haplotype sequences are used in relating genotypes to phenotypes, and for understanding how the arrangement of cis- and trans-acting variants across the two homologous copies of a genomic region affects phenotypic expression.
 
-Technological progress in sequencing and computational approaches has enabled the reconstruction of haplotypes for diploid genomes.
+Technological progress in sequencing and computational approaches has enabled the reconstruction of underlying haplotypes for diploid genomes.
 However, there are intrinsic benefits and challenges when utilizing sequencing reads from different sequencing technologies. 
 Specifically, upcoming PacBio and ONT sequencing deliver long reads, but have high sequencing error rates.
-In contrast, Illumina sequencing deliver reads with low error rates, but have short lengths.
-Thus, the reconstruction of accurate and complete haplotypes from sequencing datasets remains a challenging problem.
+In contrast, Illumina sequencing delivers reads with low error rates, but have short lengths. Currently, no sequencing technology delivers data that is complete and non-erroneous.
+Thus, the reconstruction of accurate and complete haplotypes (without gaps) from sequencing datasets remains a challenging problem.
 % Specifically, upcoming long-read technologies deliver reads that span multiple variants and therefore, provide power to connect multiple variants into blocks, 
 % leading to reconstruct the whole genome.
 % The challenge of long-read technologies is high sequencing error rates. 
@@ -104,9 +102,9 @@ Thus, the reconstruction of accurate and complete haplotypes from sequencing dat
 % One potential way to generating complete and accurate genomes could be to combine multiple sequencing technologies, one that produces long reads with high error rates and other that produces 
 % short reads with low error rates.
 
-\textit{What are the other challenges across all technologies in producing a diploid genome?}
-For all the existing sequencing technologies, the first challenge arises from a lack of information of the genomic location of reads.
-For diploid organisms, the next challenge is the lack of the \textit{haplotypic identity} of reads, i.e.\, the haplotype that the read comes from.
+% \textit{What are the other challenges across all technologies in producing a diploid genome?}
+From available sequencing datasets, the first challenge for reconstructing haplotypes arises from a lack of information of the genomic location of reads.
+The next challenge is the lack of the \textit{haplotypic identity} of reads, i.e.\, the haplotype that the read comes from.
 Knowing the haplotype of reads is essential for reconstructing both copies of each chromosome, which in turn helps better understand the true biological characteristics of diploid organisms.
 % Thus, from the biological point of view, the single individual haplotyping (SIH) problem consists in the reassignment of each read to the original haplotype.
 % Once we know this identity, it becomes easier to assemble the reads from each haplotype separately to further reconstruct the two genome sequences of diploid organisms.
@@ -120,7 +118,8 @@ The alleles that a read supports are printed in white. The middle panel shows th
 \label{fig:ex1_intro}
 \end{figure}
 
-The clever approaches are developed to solve these challenges. Broadly, the approaches to obtaining haplotypes are classified into two categories: \textit{reference-based} haplotyping and \textit{haplotype-aware de novo} assembly.
+\vspace{10cm}
+The clever approaches are developed to solve these challenges. Broadly, the approaches to obtain haplotypes are classified into two categories: \textit{reference-based} haplotyping and \textit{haplotype-aware de novo} assembly.
 
 % This absence of context and the small size and error rates of the sequences obtained, relatively to the genome size, makes it difficult to use reads as such.
 % Ideally, we would need the access to the underlying genomes in their entirety.
@@ -163,11 +162,11 @@ Over the years, a lot of effort has been devoted to generating good quality refe
 including the relative position of genes or chromosomes structure \citep{encode2004encode}. 
 Reference genomes have been used by biologists for other tasks, for instance, finding the functions to annotate the genome \citep{harrow2012gencode}.
 
-Standard pipeline for reference-based phasing consist of the following steps: 
+Standard pipelines for reference-based phasing consist of the following steps: 
 First, the reads are aligned to the reference genome. Second, the variants are detected using various variant calling algorithms, to finding the differences of target genome to the reference.
 Third, the detected variants are phased based on how aligned reads connect the alleles over them, to generate two haplotypes.
 
-Please note that the different terminologies \textit{reference-based} haplotyping (phasing), single individual haplotyping and read-based phasing are used interchangeably.
+Please note that the different terminologies \textit{reference-based} haplotyping (phasing), single individual haplotyping and read-based phasing are used interchangeably in this thesis.
 
 % The main focus of this study is the third step in the pipeline.
 % For illustration, the toy example is given in Figure~\ref{fig:ex1_intro}.
@@ -218,13 +217,13 @@ A read aligner maps the reads to the reference genome, ideally to positions with
 The number of read alignments that cover a position is known as the coverage for that position.
 Furthermore, we have structural nucleotide variants (SNVs) detected using different variant calling algorithms.
 In the case of bi-allelic variants, that is, those variants for which two different alleles are known, three genotypes are possible.
-One typically denotes the reference allele as 0 and the alternative allele as 1. Using this
+The reference allele is typically denoted as 0 and the alternative allele as 1. Using this
 notation, the two chromosomal copies either both carry the reference allele (genotype
 0/0), or alternative allele (genotype 1/1) or one of them contains the reference while
 the other one carries the alternative allele (genotype 0/1). If both chromosomal copies
 carry the same allele (i.e. genotype 0/0 or 1/1), the genotype is called homozygous, while
 genotype 0/1 is referred to as heterozygous.
-
+s
 Given the variants and the alignments, the goal here is to phase the variants and generate the haplotypes.
 % The variants over the genome can be phased by using reads aligned to the reference genome. This process is known as \textit{read-based phasing} or \textit{single individual haplotyping}.
 
@@ -248,7 +247,7 @@ Computationally, this problem has been generally modeled as an optimization prob
 In literature, different combinatorial formulations of the problem have been
 proposed \citep{lippert2002algorithmic}. Among them, Minimum Error Correction (MEC) \citep{lippert2002algorithmic} has
 been proven particularly successful in the reconstruction of accurate haplotypes for
-diploid species \citep{martin2016whatshap, he2010optimal, CDW13_exact, Glusman2014}. MEC aims to correct the input data with the minimum
+diploid species \citep{martin2016whatshap, he2010optimal, CDW13_exact, Glusman2014, rhee2016survey}. MEC aims to correct the input data with the minimum
 number of corrections to the SNP values, such that the resulting reads can be partitioned into two sets, with each set identifying a haplotype. 
 To mathematically formulate the minimum number of corrections (MEC) as an optimization problem, we require a few definitions.
 
@@ -288,7 +287,7 @@ The MEC problem is NP-hard \citep{Cilibrasi2007}, but more detailed analyses req
  \item $\BMEC$: Instances in which entries in each of the $n$ rows of $\mathcal{F}$ are from $\{0,1\}$ with no gaps.
 \end{itemize}
 
-We now illustrate these \MEC instances for a single genome from different sequencing technologies through an example.
+% We now illustrate these \MEC instances for a single genome from different sequencing technologies through an example.
 
 Figure~\ref{fig:ex_MECs} shows an example of a mathematical representation of reads from different sequencing technologies, that cover seven variants. 
  The top panel shows a general \BMEC instance consisting of binary values with no gaps, the middle panel shows a \GMEC instance with binary values in between and gaps at its two ends and, the bottom is 
@@ -371,7 +370,7 @@ where $\displaystyle \mathbf {c} ,\mathbf {b} $, $\mathbf {x}$ and $\mathbf {s}$
 
 \cite{CDW13_exact} proposed an ILP-based approach to solving the MEC problem.
 They consider binary variables for each row and column and their corresponding values are supposed to be dependent on haplotypes.
-By using some auxiliary variables, they relax the integer program to linear, which can be solved in polynomial time.
+% By using some auxiliary variables, they relax the integer program to linear, which can be solved in polynomial time.
 % \todo{do I need to mention the actual ILP program?}
 
 \textit{Branch-and-Bound algorithm.}
@@ -394,7 +393,7 @@ As described in Section~\ref{sec:dna_seq}, the NGS datasets have their inherent 
 For instance, long-read technologies have high sequencing error rates and short-read technologies produce short reads, which are not sufficient to producing the whole genome.
 Furthermore, the Strand-Seq technology produce long-range information, but provide sparse information.
 These limitations from different technologies necessitates to combine the advantages of different technologies in a joint optimization framework, in order to facilitate producing complete haplotypes. 
-In the recent work by \cite{edge2017hapcut2}, they assemble haplotypes by using combining multiple sequencing technologies such as SMRT (PacBio) sequencing, linked-read sequencing and proximity
+In the recent work by \cite{edge2017hapcut2}, they assemble haplotypes by combining multiple sequencing technologies such as SMRT (PacBio) sequencing, linked-read sequencing and proximity
 litigation sequencing.
 However, an efficient algorithm to solve haplotyping, by combining Strand-Seq sequencing datasets with other sequencing technologies in an integrative framework, is unknown.
 Therefore developing a parameterized algorithm for this integrative framework and deciding parameters that work well in practice is very important.
@@ -427,7 +426,7 @@ HapCut \citep{Bansal2008} utilizes the overlapping structure of the fragment mat
 \cite{Duitama2010} follows a heuristic approach for max-cut to find haplotypes efficiently. 
 MixSIH \citep{matsumoto2013mixsih} utilizes a probabilistic mixture model to solve haplotyping.
 H-BOP \citep{xie2012fast} follows a heuristic algorithm for optimizing a combination of the MEC and Maximum Fragments Cut models.
-ProbHap \citep{Kuleshov2014b} employs a similar approach to WhatsHap \citep{Patterson2015}, but ProbHap uses the Viterbi algorithm to solve the maximum likelihood function specified by a probabilistic graphical model. 
+ProbHap \citep{Kuleshov2014b} employs a similar approach to \cite{Patterson2015}, but ProbHap uses the Viterbi algorithm to solve the maximum likelihood function specified by a probabilistic graphical model. 
 % % https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2935405/
 % \textit{Clustering algorithms.} In the work by \citep{wang2007clustering}, a clustering algorithm is used to split the rows of $\mathcal{F}$ in two sets. 
 % The main contribution consists in the combination of the two distance functions used by the clustering algorithm. 
@@ -504,7 +503,18 @@ This example demonstrates that using pedigree information, genotypes and sequenc
 \label{fig:assembly_graphs}
 \end{figure}
 
-In summary, we have presented an overview of computational approaches for performing reference-based haplotyping by using the reference genome as a backbone. 
+\subsection{Statistical phasing}
+Another approach to haplotyping includes inferring haplotypes from genotype information of large cohorts based on the idea 
+that common ancestry gives rise to shared haplotype tracts, as reviewed by \cite{Browning2011, loh2016fast, loh2016reference}.
+This approach is known as \emph{statistical} or \emph{population-based phasing}.
+Popular tools based on statistical phasing approach are Beagle \citep{browning2007rapid}, ShapeIt \citep{Delaneau2013a, delaneau2013improved} and Eagle \citep{loh2016fast,loh2016reference}.
+
+This approach can be applied to unrelated individuals and only requires genotype data, which can be
+measured at low cost. While very powerful for common variants, this technique is less accurate for
+phasing rare variants and cannot be applied at all to private or \textit{de novo} variants.
+\bigskip
+
+In the above section, we have presented an overview of computational approaches for performing reference-based haplotyping by using the reference genome as a backbone. 
 Relying on a reference genome may hinder the correct analyses in some cases.
 % First, we cannot phase variants that are de novo or rare in the target genome.
 First, read mapping step in this method has a reference bias because the reference genome does not capture the genomic diversity of a population.
@@ -512,13 +522,13 @@ The reads that are unique to the target genome, are not aligned or wrongly align
 The usage of reference genomes for read alignment hence generate a bias. 
 Second, we make the prior hypothesis that the target genome is close to the reference, which may not always be true in reality.
 Third, the method is not self-sufficient since a prior reference needs to be
-constructed. For these reasons, we additionally consider \textit{haplotype-aware de novo} (without reference) assembly, which is also known as \textit{diploid} assembly.
+constructed. For these reasons, we additionally consider \textit{haplotype-aware de novo} (without reference) or \textit{diploid} assembly.
 
 \section{Diploid assembly}\label{sec:dip}
 In diploid assembly, the reads from a diploid genome are directly used to assemble the haplotype sequences. 
 % The obtained haplotype sequences are known as diploid assemblies.
 The diploid assembly process involves partitioning the input set of reads into two disjoint sets, and then gluing together the reads from each set in proper order to produce diploid assemblies.
-Therefore, diploid assembly aims to infer the \textit{ordering} and \textit{haplotypic} identity of input sequencing reads. 
+Therefore, diploid assembly process aims to infer the \textit{ordering} and \textit{haplotypic} identity of input sequencing reads. 
 The diploid assembly process is challenging due to short read lengths, incomplete data, sequencing errors, and repetitive regions on the genome.
 % The other challenges occur are, reads are very short compared to the genome size and are not long enough to span the whole repeats.
 
@@ -537,7 +547,7 @@ In the shown overlap graph, there are four nodes R1, R2, R3 and R4 for these rea
 Overlap graphs can be simplified to string graphs by the transitive reduction of edges \citep{myers2005fragment}.
 Also, contained edges \citep{myers2005fragment} are removed, which occur when one read is a substring of other reads.
 
-Most of the assemblers generate only one sequence and the algorithm to construct this sequence (instead of two) can be outlined as follows.
+Most of the assemblers generate only one sequence (consensus sequence) and the algorithm to construct this sequence (instead of two) can be outlined as follows.
 \begin{itemize}
  \item Overlap: calculate pairwise overlaps between reads
  \item  Layout: compute a parsimonious solution (as a generalized Hamiltonian path visiting each node at least once while minimizing the total string length)
@@ -545,16 +555,16 @@ Most of the assemblers generate only one sequence and the algorithm to construct
 \end{itemize}
 
 The first OLC assembler was developed by Celera \citep{myers2000whole}, which was designed to handle sequencing data from Sanger technology.
-Celera uses a BLAST-like approach for performing all-vs-all read alignment. 
-Subsequently, Celera then compacts the overlaps with no ambiguity and applies some heuristics on the complex regions involving repeats. The final sequences
+Celera employs a BLAST-like approach for performing all-vs-all read alignment. 
+Celera then compacts the overlaps with no ambiguity and uses some heuristics on the tangled regions that arise due to repeats. 
+The final sequences
 are generated by forming a consensus between reads to sequencing errors. Complex repetitive regions are hard to resolve, resulting in fragmented assemblies.  We call these fragmented sequences
 ``contigs'' for contiguous consensus sequences. Furthermore, a series of contigs are connected using long-range read information such as Hi-C and optimal mapping information, to generate long assemblies called ``scaffolds''.
 
 This paradigm was used with long Sanger sequences and for relatively small
-genomes. Currently, the OLC-based algorithms are also used with PacBio datasets. 
+genomes. Currently, the OLC-based algorithms are also used with PacBio datasets \citep{grohme2018genome}. 
 % Because of the cost of the pairwise overlaps computation, the OLC is too time
 % consuming for large NGS datasets. Thus, other solutions are required to deal with the amount of reads to assemble large genomes.
-\bigskip
 
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{ex_sv.pdf}
@@ -591,7 +601,7 @@ contigs consisting of the unambiguous, unbranching regions of the graph.
 \cite{medvedev2007computability}
 extended the original directed 
 de  Bruijn  graph  model  of  \cite{pevzner2001eulerian}  to  a  bi-directed  
-de  Bruijn  graph  (BDDG)  model,  which  is  more  efficient  
+de  Bruijn  graph  (BDDG)  model,  which  is  more  efficient in 
 handling DNA’s double-strand structure.  
 A bi-directed graph is a generalized directed graph in the 
 sense  that  two  end-points  of an  edge  are  given  independent  
@@ -611,11 +621,10 @@ This saves memory and storage but also simplifies the graph so that graph operat
 \paragraph{De Bruijn graph and overlap graph.}
 The de Bruijn graph theoretically achieves
 the same tasks that the overlap graph does, but in an efficient manner \citep{li2012comparison}.
-The de Bruijn graph became widely used when the short reads from NGS appeared. The OLC
+The de Bruijn graph became widely for assembling the short reads. The OLC
 approach did not scale well on the high number of sequences generated by NGS. The
-use of the de Bruijn graph is interesting for short read assembly for its ability to
-deal with the high redundancy of such sequencing in a very efficient way. Indeed a k-mer
-present dozens of times in the sequencing dataset appears only once in the graph. This
+use of the de Bruijn graph is prevalent for short read assembly because these approaches employ efficient techniques to handle redundancy in data. Indeed a k-mer
+present multiple times in the sequencing dataset appears only once in the graph. This
 makes the de Bruijn graph structure not very sensitive to high coverage, unlike
 OLC. The de Bruijn graph was first proposed as an alternative structure \citep{pevzner2001eulerian} because it
 was less sensitive to repeats. 
@@ -652,6 +661,7 @@ Therefore, upcoming long-read sequencing technologies produce reads that span th
 % We have explored the assembly graphs and their special structures. We now provide the main approaches followed for reconstructing the genome from NGS data. 
 \subsection{Related work on diploid assembly}
 Over the last decade, the development of various NGS technologies has impacted the assembly problem.
+\vspace{10cm}
 In theory, the problem of \textit{de novo assembly}---computing the consensus of two or more sequences---is NP-hard, when the problem is modeled either as string graphs or de Bruijn graphs \citep{medvedev2007computability}. 
 There are several heuristic approaches for approximating the optimal \textit{de novo} haploid assembly based on NGS datasets \citep{idury1995new, myers1995toward, myers2005fragment, pevzner2001eulerian, nagarajan2009parametric, nagarajan2013sequence, sovic2013approaches}.
 
@@ -718,27 +728,27 @@ However, there is no known algorithm that combines multiple sequencing datasets 
 % \caption{Based on reads (middle) from the two sequences (top), the bubbles in the graph (bottom) show three different heterozygous structural variations; first is a SNV, second is a SV and third is an indel. }
 % \label{fig:ex_sv}
 % \end{figure}
-\section{Outline of our contributions}
-In the above section, I highlighted four ``open problems'' in the area of haplotyping using NGS data.
+\section{Thesis Scope and Outline}
+In the above sections, I highlighted four ``open problems'' in the area of haplotyping using NGS data.
+The remainder of this thesis is structured as follows:
 
 \begin{itemize}
- \item In Chapter 2, I provide a general background on the different types of algorithms. I outline the motivation on how these algorithms are used in solving small daily examples fast. 
- I highlight the advantages and disadvantages of these algorithms in context of large problems.
- \item Solving MEC instances using NGS data is NP-hard. In Chapter 3, I describe a dynamic programming based algorithm for solving \GMEC instances approximately.
- I discuss the approximation guarantee, that provides hint about the existence of polynomial time approximation scheme for these instances. (Problem~\ref{gap:gap1}).
- This chapter has a preprint \citep{garg2018qptas}. The figures in this chapter are taken from the paper. I co-invented this approximation algorithm with T.\,Mömke and co-wrote the paper with him.
-  \item In Chapter 4, I discuss different types of NGS datasets, with their advantages and disadvantages. I describe an integrative phasing framework that is obtained for combining NGS datasets. I discuss a parameterized algorithm that solves these instances efficiently in practice. 
-  I demonstrate the effectiveness of this algorithm on real genomic datasets. (Problem~\ref{gap:gap2}).
- This chapter has been published in Nature Communications, 2017 \citep{porubsky2017dense}. The preliminary version is presented in David's thesis. The figures in this chapter are taken from the paper. 
- My contribution involves developing and testing an integrative phasing analysis pipeline. This analysis pipeline outputs data table, which is used for the figures.
- I also implemented the features in WhatsHap to include Strand-seq haps and phasing using 10X Genomics.
- I wrote draft for WhatsHap section and the corresponding draft figures. 
- \item In Chapter 5, I describe a generalized parameterized approach to incorporate information from pedigrees. I show experiments on real datasets and highlight that pedigree data has an additional advantage in delivering better quality haplotypes. (Problem~\ref{gap:gap3}).
- This chapter has been published at ISMB Proceedings/Bioinformatics 2016 \citep{garg2016read}. The figures in this chapter are taken from the paper. I co-developed the algorithm with Tobias Marschall and co-wrote the paper with him.
- \item In Chapter 6, I describe a generalized approach --- haplotype-aware diploid assembly --- in a graph framework, that has the ability to handle all levels of heterozygosity and structural variations to produce accurate and complete haplotype assemblies.
- I present this approach as a hybrid of different types of NGS datasets and show its effectiveness on a pseudo-diploid genome. (Problem~\ref{gap:gap4}).
- This chapter will appear at ISMB Proceedings/Bioinformatics 2018. The figures in this chapter are taken from the paper. I developed the phasing method and wrote the paper.
- \item Finally, in Chapter 7, I provide a summary of the results presented in this thesis, along with an outlook into the future and perspectives.
+ \item Chapter 2 provides a general background on the different types of algorithms. 
+ It establishes the motivation on how these algorithms are used in solving small daily examples fast. 
+ It highlights the advantages and disadvantages of these algorithms in context of large problems.
+ \item Chapter 3 presents a dynamic programming based algorithm for solving \GMEC instances approximately.
+ It discusses the approximation guarantee, that provides hint about the existence of polynomial time approximation scheme for these instances. (Problem~\ref{gap:gap1})
+  \item Chapter 4 discusses different types of NGS datasets, with their advantages and disadvantages. 
+  It explores an integrative phasing framework that is obtained for combining NGS datasets. 
+  It discusses a parameterized algorithm that solves these instances efficiently in practice. 
+  Furthermore, I demonstrate the effectiveness of this algorithm on real genomic datasets. (Problem~\ref{gap:gap2})
+
+ \item Chapter 5 presents a generalized parameterized approach to incorporate information from pedigrees. 
+Furthermore, I show experiments on real datasets and highlight that pedigree data has an additional advantage in delivering better quality haplotypes. (Problem~\ref{gap:gap3})
+  \item Chapter 6 focuses on a generalized approach --- haplotype-aware diploid assembly --- in a graph framework, that has the ability to handle all levels of heterozygosity and structural variations to produce accurate and complete haplotype assemblies.
+ Furthermore, I present this approach as a hybrid of different types of NGS datasets and show its effectiveness on a pseudo-diploid genome. (Problem~\ref{gap:gap4})
+
+ \item Finally, Chapter 7 summarizes the results presented in this thesis, along with an outlook into the future and perspectives.
 \end{itemize}
 
 \section{Relevant publications}

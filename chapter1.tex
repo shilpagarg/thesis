@@ -1,25 +1,31 @@
-\chapter{Approximation algorithm for phasing individual genomes}
+\chapter{Approximation algorithm for phasing individual genomes}\label{ref:chp3}
 
 In this chapter, we study the approximation status of \GMEC, which is a variant of \MEC problem (see Problem~\ref{prob:mec} introduced in Chapter~\ref{ref:chp1}).
-In other words, the minimum error correction problem (\MEC) is a segmentation problem where we have to partition a set of length $m$ strings into two classes.
+In other words, the minimum error correction problem (\MEC) is closely related to segmentation problems that were introduced by {[}Kleinberg--Papadimitriou--Raghavan STOC'98{]} in the context of data mining.
 A \MEC instance is an $n \times m$ matrix $M$ with entries from $\{0,1,-\}$. 
     Feasible solutions are composed of two binary $m$-bit strings, together with an assignment of each row of $M$ to one of the two strings.
     The objective is to minimize the number of mismatches (errors) where the row has a value that differs from the assigned solution string.
     The symbol ``$-$'' is a wildcard that matches both $0$ and $1$.
     A \MEC instance is \textit{gapless}, if in each row of $M$ all binary entries are consecutive.
 
- \GMEC is a relevant problem in computational biology, and it is closely related to segmentation problems that were introduced by {[}Kleinberg--Papadimitriou--Raghavan STOC'98{]} in the context of data mining.
- 
-     Without restrictions, it is known to be $\UG$-hard \citep{trevisan2012khot} to compute an $O(1)$-approximate solution to \MEC. For both \MEC and \GMEC, the best polynomial time approximation algorithm has a logarithmic performance guarantee.
+     Without restrictions, it is known to be $\UG$-hard \citep{trevisan2012khot} to compute an $O(1)$-approximate solution to \MEC. 
+     For both \MEC and \GMEC, the best polynomial time approximation algorithm has a logarithmic performance guarantee \citep{BDK+16_minimum}.
     We partially settle the approximation status of \GMEC by providing a quasi-polynomial time approximation scheme (QPTAS).
     Additionally, for the relevant case where the binary part of a row is not contained in the binary part of another row, we provide a polynomial time approximation scheme (PTAS).
+    
+%     \begin{figure}[t!]\centering
+% \includegraphics[width=\columnwidth]{{classes}.pdf}
+% \caption{Figure shows the relationship between different classes of problems. In red, we show the approximation status known for different versions of \MEC.}
+% \label{fig:classes}
+% \end{figure}
 
 \section{Our results.}
 Our main result is the following theorem.
 \begin{theorem}\label{thm:qptas}
     There is a quasi-polynomial time approximation scheme (QPTAS) for \GMEC.
 \end{theorem}
-We therefore partially settle the approximability for this problem: \GMEC is not $\APX$-hard unless $\NP \subseteq \QP$ (cf.~\cite{RS09_approximation}).
+We therefore partially settle the approximability for \GMEC, which is not $\APX$-hard unless $\NP \subseteq \QP$ (cf.~\cite{RS09_approximation}).
+Moreover, \cite{Cilibrasi2007} showed that allowing a single gap in each string renders the problem $\APX$-hard.
 Thus our result reveals a separation of the hardness of the gapless case and the case where we allow a single gap.
 Furthermore, already \BMEC is strongly $\NP$-hard since the input does not contain numerical values. 
 Therefore we can exclude the existence of an FPTAS for both $\BMEC$ and $\GMEC$ unless $\P = \NP$.
@@ -32,20 +38,156 @@ the set of columns with binary entries from the other row.
     There is a polynomial time approximation scheme (PTAS) for $\GMEC$ restricted to instances such that no string is the substring of another string.
 \end{theorem}
 
+\section{Further related work.}
+Binary-MEC is a variant of the Hamming $k$-Median Clustering Problem when $k = 2$ and there are PTAS known \citep{JXL04_k, OR02_polynomial}. 
+\cite{LMW02_finding} provided a PTAS for the general consensus pattern problem which is closely related to \MEC.
+Additionally, they provided a PTAS for a restricted version of the star alignment problem aligning with at most a constant number of gaps in each sequence.
+More recently, \cite{BDK+16_minimum} showed that it is unique games hard to approximate \MEC with constant performance guarantee, whereas it is approximable within a logarithmic factor in the size of the input. 
+\GMEC was shown to be $\NP$-hard by \cite{Cilibrasi2007}.\footnote{Their result predates the hardness result of \cite{Fei14_np} for H2S. The proof of the claimed $\NP$-hardness of H2S by ~\cite{KPR98_segmentation} was never published.}
+
+\cite{AS99_two} provided a PTAS for H2S, the maximization version of \BMEC and \cite{WUB13_monochromatic} showed that there is also a PTAS for the maximization version of \MEC.
+For \GMEC, ~\cite{he2010optimal} studied the fixed-parameter tractability in the parameter of fragment length with some restrictions.
+These restrictions allow their dynamic programming algorithm to focus on the reconstruction of a single haplotype and, hence, to limit the possible combinations for each column.
+There is an FPT algorithm parameterized by the coverage \citep{Patterson2015}. 
+\cite{BDK+16_minimum} provided FPT algorithms parameterized by the fragment length and the total number of corrections for Gapless-MEC.
+
+Most research in haplotype phasing deals with exact and heuristic approaches to solve \MEC.
+Exact approaches, which solve the problem optimally, include integer linear programming by \cite{Fouilhoux2012} and fixed-parameter tractable algorithms by \cite{he2010optimal, Pirola2015}.
+There is a greedy heuristic approach proposed to solve Binary-MEC \citep{Bansal2008}. 
+
+\cite{Lancia2001} obtained a network-flow based polynomial time algorithm for Minimum Fragment Removal (MFR) for gapless fragments.
+Additionally, they found the relation of Minimum SNPs Removal (MSR) to finding the largest independent set in a weakly triangulated graph.
+
+
 \section{Overview of our approach.}
 Our algorithm is a dynamic program (DP) that is composed of several levels.
-Given a general \GMEC instance, we decompose the rows of the instance into length classes according to the length of the contiguous binary parts of the rows.
+Given a general \GMEC instance, we decompose the rows of the instance into length classes according to the length of the contiguous binary parts of the rows as shown in Figure~\ref{fig:gen_instance2}.
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+            \node at (2.5, .5) {$q_{3,1}$};
+            \node at (5, .5) {$q_{2,1}$};
+            \node at (7.5, .5) {$q_{3,3}$};
+            \node at (10, .5) {$q_{1,1}$};
+            \draw[blue,thick] (10,.2) -- (10,-6);
+            \draw[blue,thick, dashed] (5,.2) -- (5,-6);
+            \draw[blue,thick, loosely dashed] (2.5,.2) -- (2.5,-6);
+            \draw[blue,thick, loosely dashed] (7.5,.2) -- (7.5,-6);
+            \draw (.2,-4) -- (10,-4);
+            \draw (1,-4.2) -- (11,-4.2);
+            \draw (3,-4.4) -- (10,-4.4);
+            \draw (6,-4.6) -- (13,-4.6);
+            \draw (7,-4.8) -- (14,-4.8);
+            \draw (7,-5) -- (12,-5);
+            \node at (0,-4.5) {$\Lambda_1$};
+
+            \draw (.2,-2.5) -- (5,-2.5);
+            \draw (1,-2.6) -- (5.5,-2.6);
+            \draw (3,-2.8) -- (7,-2.8);
+            \draw (3.5,-3.0) -- (6,-3.0);
+            \draw (4,-3.2) -- (8,-3.2);
+            \node at (0,-3) {$\Lambda_2$};
+
+
+            \draw (6,-2.7) -- (10,-2.7);
+            \draw (6.5,-2.9) -- (10.5,-2.9);
+            \draw (7,-3.4) -- (10.2,-3.4);
+
+            \draw (.2,-0.5) -- (2.5,-0.5);
+            \draw (1,-0.7) -- (3,-0.7);
+            \draw (1.1,-0.9) -- (2.8,-0.9);
+            \draw (1.2,-1.1) -- (2.7,-1.1);
+            \draw (1.6,-1.3) -- (3.3,-1.3);
+
+            \draw (2.6,-1.5) -- (5.1,-1.5);
+            \draw (3.5,-1.7) -- (5.7,-1.7);
+            \draw (3.7,-1.9) -- (5.5,-1.9);
+            \draw (2.6,-1.0) -- (5.2,-1.0);
+            \draw (5.3,-1.0) -- (7.8,-1.0);
+            \node at (0,-1) {$\Lambda_3$};
+        \end{tikzpicture}
+        \caption{\label{fig:gen_instance2} Different length classes, $\Lambda_1$ with corresponding column $q_{1,1}$, 
+            $\Lambda_2$ with corresponding columns $q_{2,1}, q_{2,2} = q_{1,1}$, 
+            and $\Lambda_3$ with corresponding columns $q_{3,1}, q_{3,2} = q_{2,1}, q_{3,3}, q_{3,4} = q_{1,1}$.}
+    \end{center}
+\end{figure}
 For each length class we consider a well-selected set of columns such that each row crosses at least one column and at most two.
 (Row $i$ crosses a column $j$, if $M_{i,j} \in \{0,1\}$, i.e., the binary part of the row contains that column.)
 
-We further decompose each length class into two sub-classes, one that crosses exactly one column and one that crosses exactly two columns.
+We further decompose each length class into two sub-classes, one that crosses exactly one column and one that crosses exactly two columns as shown in Figure~\ref{fig:gen_instance1}.
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+            \draw[blue,thick] (7,.2) -- (7,-6);
+            \draw[blue,thick] (13,.2) -- (13,-6);
+            \draw[blue,thick] (19,.2) -- (19,-6);
+            \draw[blue,thick,dashed] (10,.2) -- (10,-6);
+            \draw[blue,thick,dashed] (16,.2) -- (16,-6);
+            \node at (2.5,-1.5) {$\Lambda_1$};
+            \node at (7,0.5) {$q_{1,1}$};
+            \node at (10,0.5) {$q_{1,2}$};
+            \node at (13,0.5) {$q_{1,3}$};
+            \node at (16,0.5) {$q_{1,4}$};
+            \node at (19,0.5) {$q_{1,5}$};
+            \draw (1,-0.5) -- (7,-0.5);
+            \draw (3,-0.7) -- (8,-0.7);
+            \draw (5,-0.9) -- (8,-0.9);
+            \draw (6,-1.2) -- (11,-1.2);
+            \draw (7,-1.5) -- (13,-1.5);
+            \draw (8,-1.7) -- (11,-1.7);
+            \draw (9,-1.9) -- (12,-1.9);
+            \draw (9,-2.1) -- (13,-2.1);
+            \draw (9,-2.3) -- (14,-2.3);
+            \draw (8,-2.5) -- (12,-2.5);
+            \draw (9.5,-2.9) -- (14,-2.9);
+            \draw (11,-2.7) -- (16,-2.7);
+            \draw (13,-3.1) -- (19,-3.1);
+            \draw (14,-3.3) -- (19,-3.3);
+            \draw (17,-3.5) -- (21,-3.5);
+            \draw (15,-3.7) -- (21,-3.7);
+        \end{tikzpicture}
+        \caption{\label{fig:gen_instance1} For a single-length-class instance, the sketch shows the strings crossing each column either exactly once or exactly twice.}
+    \end{center}
+\end{figure}
 For the second class, it is sufficient to consider every other column, which leaves us with many \emph{rooted} instances.
 Thus for each sub-instance there is a single column (the root) which is crossed by all rows of the instance.
 
 We further decompose rooted sub-instances into the left hand side and the right hand side of the root.
 Since the two sides are symmetric, we can arrange the rows and columns of these sub-instances in such a way that all rows cross the first column.
-We call this type of sub-instance \emph{SWC-instance} (for ``simple wildcards'').
+We call this type of sub-instance \emph{SWC-instance} (for ``simple wildcards'') as shown in Figure~\ref{fig:swc}.
 We order the rows from top to bottom by increasing length in order to be able to further decompose the instance.
+
+\begin{figure}[h]
+    \begin{center}
+        \begin{tikzpicture}[scale=0.7]
+
+            \draw[blue,thick] (4,.2) -- (4,-5);
+            \node at (4,.5) {$q_0$};
+%             \node at (3.5,-1) {$W$};
+            \draw (4,-.5) -- (6,-0.5);
+            \draw (4,-.6) -- (6.1,-0.6);
+            \draw (4,-.7) -- (6.17,-0.7);
+            \draw (4,-1) -- (6.21,-1);
+            \draw (4,-1.2) -- (6.25,-1.2);
+            \draw (4,-1.4) -- (6.29,-1.4);
+            \draw (4,-1.6) -- (6.3,-1.6);
+            \draw (4,-1.8) -- (6.33,-1.8);
+            \draw (4,-2) -- (6.38,-2);
+            \draw (4,-2.1) -- (6.4,-2.1);
+            \draw (4,-2.4) -- (6.45,-2.4);
+            \draw (4,-2.7) -- (6.5,-2.7);
+            \draw (4,-2.9) -- (6.6,-2.9);
+            \draw (4,-3.1) -- (7,-3.1);
+             \draw (4,-3.25) -- (9,-3.25);
+              \draw (4,-3.3) -- (9.5,-3.3);
+              \draw (4,-3.5) -- (10,-3.5);
+               \draw (4,-3.7) -- (11,-3.7);
+        \end{tikzpicture}
+        \caption{\label{fig:swc} Simple Wildcard (SWC) instances}
+    \end{center}
+\end{figure}
 
 The first level of our DP solves these highly structured SWC-instances.
 The basic idea that we would like to apply is that we select a constant number of rows from the instance that represents the solution.
@@ -91,29 +233,6 @@ We solve general instances in the same spirit as the combined sub-instances of a
 Instead of considering quadruples of cells, however, we form collections of quadruples that are -- figuratively speaking -- stacked on top of each other.
 The key insight is that there are only $O(\log(n))$ different length classes and each collection has at most one quadruple of each length class.
 Considering all possible collections adds another power of $\log(n)$ to the running time, which is still quasi-polynomial.
-
-\section{Further related work.}
-Binary-MEC is a variant of the Hamming $k$-Median Clustering Problem when $k = 2$ and there are PTAS known \citep{JXL04_k, OR02_polynomial}. 
-\cite{LMW02_finding} provided a PTAS for the general consensus pattern problem which is closely related to \MEC.
-Additionally, they provided a PTAS for a restricted version of the star alignment problem aligning with at most a constant number of gaps in each sequence.
-More recently, \cite{BDK+16_minimum} showed that it is unique games hard to approximate \MEC with constant performance guarantee, whereas it is approximable within a logarithmic factor in the size of the input. 
-\GMEC was shown to be $\NP$-hard by \cite{Cilibrasi2007}.\footnote{Their result predates the hardness result of \cite{Fei14_np} for H2S. The proof of the claimed $\NP$-hardness of H2S by ~\cite{KPR98_segmentation} was never published.}
-Additionally, they showed that allowing a single gap in each string renders the problem $\APX$-hard.
-
-
-\cite{AS99_two} provided a PTAS for H2S, the maximization version of \BMEC and \cite{WUB13_monochromatic} showed that there is also a PTAS for the maximization version of \MEC.
-For \GMEC, ~\cite{he2010optimal} studied the fixed-parameter tractability in the parameter of fragment length with some restrictions.
-These restrictions allow their dynamic programming algorithm to focus on the reconstruction of a single haplotype and, hence, to limit the possible combinations for each column.
-There is an FPT algorithm parameterized by the coverage \citep{Patterson2015,garg2016read} (and some additional parameters for pedigrees). 
-\cite{BDK+16_minimum} provided FPT algorithms parameterized by the fragment length and the total number of corrections for Gapless-MEC.
-There are some tools which can be used in practice to solve Gapless-MEC instances \citep{Pirola2015, Patterson2015}.
-
-Most research in haplotype phasing deals with exact and heuristic approaches to solve \BMEC.
-Exact approaches, which solve the problem optimally, include integer linear programming by \cite{Fouilhoux2012} and fixed-parameter tractable algorithms by \cite{he2010optimal, Pirola2015}.
-There is a greedy heuristic approach proposed to solve Binary-MEC \citep{Bansal2008}. 
-
-\cite{Lancia2001} obtained a network-flow based polynomial time algorithm for Minimum Fragment Removal (MFR) for gapless fragments.
-Additionally, they found the relation of Minimum SNPs Removal (MSR) to finding the largest independent set in a weakly triangulated graph.
 
 \section{Preliminaries and notation.}\label{sec:prelim}
 We consider a \GMEC instance, which is a matrix $M \in \{0,1, -\}^{n \times m}$.
@@ -857,41 +976,6 @@ We observe the following known property of length classes.
     (See also Fig.~\ref{fig:gen_instance1}).
 \end{proof}
 
-\begin{figure}[h]
-    \begin{center}
-        \begin{tikzpicture}[scale=0.7]
-            \draw[blue,thick] (7,.2) -- (7,-6);
-            \draw[blue,thick] (13,.2) -- (13,-6);
-            \draw[blue,thick] (19,.2) -- (19,-6);
-            \draw[blue,thick,dashed] (10,.2) -- (10,-6);
-            \draw[blue,thick,dashed] (16,.2) -- (16,-6);
-            \node at (2.5,-1.5) {$\Lambda_1$};
-            \node at (7,0.5) {$q_{1,1}$};
-            \node at (10,0.5) {$q_{1,2}$};
-            \node at (13,0.5) {$q_{1,3}$};
-            \node at (16,0.5) {$q_{1,4}$};
-            \node at (19,0.5) {$q_{1,5}$};
-            \draw (1,-0.5) -- (7,-0.5);
-            \draw (3,-0.7) -- (8,-0.7);
-            \draw (5,-0.9) -- (8,-0.9);
-            \draw (6,-1.2) -- (11,-1.2);
-            \draw (7,-1.5) -- (13,-1.5);
-            \draw (8,-1.7) -- (11,-1.7);
-            \draw (9,-1.9) -- (12,-1.9);
-            \draw (9,-2.1) -- (13,-2.1);
-            \draw (9,-2.3) -- (14,-2.3);
-            \draw (8,-2.5) -- (12,-2.5);
-            \draw (9.5,-2.9) -- (14,-2.9);
-            \draw (11,-2.7) -- (16,-2.7);
-            \draw (13,-3.1) -- (19,-3.1);
-            \draw (14,-3.3) -- (19,-3.3);
-            \draw (17,-3.5) -- (21,-3.5);
-            \draw (15,-3.7) -- (21,-3.7);
-        \end{tikzpicture}
-        \caption{\label{fig:gen_instance1} For a single-length-class instance, the sketch shows the strings crossing each column either exactly once or exactly twice.}
-    \end{center}
-\end{figure}
-
 For each $i$, we now separate $\Lambda_i$ into two sub-instances.
 One sub-instance $\Lambda'_i$ is formed by those rows from $\Lambda_i$ that only cross one column of $q_i$ and the second sub-instance $\Lambda''_i$ is formed by those rows that cross exactly two columns of $\Lambda_i$.
 
@@ -1020,57 +1104,6 @@ Combining the two sub-classes gives a QPTAS for an entire length class.
 Finally we combine our insights to an algorithm for general instances by combining different length classes.
 (See also Fig.~\ref{fig:gen_instance2}.) 
 
-\begin{figure}[h]
-    \begin{center}
-        \begin{tikzpicture}[scale=0.7]
-            \node at (2.5, .5) {$q_{3,1}$};
-            \node at (5, .5) {$q_{2,1}$};
-            \node at (7.5, .5) {$q_{3,3}$};
-            \node at (10, .5) {$q_{1,1}$};
-            \draw[blue,thick] (10,.2) -- (10,-6);
-            \draw[blue,thick, dashed] (5,.2) -- (5,-6);
-            \draw[blue,thick, loosely dashed] (2.5,.2) -- (2.5,-6);
-            \draw[blue,thick, loosely dashed] (7.5,.2) -- (7.5,-6);
-            \draw (.2,-4) -- (10,-4);
-            \draw (1,-4.2) -- (11,-4.2);
-            \draw (3,-4.4) -- (10,-4.4);
-            \draw (6,-4.6) -- (13,-4.6);
-            \draw (7,-4.8) -- (14,-4.8);
-            \draw (7,-5) -- (12,-5);
-            \node at (0,-4.5) {$\Lambda_1$};
-
-            \draw (.2,-2.5) -- (5,-2.5);
-            \draw (1,-2.6) -- (5.5,-2.6);
-            \draw (3,-2.8) -- (7,-2.8);
-            \draw (3.5,-3.0) -- (6,-3.0);
-            \draw (4,-3.2) -- (8,-3.2);
-            \node at (0,-3) {$\Lambda_2$};
-
-
-            \draw (6,-2.7) -- (10,-2.7);
-            \draw (6.5,-2.9) -- (10.5,-2.9);
-            \draw (7,-3.4) -- (10.2,-3.4);
-
-            \draw (.2,-0.5) -- (2.5,-0.5);
-            \draw (1,-0.7) -- (3,-0.7);
-            \draw (1.1,-0.9) -- (2.8,-0.9);
-            \draw (1.2,-1.1) -- (2.7,-1.1);
-            \draw (1.6,-1.3) -- (3.3,-1.3);
-
-            \draw (2.6,-1.5) -- (5.1,-1.5);
-            \draw (3.5,-1.7) -- (5.7,-1.7);
-            \draw (3.7,-1.9) -- (5.5,-1.9);
-            \draw (2.6,-1.0) -- (5.2,-1.0);
-            \draw (5.3,-1.0) -- (7.8,-1.0);
-            \node at (0,-1) {$\Lambda_3$};
-        \end{tikzpicture}
-        \caption{\label{fig:gen_instance2} Different length classes, $\Lambda_1$ with corresponding column $q_{1,1}$, 
-            $\Lambda_2$ with corresponding columns $q_{2,1}, q_{2,2} = q_{1,1}$, 
-            and $\Lambda_3$ with corresponding columns $q_{3,1}, q_{3,2} = q_{2,1}, q_{3,3}, q_{3,4} = q_{1,1}$.}
-    \end{center}
-\end{figure}
-%
-
 For different length classes $\Lambda_i$, we construct their corresponding columns as explained in the previous section. 
 The main idea is that for each column $j$, we only have to consider those quadruple of super-cells according to Definition~\ref{def:dp-whole-length-class} that cross $j$ from all the length classes simultaneously.
 We therefore consider at most $O(\log(n))$ quadruples of super-cells simultaneously. In the dynamic program, we consider a joint quadruple of super-cells from all the length classes.
@@ -1113,14 +1146,23 @@ The approximation ratio follows by arguing that the expected number of errors at
 (see Lemma~\ref{lem:length-class}).
 This finishes the proof of Theorem~\ref{thm:qptas}.
 
+\vspace{5cm}
 \section{Discussion}
-The approximation status of \GMEC instances has been open for 10 years. 
+The approximation status of \GMEC instances has been open for 10 years \citep{Cilibrasi2007}. 
 We have studied the problem by unraveling its structures and identifying cases where the PTAS algorithm for \BMEC can not be directly applied for \GMEC.
 Based on the ideas of the algorithm for \BMEC, we build our own dynamic programming algorithm, by additionally including some deep insights. 
 We have proved that the dynamic programming algorithm is in QPTAS.
 Proving that the \GMEC in QPTAS rules out the possibility of this problem to be in APX-hard and also provides a hint that this problem can exhibit a PTAS.
 
-Unfortunately, due to the nested nature of dynamic programming, the algorithm can not be used to solve the \GMEC instances in practice.
-The \GMEC instances are of utmost importance because they have a biological significance.
-Based on this motivation, we looked into other types of algorithms ---parameterized algorithms \citep{martin2016whatshap} --- which are shown to work well in practice.
-Studying the structures for \GMEC instances in this chapter provided us good insights in deriving the parameter in parameterized algorithm which is explained in the next chapter.
+
+\bigskip
+
+\begin{center}\fbox{\begin{minipage}{35em}
+This chapter has a preprint \citep{garg2018qptas}, which has a co-author as T.\,Mömke. The figures in this chapter are taken from this preprint. 
+   I co-invented this approximation algorithm with T.\,Mömke and co-wrote the paper with him.
+\end{minipage}}\end{center}
+
+% Unfortunately, due to the nested nature of dynamic programming, the algorithm can not be used to solve the \GMEC instances in practice.
+% The \GMEC instances are of utmost importance because they have a biological significance.
+% Based on this motivation, we looked into other types of algorithms ---parameterized algorithms \citep{martin2016whatshap} --- which are shown to work well in practice.
+% Studying the structures for \GMEC instances in this chapter provided us good insights in deriving the parameter in parameterized algorithm which is explained in the next chapter.

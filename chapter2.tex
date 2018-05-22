@@ -1,46 +1,11 @@
-\chapter{Parameterized algorithm for phasing individual genomes}\label{ref:chp2}
-Dense and accurate chromosome-length haplotypes are necessary to completely understand the biology of diploid organisms.  
-In this chapter, we provide a parameterized algorithm, which is basically an integrative phasing framework using different datasets for solving the phasing problem. 
-This phasing algorithm is applied to the combination of global, but sparse haplotypes obtained from strand-specific single cell sequencing (Strand-seq) with dense, yet local haplotype information available through long-read or linked-read sequencing.
-This results in dense and accurate chromosome-length haplotypes at reasonable costs. 
-Furthermore, we provide comprehensive guidance on the required sequencing depths and reliably assign more than 95\% of alleles (NA12878) to their parental haplotypes using as few as 10 Strand-seq libraries in combination with 10-fold coverage PacBio data or, alternatively, 10X Genomics linked-read sequencing data.
+\chapter{Parameterized algorithm for phasing individual genomes}\label{ref:chp4}
+In the previous chapter, we studied the approximation status of \MEC and its variants.
+In this chapter, we first explore the practical approaches to solve the \MEC and present the literature survey on these approaches.
+Additionally, we survey practical approaches for solving other problem formulations of haplotype assembly such as MLF and MFC introduced in Chapter~\ref{ref:chp1}.
+% The methods for haplotype assembly are mainly categorized using their problem formulations: minimum error correction (MEC), minimum letter flip (MLF), maximum fragment cut (MFC), and others shown in Table~\ref{tab:related_work}.
+Afterwards, we highlight the importance of combining multiple sequencing technologies to generate complete haplotypes for individual genomes.
+We further explore how to use the MEC formulation for this data integration.
 
-\section{The need for combining different sequencing technologies}
-Constructing genome-wide chromosome-length haplotypes is important for different biological applications.
-Currently, methods used to chart the unique variation of individual human genomes rely largely on 2nd and 3rd generation DNA sequencing and can include specialized experimental protocols \citep{Snyder2015, Porubsky2016, de2014targeted, amini2014haplotype, selvaraj2013whole}. 
-Sequencing technologies sample the human genome in the form of relatively short molecules (reads) and every read that spans at least two heterozygous variants 
-can essentially be considered as a 'mini haplotype' that can be assembled into longer haplotype segments by partially overlapping reads spanning the same variable locus \citep{Glusman2014}. 
-To this end, haplotype-informative reads need to be partitioned into two disjoint sets that represent the two haplotypes. 
-This process, however, is challenging due to errors in sequencing as well as genotyping. 
-For these reasons assembling haplotypes directly from sequencing data is computationally challenging, and the resulting optimization problems are proven hard \citep{Cilibrasi2007, Lancia2001}. 
-Notwithstanding, a number of computational approaches for read-based phasing have recently been developed \citep{rhee2016survey} 
-and, particularly, progress on fixed-parameter tractable (FPT) algorithms has enabled solving read-based phasing in practice \citep{deng2013highly, Kuleshov2014, Patterson2015}, for instance through the implementations available in the software package WhatsHap \citep{martin2016whatshap}. 
-% Beyond phasing reads aligned to a reference genome, various approaches for haplotype-resolved de novo assembly have been explored21–25.	
-% \todo{related work for MEC is missing.}
-
-However, all approaches to reconstruct haplotypes from sequencing reads, reference-based or reference-free, come with the intrinsic limitation that the distance between subsequent heterozygous markers can be larger than the read length itself. 
-While long-read sequencing (such as PacBio SMRT \citep{steinberg2014single} and Oxford NanoPore MinION \citep{ammar2015long}), or linked read data (such as those provided by 10X Genomics \citep{zheng2016haplotyping}) help to mitigate this issue, 
-these technologies fail to phase over longer stretches of homozygosity, repeat-rich areas including segmental duplications, and centromeres. 
-Thus, specialized techniques that enable homologous chromosomes to be discriminated are required to physically connect alleles across whole chromosomes \citep{zheng2016haplotyping, ma2010direct, yang2011completely}. 
-As an alternative to whole chromosome separation, chromatin capture (Hi-C) methods \citep{lieberman2009comprehensive} can be employed to infer long-range haplotype information, based on the assumption that a chromosome will be cross-linked to itself more often than to its homologue \citep{selvaraj2013whole}.
-Recently, Hi-C data sets have been used in combination with other sequencing methods for long-range phasing \citep{edge2017hapcut2, ben2016extending}. 
-However, it has been shown that to generate a reliable long-range haplotype scaffold, relatively high sequence coverage (ideally ~90-fold) is needed to reduce bias caused by cross-links between non-homologous chromosomes \citep{edge2017hapcut2}. 
-In particular, because these haplotypes need to be inferred statistically, the probability that two heterozygous variants are correctly phased relative to each other, deteriorates with increasing chromosomal distances.
-
-% In Fig~\ref{fig:ex_all_datas}, we see the reads from different technologies over the human genome, ranging from Illumina based short reads to PacBio based long reads.
-% The main observation is that none of these technologies produce reads such that the set of reads independently span the whole chromosome, covering all the variants.
-% % Therefore, we propose an integrative strategy which has the ability to combine these technologies into one framework and therefore, generating accurate and complete haplotypes.
-Our aim is to obtain dense and global haplotypes that span centromeres, homozygosity regions and genome assembly gaps, while keeping error rates, costs and labor at minimum. 
-To this end, we harness the long-range phasing information provided by single cell template strand sequencing (Strand-seq) \citep{falconer2012dna, sanders2017single}. Strand-seq is an effective method to assemble highly 
-accurate chromosome-length haplotypes, albeit with lower density of phased alleles in comparison to read-based phasing \citep{Porubsky2016}. 
-Unlike other haplotyping methods, Strand-seq, by design, distinguishes parental homologues based on the directionality of single-stranded DNA. 
-Therefore, Strand-seq is able to deliver global haplotypes, and its capability to correctly phase two variants with respect to each other does not depend on their distance. 
-To fully exploit this advantage, while at the same time generating dense haplotypes that contain virtually all heterozygous SNVs, we designed a novel unified statistical framework to combine 
-Strand-seq data with short-read, long-read, or linked-read sequencing data. 
-Previously, Strand-seq data had only been used on its own, resulting in global yet sparse haplotypes \citep{Porubsky2016}. 
-We demonstrate how the long range phase information inherent to Strand-seq data can be leveraged to bridge phased segments obtained from Illumina, PacBio or 10X Genomics sequencing data into contiguous and global haplotypes that span whole chromosomes.
-We further offer extensive experimental guidance on favorable combinations of the number of used Strand-seq libraries and the depth of PacBio or Illumina coverage, 
-and thus enable considerable reductions in costs and labor – yielding a novel, affordable and scalable approach for reconstruction of haplotype-resolved individual genomes.
 \begin{center}
 \begin{table}
 \centering
@@ -58,7 +23,7 @@ Formulation &  Approach  & Authors \\
    & ILP & \cite{CDW13_exact} \\
    & Clustering & \cite{wang2007clustering} \\
    \hline
-   MLF &  & \cite{zhao2005haplotype}, \cite{xie2008model}, \\
+   MLF & Dynamic Programming & \cite{zhao2005haplotype}, \cite{xie2008model}, \\
    & & \cite{kang2010hapassembler}, \cite{wu2013heuristic}\\
    \hline
    MFC & Graph & \cite{Duitama2010} \\
@@ -73,82 +38,83 @@ Formulation &  Approach  & Authors \\
 \label{tab:related_work}
 \end{table}
 \end{center}
-\section{Further related work}
-The methods for haplotype assembly are mainly categorized using their problem formulations: minimum error correction (MEC), minimum letter flip (MLF), maximum fragment cut (MFC), and others shown in Table~\ref{tab:related_work}.
-The explanation of these problem formulations is given in Chapter~\ref{ref:chp1}.
 
-In the work by \cite{wang2005haplotype}, a haplotype problem is modelled as a binary tree and haplotypes are viewed as the optimal path in this tree. 
-They applied a branch
+\section{Literature survey}
+Table~\ref{tab:related_work} presents the summary of practical approaches for solving \MEC and other problem formulations.
+\cite{wang2005haplotype} provides the exact algorithm for solving the MEC model. They model a haplotype problem as a binary tree and haplotypes are viewed as the optimal path in this tree. 
+They apply a branch
 and bound algorithm to solve this haplotype problem. 
 This algorithm searches an optimal path in a binary tree, in which
 the node on the $j$-th level denotes the $j$-th fragment and the
 branch on the path connecting its child denotes its
-corresponding category of haplotype. 
-A binary string is used to express an individual code which represents a classification of fragments (a feasible solution to the MEC model).
+corresponding haplotype assignment. 
+A binary string is used to represent an assignment of each fragment to one of the two haplotypes (a feasible solution to the MEC model).
 The algorithm starts from root node by adding the first fragment and calculates the MEC score. 
 Then, if the calculated score is bigger than the previous score, the node will be divided. This process is continued until all the fragments are considered.
 This results in a binary tree and then the optimal haplotype path is computed in this tree.
-
-
 The branch and bound algorithm
 can find the exact optimal solution, but the running time is exponential in the number of
 fragments. Therefore, it is not useful on large datasets. 
 
-\cite{lim2012individual} first identified the initial upper bound using a local search algorithm and 
-reduced the search space of the branch and bound algorithm based on this computed upper bound.
-Thus, they solved the MEC problem in reasonable time.
+\cite{lim2012individual} first identify an initial upper bound using a local search algorithm and 
+reduce the search space of the branch and bound algorithm based on this computed upper bound.
+By using recursive property of bounding functions with some lookup table, they can solve the MEC problem in reasonable time.
+\cite{wang2012using} consider the original fragments and uses Hamming distance to calculate the difference between a haplotype and a fragment. 
+They use the genetic algorithm and their approach works even for tri- or tetra-allelic loci and homozygous sites. 
+% Thus they reconstructed the haplotype considering the case marked as a homozygous locus by a sequence error in the original data. 
 
-Instead of the MEC score, \cite{wang2012using} used Hamming distance to calculate the difference between a haplotype and a fragment, 
-without encoding the SNP values to 0, 1, and ``-'', as introduced in Chapter~\ref{ref:chp1}. 
-Therefore, their  approach works even for tri- or tetra-allelic loci and homozygous sites. 
-Thus they reconstructed the haplotype considering the case marked as a homozygous locus by a sequence error in the original data. 
-
-Another approach for solving haplotyping using the MEC is to reduce the problem into a satisfiability (SAT) problem. 
-\cite{he2010optimal} proposed a partial Max-SAT formulation for haplotype assembly.
+Another approach for solving haplotyping using the MEC is to reduce it to a satisfiability (SAT) problem. 
+\cite{he2010optimal} propose a partial Max-SAT formulation for haplotype assembly.
 % Given a set of clauses (a clause is a disjunction of Boolean literals), the MaxSAT problem asks for a complete assignment of all variables that maximizes the number of clauses the assignment satisfies.
-Solvers such as Clone and WBO are used to solve the resulting MaxSAT problems.
-\cite{mousavi2011effective} suggested a Max-2-SAT problem,
-which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances. Their formulation is more generalized, 
-considering homozygous alleles that can appear due to sequencing errors.
+Solvers such as Clone and WBO are used to solve the resulting Max-SAT problems.
+\cite{mousavi2011effective} suggest a Max-2-SAT problem,
+which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances. Thus their formulation is more generalized and their approach works even for homozygous alleles that can appear due to sequencing errors.
 Also, their Max-SAT formulation results in instances with fewer variables and clauses than those of the Partial Max-SAT formulation.
 The heuristic Max-SAT solver irots provided in the UBCSAT package is used.
 
 Some studies tried to model haplotyping problems by using probabilistic approaches. 
 Since the fragments of the input SNP matrix stem from two haplotypes, 
-\cite{chen2008linear} assumed that the fragments were generated according to two parameters representing errors. 
-They designed a probabilistic function using the error parameters for the haplotype. 
-In the input fragment matrix $\mathcal{F}$, the fragments were divided into two sets and the most frequent character 
+\cite{chen2008linear} assumed that the fragments were generated according to two parameters, representing sequencing errors and incompleteness errors.
+They also assumed a third parameter denoting a minimum difference between two haplotypes.
+When the parameters were unknown, they assumed the existence of those parameters from the input SNP matrix and can reconstruct the haplotypes with high probability.
+Thus they designed a probabilistic function using those parameters for the haplotype. 
+As a result, the fragments from the fragment matrix $\mathcal{F}$ were divided into two sets and the most frequent character 
 in each SNP site was selected to determine the haplotype sequence. 
-Therefore, the two haplotypes could be reconstructed with a possible high probability. 
 HASH by \cite{bansal2008mcmc} and HAPCUT by \cite{Bansal2008} also used probabilistic models based on graph structure. 
-They constructed a graph with the input matrix. The nodes are the columns of the matrix. 
+They constructed a graph from the input matrix, where the nodes correspond to the columns of the matrix. 
 If there is a fragment that includes two sites, the two nodes are connected by an edge. 
-The weight of the edge is the difference between the number of fragments matched to the haplotype sites and the unmatched fragment. 
+The weight of the edge is the number of fragments inconsistent with the current phase between the SNP pair minus the number of fragments consistent with the phase.
+Informally, the weight represents the weakness of phasing in SNP pair.
+% The weight of the edge is the difference between the number of fragments matched to the haplotype sites and the unmatched fragment. 
 HASH used a graph-cut algorithm and constructs a Markov chain, 
 but HAPCUT optimized the MEC score by using a Max-Cut algorithm. 
-In these two methods, the distance to both haplotypes was calculated for all fragments, and the fragments with the lowest distance are selected. 
-Using a greedy algorithm, the best pair of haplotypes was determined by using the best MEC score.
-Although HASH and HapCut achieve reasonably good results, they are stochastic and therefore can not guarantee optimal solutions.
+% In these two methods, the distance to both haplotypes was calculated for all fragments, and the fragments with the lowest distance are selected. 
+Using a greedy algorithm, the final pair of haplotypes was determined based on the resulting MEC score.
+Although HASH and HapCut achieve reasonably good results, they are heuristics and therefore can not guarantee optimal solutions.
 
 Another method used dynamic programming to determine the haplotypes for a single individual \citep{he2010optimal}. 
-For the input reads encoded in binary values, this approach first solves the partial instances optimally and then extends the partial obtained haplotypes by one bit repeatedly to obtain the full-length haplotypes. 
-They showed that the method can be applied to whole-genome sequencing datasets. However, the method does not scale with increasing SNP sites.
-To solve this drawback, \cite{deng2013highly} combined this dynamic programming method with a heuristic approach. 
+For the input reads encoded as the usual fragment matrix, this approach first solves partial instances optimally and then extends the partial haplotypes by one bit repeatedly to obtain full-length haplotypes. 
+They showed that method can be applied to whole-genome sequencing datasets. However, the method does not scale with increasing SNP sites per read because 
+the running time is $O(m \cdot 2^k \cdot n)$, where $m$ is the number of reads, $k$ is the length of longest read and $n$ is the total number of SNPs in the haplotypes.
+To solve this drawback, \cite{deng2013highly} designed a different dynamic programming method whose running time is $O(n \cdot 2^t \cdot t)$, where $t$ is the maximum coverage and $n$ is the number of columns.
+For large MEC instances, they combined this dynamic programming with a heuristic approach. 
 This method first applies a heuristic to obtain a subset of the input matrix $\mathcal{F}$ by using a randomized sampling approach and then carries out the dynamic programming. 
-Once it produces an initial solution from the submatrix, it refines the haplotypes by comparing the initial haplotype with all fragments. 
-By repeating the initial solution and refinement steps, the final haplotypes are determined.
-They showed that the heuristic algorithm gives very accurate solutions.
-More recently, \cite{Pirola2015} considered a restricted variant of MEC, in which up to $k$ corrections were allowed per SNP position, 
-and presented an FPT algorithm that runs in time exponential in $k$.
+Once it produces an initial solution from the submatrix, it refines the haplotypes by comparing the solution to all fragments. 
+By repeatedly solving a submatrix and refining the results, the final haplotypes are determined.
+% They showed that the heuristic algorithm gives very accurate solutions.
+More recently, \cite{Patterson2015} provided an FPT algorithm to solving the wMEC model. The running time is $O(2^cov \cdot m)$, where $cov$ is the maximum coverage and $m$ is the number of columns.
+\cite{Pirola2015} considered a restricted variant of MEC, in which up to $k$ corrections were allowed per SNP position, 
+and presented an FPT algorithm that runs in time exponential in $k$. The running time is $O(cov^{k+1} \cdot L \cdot m)$,
+where $cov$  is the maximum coverage, $L$ is the read length and $m$ is the number of SNP positions.
 
 In another approach, the first ILP formulation for MEC was given by \cite{Fouilhoux2012} and was based on a reduction to the maximum bipartite induced sub-graph problem. 
 In another ILP approach by \cite{CDW13_exact}, the binary variable $x_k$ for column $\mathcal{F}(k)$ 
 was considered such that its value is supposed to be 1, if and only if the $k^{th}$ bits of $h^0$ and $h^1$ are 1 and 0 respectively.
 Moreover, the binary variable $y_j$ for row $\mathcal{F}(j)$ was considered such that its value is supposed to be 1, if and only 
 if the read corresponding to $\mathcal{F}(j)$ is aligned to $h^0$ and otherwise 0.
-The constraints on all the binary variables for all the rows and columns, were that the binary variables should belong to 0 or 1.
+% The constraints on all the binary variables for all the rows and columns, were that the binary variables should belong to 0 or 1.
 The objective function was to minimize the number of flips in each entry from all the rows such that all rows can be assigned to the original haplotypes $h^0$ or $h^1$ without any conflict. 
-By using some auxiliary variables, ILP can be reduced to a linear program, that gives an optimal solution to the problem.
+% By using some auxiliary variables, ILP can be reduced to a linear program, that gives an optimal solution to the problem.
 
 Another approach by \cite{wang2007clustering} considered a clustering algorithm that is used to split the rows of $\mathcal{F}$ in two sets. 
 The main contribution consists in the combination of the two distance functions used by the clustering algorithm. 
@@ -163,60 +129,14 @@ Once all fragments are assigned, the consensus strings H1 and H2 are updated and
 
 There were some approaches to solve other objective functions such as MFR and MSR.
 They mainly used graphs, dynamic programming and other heuristic methods to solve haplotyping problem.
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{Figure2}.pdf}
-\caption{Integration of global and local haplotypes by the WhatsHap algorithm. 
-An example solution of the weighted minimal error correction problem (wMEC) using WhatsHap algorithm is shown. For simplicity base qualities used as weights are omitted from the picture. 
-(a)The columns of the matrix represent 34 heterozygous variants (SNVs). Continuous stretches of zeros and ones indicate alleles supported by respective reads (0 -- reference allele, 1 -- alternative allele). 
-First two rows of the wMEC matrix are represented by Strand-seq haplotypes, illustrated as one 'super read' connecting alleles along the whole length of the chromosome. 
-(1st row haplotype 1 alleles, 2nd row haplotype 2 alleles). 
-Subsequent rows of the matrix are represented by reads that map to the reference assembly in short overlapping segments.  
-Sequencing errors (shown in red in read 2 and 7) are corrected when the cost for flipping the alleles is minimized. (b) Reads are then partitioned into two haplotype groups (Haplotype 1 -- dark blue, Haplotype 2 -- light blue) 
-such that a minimal number of alleles are corrected (in red). As an illustration of long haplotype contiguity facilitated by Strand-seq 'super reads', 
-we depict two non-overlapping groups of reads (gray rectangles) that can be stitched together by Strand-seq (dashed lines). (c) Final haplotypes are exported for both groups of optimally partitioned reads.}
-\label{fig:fig2}
-\end{figure}
-\section{Integrative phasing framework}
-In this section, we present a novel integrative phasing method that is a framework to solve phasing jointly using different sequencing datasets.
-To solve it, we present MEC instances to jointly include the read alignment or initial haplotypes from different technologies.
-For example, For example, the haplotypes are generated using strand-specific cells or 10x Genomics, are added to the matrix $\mathcal{F}$. Furthermore, the read-alignments over the variants using different technologies such as PacBio or Illumina are then additionally incorporated in $\mathcal{F}$.
-The goal is to partition the rows in $\mathcal{F}$ into two non-conflicting sets.
-The input matrix and the bipartition of the rows is illustrated in Fig.~\ref{fig:fig2}.
 
-Mathematically, aligned reads from Illumina or PacBio (or pre-phased 10X Genomics haplotype segments) and sparse Strand-seq haplotypes are jointly represented in the form of a fragment matrix, where each  row represent either one read (in case of Illumina and PacBio), 
-one pre-phased haplotype segment (in case of 10X Genomics) or one sparse global haplotype (in case of Strand-Seq data) and columns represent the variant sites (Fig.~\ref{fig:fig2}). 
-The matrix is filled with 0, 1 and ‘-’ entries, where 0 and 1 indicate that the corresponding read supports the reference or alternative allele, respectively,  and ‘-’ means the information is missing 
-(e.g. because a read does not cover this variant site). WhatsHap selects a subset of rows and solves the wMEC problem optimally on these rows. 
-The result is a maximum likelihood bipartition of rows, which corresponds to the two sought haplotypes.
-For all analyses, whatshap was provided with a reference genome (option --reference) to enable re-alignment-based allele detection when constructing the fragment matrix from sequencing reads. 
-This has been shown to significantly improve performance for PacBio reads \citep{martin2016whatshap}.
-The goal is to partition the rows into two sets and generate two haplotypes for diploid genomes.
+Thus a number of computational approaches for read-based phasing have been developed 
+and, particularly, progress on fixed-parameter tractable (FPT) algorithms has enabled solving read-based phasing in practice, for instance through the implementations available in the software package WhatsHap\footnote{\scriptsize{\url{https://bitbucket.org/whatshap/whatshap}}} \citep{martin2016whatshap}, distributed as Open Source software under the terms of the MIT license. 
 
-Based on Definition~\ref{def:feasible-mec}, we would like to generate a conflict-free MEC instance such that we can create a bipartition of rows into two sets. 
-% \todo{explain MEC matrix and its goal using example above.}
-% 
-% \todo{1. present MEC matrix example for different technologies like pacbio, illumina, 10xG haps, SS haps. 2. Now state the common observation from all the examples. 3. Then provide a intuition to solve it. 
-% 4. Finally provide the DP algorithm like in book DPChange of chapter 6.}
-\subsection{StrandPhaseR pipeline}
-% 	To build whole genome haplotypes from Strand-seq data we used 
-	A new sorting-based pipeline, called StrandPhaseR, is developed to generating whole genome haplotypes from Strand-seq data.
-	In StrandPhaseR phasing algorithm, a binary sorting based strategy of parallel matrices is used, in order to storing haplotype information obtained from single cell Strand-seq libraries. 
-% 	StrandPhaseR implements an improved phasing algorithm based on a binary sorting strategy of two parallel matrices, storing haplotype information obtained from single cell Strand-seq libraries.
-	Due to sequencing errors, there are conflicts in each matrix and the goal of sorting is to minimizing these conflicts in each matrix.
-% 	The goal of sorting is to minimize the conflicts at variable positions in each matrix.
-        The whole genome is divided into windows of equal size and WC regions for every Strand-seq library were identified by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads.
-% 	Haplotype informative WC regions were localized in every Strand-seq library  by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads in equally sized regions (default 1 Mb). 
-% 	We used Fisher's exact test to calculate the probability that a region contained approximately equal numbers of Crick and Watson reads and agreed with the expected 50:50 ratio of a WC region \citep{sanders2016characterizing}. 
-% 	We identify alleles at SNVs for W and C reads in every informative region to generate haplotypes and then the sorting algorithm is performed.
-% 	Alleles at variable positions (supplied as set of SNVs obtained from Illumina platinum haplotypes) were identified separately for W and C reads 
-% 	in every informative region to generate low density single cell haplotypes 
-% 	that are then sorted by the phasing algorithm. 
- 
-	
-\subsection{WhatsHap Algorithm}\label{sec:algorithm}
-WhatsHap \citep{Patterson2015} is a dynamic programming (DP) algorithm to optimally solve the wMEC problem.
+\section{WhatsHap Algorithm}\label{sec:algorithm}
+WhatsHap \citep{Patterson2015} is a Dynamic programming (DP) algorithm to optimally solve the wMEC problem (Problem~\ref{prob:wmec}.
 It runs in $\mathcal{O}(2^c\cdot M)$ time, where $M$ is the number of variants to be phased and $c$ is the maximum physical coverage (which includes internal segments of paired-end reads).
-Since it is independent of the read-length, so it is suitable for even long sequencing technologies.
+Since it is independent of the read-length, so it is suitable for sequencing technologies producing long reads.
 The general idea is to proceed column-wise from left to right while maintaining a set of active reads.
 Each read remains active from its first non-dash position to its last non-dash position in $\mathcal{F}$.
 Let the set of active reads in column $k$ be denoted by $A(k)$.
@@ -224,10 +144,37 @@ Note that $c=\max_{k}\{|A(k)|\}$.
 For each column $k$ of $\mathcal{F}$, we fill a DP table column $C(k,\cdot)$ with $2^\abs{A(k)}$ entries, one entry for each bipartition $B$ of the set of active reads $A(k)$.
 Each entry $C(k,B)$ is equal to the cost of solving wMEC on the partial matrix consisting of columns $1$ to $k$ of $\mathcal{F}$ under the assumption that the sought bipartition of the full read set $A(1)\cup\ldots\cup A(k)$ \emph{extends} $B$ according to the below definition.
 \begin{definition}[Bipartition extension]
-For a given set $A$ and a subset $A'\subset A$, a bipartition $B=(P,Q)$ of $A$ is said to \emph{extend} a bipartition $B'=(P',Q')$ of $A'$ if $P'\subset P$ and $Q'\subset Q$.
+For a given set $A$ and a subset $A'\subset A$, a bipartition $B=(P,Q)$ of $A$ is said to \emph{extend} ($\simeq$) a bipartition $B'=(P',Q')$ of $A'$ if $P'\subset P$ and $Q'\subset Q$.
 \label{def:bipartite-extend}
 \end{definition}
 By this semantics of DP table entries $C(k,B)$, the minimum of the last column $\min_B\{C(M,B)\}$ is the optimal wMEC cost.
+
+\textit{DP cell initialization}. Along similar lines as \cite{Patterson2015}, we first compute the local cost incurred by bipartition $B= (R,S)$ in column $k$, 
+denoted $\Delta_C(k,B)$, and later combine it with the corresponding costs incurred in previous columns.
+% We write $\mathcal{S}(k,B)$ to denote this set of sets of reads induced by bipartition $B$ in column $k$.
+The cost $W_{k,R}^a$ of flipping all entries in a read set $R$ to the same allele $a\in\{0,1\}$ is given by 
+\[W_{k,R}^a = \sum_{j\in R}\iverl \mathcal{F}(j,k)\neq a\iverr\cdot\mathcal{W}(j,k),\]
+In the same manner, we can compute costs $W_{k,S}^a$ for read set $S$ to some allele $a$.
+
+So given the corresponding column vectors $\mathcal{F}(k)$ and $\mathcal{W}(k)$ of the MEC matrix and of the weight matrix, 
+respectively, and the bipartition $B=(R,S)$ of active reads $A(k)$, the cost $\Delta_C(k,B)$ is computed by:
+\begin{equation}\label{eq:dp-cell-core}
+  \Delta_C(k,B)= \min\big\{W_{k,S}^0 + W_{k,R}^1, W_{k,S}^1 + W_{k,R}^0\big\},
+\end{equation}
+where minimization considers the two possibilities of assigning those two alleles to the two haplotypes.
+
+\textit{DP column recurrence}.
+Note that $C(k,B)$ is the cost of an optimal solution of Problem~\ref{prob:wmec} for input matrices restricted to the first $k$ columns 
+under the additional constraint that the solution's bipartition of the full read set extends $B$.
+Since column $k$ lists all bipartitions, the optimal solution to the input matrix consisting of the first $k$ columns would be given by the minimum in that column.
+To compute entries in column $C(k+1,\cdot)$, we add up local costs incurred in column $k+1$ and costs from the previous column is given as:
+\begin{equation}\label{eq:dp-recurrence-core}
+ C(k+1,B)= \Delta_C(k+1,B) + \min_{\substack{B'\in\mathcal{B}(A(k)):B\simeq B'}}C(k,B')
+\end{equation}
+where $\mathcal{B}\big(A(k)\big)$ denotes the set of all bipartitions of $A(k)$.
+ 
+To adhere to the semantics of $C(k+1,B)$ described above, only entries in column $k$ whose bipartitions are \emph{compatible} with $B$ are to be considered as possible ``predecessors'' of $C(k+1, B)$.
+Finally, we can backtrace from the last column to get the haplotypes.
 
 Let us consider an example to understand how the algorithm works. We consider an example SNP matrix $\mathcal{F}$ and its corresponding weight matrix $\mathcal{W}$ as follows.
 
@@ -262,9 +209,215 @@ Let us consider some values in the weight matrix~\eqref{eq:snp_weight_matrix}:
 So the goal is to partition the reads into two sets with minimum flipping cost. If we try in a brute-force manner, the possible bipartitions are as follows.
 
 \begin{itemize}
- \item For bipartition $\{r_1\}, \{r_2, r_3\}$, the cost is 1. This is achieved by flipping entry $\mathcal{F}(22)$ with a cost $\mathcal{W}(22) = 1$.
- \item For the other bipartition $\{r_1, r_2, r_3\}, \emptyset$, the cost as 14. This is achieved by flipping entries $\mathcal{F}(11), \mathcal{F}(12), \mathcal{F}(22)$, with a cost of 3+10+1 = 14.
+ \item For bipartition $(\{r_1\}, \{r_2, r_3\})$, the cost is 1. This is achieved by flipping entry $\mathcal{F}(2,2)$ with a cost $\mathcal{W}(2,2) = 1$.
+ \item For the bipartition $(\{r_1, r_2, r_3\}, \emptyset)$, the cost computes to 14. This is achieved by flipping entries $\mathcal{F}(1,1), \mathcal{F}(1,2), \mathcal{F}(2,2)$, with a cost of 3+10+1 = 14.
 \end{itemize}
+
+In a similar manner, we can compute the cost for other possible bipartitions.
+
+Since this example is very small, it is doable in a brute-force manner. For large input instances, we explain the FPT algorithm implemented in WhatsHap.
+As explained above, the initialization for first column can be computed as follows. 
+We consider all possible bipartitions and store cost for each bipartition.
+
+For instance, the first DP column for the above example for different bipartitions, $\Delta_C(1,.)$ can be filled in a following way using Equation~\eqref{eq:dp-cell-core}:
+\[C(1, (\{r_1,r_2,r_3\},\emptyset)) =\min\{3+0,13+0\} = 3\]
+
+Similarly, we can compute $\Delta_C(1,.)$ for other bipartitions $(\{r_1,r_2\},\{r_3\}),(\{r_1,r_3\},\{r_2\}),$\\
+$(\emptyset,\{r_1,r_2,r_3\}), (\{r_3\},\{r_1,r_2\}), (\{r_2\},\{r_1,r_3\})$.
+
+Now, let the DP table entries in the second column $C(2,.)$ for different bipartitions by using Equation~\eqref{eq:dp-recurrence-core}:
+\[C(2, (\{r_1,r_2,r_3\},\emptyset)) = \min\{11+0, 5+0\}  + \min\{C(1, (\{r_1,r_2,r_3\},\emptyset)\} = 5+3 = 8 \]
+
+% In the above recurrence, we make sure that we follow the conditions imposed by Definition~\ref{def:bipartite-extend}.
+To fill DP column $C(2,.)$, we can analogously compute the cost for the remaining bipartitions $(\{r_1,r_2\},\{r_3\})$,
+$(\{r_1,r_3\},\{r_2\})$, $(\emptyset,\{r_1,r_2,r_3\})$, $(\{r_3\},\{r_1,r_2\})$, and $(\{r_2\},\{r_1,r_3\})$.
+
+% Finding optimal haplotypes is similar to finding the optimal bipartition of reads. 
+Once we reach the last column and know the optimal bipartition, we can backtrace to get the corresponding haplotypes.
+We observe that the running time is linear in the number of variants and independent of read length.
+
+% Dense and accurate chromosome-length haplotypes are necessary to completely understand the biology of diploid organisms.  
+% In this chapter, we provide a parameterized algorithm, which is basically an integrative phasing framework using different datasets for solving the phasing problem. 
+% This phasing algorithm is applied to the combination of global, but sparse haplotypes obtained from strand-specific single cell sequencing (Strand-seq) with dense, yet local haplotype information available through long-read or linked-read sequencing.
+% This results in dense and accurate chromosome-length haplotypes at reasonable costs. 
+% Furthermore, we provide comprehensive guidance on the required sequencing depths and reliably assign more than 95\% of alleles (NA12878) to their parental haplotypes using as few as 10 Strand-seq libraries in combination with 10-fold coverage PacBio data or, alternatively, 10X Genomics linked-read sequencing data.
+
+\section{The need for combining different sequencing technologies}
+% Constructing genome-wide chromosome-length haplotypes is important for different biological applications.
+% Currently, methods used to chart the unique variation of individual human genomes rely largely on 2nd and 3rd generation DNA sequencing 
+% and can include specialized experimental protocols \citep{Snyder2015, Porubsky2016, de2014targeted, amini2014haplotype, selvaraj2013whole}. 
+% Sequencing technologies sample the human genome in the form of relatively short molecules (reads) and every read that spans at least two heterozygous variants 
+% can essentially be considered as a 'mini haplotype' that can be assembled into longer haplotype segments by partially overlapping reads spanning the same variable locus \citep{Glusman2014}. 
+% To this end, haplotype-informative reads need to be partitioned into two disjoint sets that represent the two haplotypes. 
+% This process, however, is challenging due to errors in sequencing as well as genotyping. 
+% For these reasons assembling haplotypes directly from sequencing data is computationally challenging, and the resulting optimization problems are proven hard \citep{Cilibrasi2007, Lancia2001}. 
+% Notwithstanding, a number of computational approaches for read-based phasing have recently been developed \citep{rhee2016survey} 
+% and, particularly, progress on fixed-parameter tractable (FPT) algorithms has enabled solving read-based phasing in practice \citep{deng2013highly, Kuleshov2014, Patterson2015}, for instance through the implementations available in the software package WhatsHap \citep{martin2016whatshap}. 
+% Beyond phasing reads aligned to a reference genome, various approaches for haplotype-resolved de novo assembly have been explored21–25.	
+% \todo{related work for MEC is missing.}
+
+All approaches to reconstruct haplotypes from sequencing reads, reference-based or reference-free, come with the intrinsic limitation that the distance between subsequent heterozygous markers can be larger than the read length itself. 
+While long-read sequencing (such as PacBio SMRT \citep{steinberg2014single} and Oxford NanoPore MinION \citep{ammar2015long}), or linked read data (such as those provided by 10X Genomics \citep{zheng2016haplotyping}) help to mitigate this issue, 
+these technologies fail to phase over longer stretches of homozygosity, repeat-rich areas including segmental duplications, and centromeres. 
+Thus, specialized techniques that enable homologous chromosomes to be discriminated are required to physically connect alleles across whole chromosomes \citep{zheng2016haplotyping, ma2010direct, yang2011completely}. 
+As an alternative to whole chromosome separation, chromatin capture (Hi-C) methods \citep{lieberman2009comprehensive} can be employed to infer long-range haplotype information, based on the assumption that a chromosome will be cross-linked to itself more often than to its homologue \citep{selvaraj2013whole}.
+Recently, Hi-C data sets have been used in combination with other sequencing methods for long-range phasing \citep{edge2017hapcut2, ben2016extending}. 
+However, it has been shown that to generate a reliable long-range haplotype scaffold, relatively high sequence coverage (ideally ~90-fold) is needed to reduce bias caused by cross-links between non-homologous chromosomes \citep{edge2017hapcut2}. 
+In particular, because these haplotypes need to be inferred statistically, the probability that two heterozygous variants are correctly phased relative to each other, deteriorates with increasing chromosomal distances.
+
+% In Fig~\ref{fig:ex_all_datas}, we see the reads from different technologies over the human genome, ranging from Illumina based short reads to PacBio based long reads.
+% The main observation is that none of these technologies produce reads such that the set of reads independently span the whole chromosome, covering all the variants.
+% % Therefore, we propose an integrative strategy which has the ability to combine these technologies into one framework and therefore, generating accurate and complete haplotypes.
+Our aim is to obtain dense and global haplotypes that span centromeres, homozygosity regions and genome assembly gaps, while keeping error rates, costs and labor at minimum. 
+To this end, we harness the long-range phasing information provided by single cell template strand sequencing (Strand-seq) \citep{falconer2012dna, sanders2017single}. Strand-seq is an effective method to assemble highly 
+accurate chromosome-length haplotypes, albeit with lower density of phased alleles in comparison to read-based phasing \citep{Porubsky2016}. 
+Unlike other haplotyping methods, Strand-seq, by design, distinguishes parental homologues based on the directionality of single-stranded DNA. 
+Therefore, Strand-seq is able to deliver global haplotypes, and its capability to correctly phase two variants with respect to each other does not depend on their distance. 
+To fully exploit this advantage, while at the same time generating dense haplotypes that contain virtually all heterozygous SNVs, we show how the MEC problem can serve as a framework to combine 
+Strand-seq data with short-read, long-read, or linked-read sequencing data. 
+Previously, Strand-seq data had only been used on its own, resulting in global yet sparse haplotypes \citep{Porubsky2016}. 
+We demonstrate how the long range phase information inherent to Strand-seq data can be leveraged to bridge phased segments obtained from Illumina, PacBio or 10X Genomics sequencing data into contiguous and global haplotypes that span whole chromosomes.
+We further offer extensive experimental guidance on favorable combinations of the number of used Strand-seq libraries and the depth of PacBio or Illumina coverage, 
+and thus enable considerable reductions in costs and labor – yielding a novel, affordable and scalable approach for reconstruction of haplotype-resolved individual genomes.
+
+% \section{Further related work}
+% The methods for haplotype assembly are mainly categorized using their problem formulations: minimum error correction (MEC), minimum letter flip (MLF), maximum fragment cut (MFC), and others shown in Table~\ref{tab:related_work}.
+% The explanation of these problem formulations is given in Chapter~\ref{ref:chp1}.
+% 
+% In the work by \cite{wang2005haplotype}, a haplotype problem is modelled as a binary tree and haplotypes are viewed as the optimal path in this tree. 
+% They applied a branch
+% and bound algorithm to solve this haplotype problem. 
+% This algorithm searches an optimal path in a binary tree, in which
+% the node on the $j$-th level denotes the $j$-th fragment and the
+% branch on the path connecting its child denotes its
+% corresponding category of haplotype. 
+% A binary string is used to express an individual code which represents a classification of fragments (a feasible solution to the MEC model).
+% The algorithm starts from root node by adding the first fragment and calculates the MEC score. 
+% Then, if the calculated score is bigger than the previous score, the node will be divided. This process is continued until all the fragments are considered.
+% This results in a binary tree and then the optimal haplotype path is computed in this tree.
+% 
+% 
+% The branch and bound algorithm
+% can find the exact optimal solution, but the running time is exponential in the number of
+% fragments. Therefore, it is not useful on large datasets. 
+% 
+% \cite{lim2012individual} first identified the initial upper bound using a local search algorithm and 
+% reduced the search space of the branch and bound algorithm based on this computed upper bound.
+% Thus, they solved the MEC problem in reasonable time.
+% 
+% Instead of the MEC score, \cite{wang2012using} used Hamming distance to calculate the difference between a haplotype and a fragment, 
+% without encoding the SNP values to 0, 1, and ``-'', as introduced in Chapter~\ref{ref:chp1}. 
+% Therefore, their  approach works even for tri- or tetra-allelic loci and homozygous sites. 
+% Thus they reconstructed the haplotype considering the case marked as a homozygous locus by a sequence error in the original data. 
+% 
+% Another approach for solving haplotyping using the MEC is to reduce the problem into a satisfiability (SAT) problem. 
+% \cite{he2010optimal} proposed a partial Max-SAT formulation for haplotype assembly.
+% % Given a set of clauses (a clause is a disjunction of Boolean literals), the MaxSAT problem asks for a complete assignment of all variables that maximizes the number of clauses the assignment satisfies.
+% Solvers such as Clone and WBO are used to solve the resulting MaxSAT problems.
+% \cite{mousavi2011effective} suggested a Max-2-SAT problem,
+% which is more general than the partial Max-SAT. The general Max-SAT solver is used for solving the instances. Their formulation is more generalized, 
+% considering homozygous alleles that can appear due to sequencing errors.
+% Also, their Max-SAT formulation results in instances with fewer variables and clauses than those of the Partial Max-SAT formulation.
+% The heuristic Max-SAT solver irots provided in the UBCSAT package is used.
+% 
+% Some studies tried to model haplotyping problems by using probabilistic approaches. 
+% Since the fragments of the input SNP matrix stem from two haplotypes, 
+% \cite{chen2008linear} assumed that the fragments were generated according to two parameters representing errors. 
+% They designed a probabilistic function using the error parameters for the haplotype. 
+% In the input fragment matrix $\mathcal{F}$, the fragments were divided into two sets and the most frequent character 
+% in each SNP site was selected to determine the haplotype sequence. 
+% Therefore, the two haplotypes could be reconstructed with a possible high probability. 
+% HASH by \cite{bansal2008mcmc} and HAPCUT by \cite{Bansal2008} also used probabilistic models based on graph structure. 
+% They constructed a graph with the input matrix. The nodes are the columns of the matrix. 
+% If there is a fragment that includes two sites, the two nodes are connected by an edge. 
+% The weight of the edge is the difference between the number of fragments matched to the haplotype sites and the unmatched fragment. 
+% HASH used a graph-cut algorithm and constructs a Markov chain, 
+% but HAPCUT optimized the MEC score by using a Max-Cut algorithm. 
+% In these two methods, the distance to both haplotypes was calculated for all fragments, and the fragments with the lowest distance are selected. 
+% Using a greedy algorithm, the best pair of haplotypes was determined by using the best MEC score.
+% Although HASH and HapCut achieve reasonably good results, they are stochastic and therefore can not guarantee optimal solutions.
+% 
+% Another method used dynamic programming to determine the haplotypes for a single individual \citep{he2010optimal}. 
+% For the input reads encoded in binary values, this approach first solves the partial instances optimally and then extends the partial obtained haplotypes by one bit repeatedly to obtain the full-length haplotypes. 
+% They showed that the method can be applied to whole-genome sequencing datasets. However, the method does not scale with increasing SNP sites.
+% To solve this drawback, \cite{deng2013highly} combined this dynamic programming method with a heuristic approach. 
+% This method first applies a heuristic to obtain a subset of the input matrix $\mathcal{F}$ by using a randomized sampling approach and then carries out the dynamic programming. 
+% Once it produces an initial solution from the submatrix, it refines the haplotypes by comparing the initial haplotype with all fragments. 
+% By repeating the initial solution and refinement steps, the final haplotypes are determined.
+% They showed that the heuristic algorithm gives very accurate solutions.
+% More recently, \cite{Pirola2015} considered a restricted variant of MEC, in which up to $k$ corrections were allowed per SNP position, 
+% and presented an FPT algorithm that runs in time exponential in $k$.
+% 
+% In another approach, the first ILP formulation for MEC was given by \cite{Fouilhoux2012} and was based on a reduction to the maximum bipartite induced sub-graph problem. 
+% In another ILP approach by \cite{CDW13_exact}, the binary variable $x_k$ for column $\mathcal{F}(k)$ 
+% was considered such that its value is supposed to be 1, if and only if the $k^{th}$ bits of $h^0$ and $h^1$ are 1 and 0 respectively.
+% Moreover, the binary variable $y_j$ for row $\mathcal{F}(j)$ was considered such that its value is supposed to be 1, if and only 
+% if the read corresponding to $\mathcal{F}(j)$ is aligned to $h^0$ and otherwise 0.
+% The constraints on all the binary variables for all the rows and columns, were that the binary variables should belong to 0 or 1.
+% The objective function was to minimize the number of flips in each entry from all the rows such that all rows can be assigned to the original haplotypes $h^0$ or $h^1$ without any conflict. 
+% By using some auxiliary variables, ILP can be reduced to a linear program, that gives an optimal solution to the problem.
+% 
+% Another approach by \cite{wang2007clustering} considered a clustering algorithm that is used to split the rows of $\mathcal{F}$ in two sets. 
+% The main contribution consists in the combination of the two distance functions used by the clustering algorithm. 
+% The first distance is the Hamming distance as defined in Equation~\ref{eq:distance}, which basically computes the number of mismatches between two fragments. 
+% The second distance $D'$ considers the number of matches between the two fragments.
+% The main idea is based on the intuition that, given a certain fixed number of mismatches between two fragments, the more they overlap the closer they are.
+% Using the above distance functions, a simple iterative clustering procedure is given as follows.
+% The hamming distance is computed for each possible pair of fragments in the SNP matrix.
+% Let the two fragments $r_1$ and $r_2$ have the highest Hamming distance and the clusters are initialized as $C1 = r_1$ and $C2 = r_2$.
+% Let the computed consensus strings are H1 and H2 from these two clusters C1 and C2 such that all the fragments are compared with H1 and H2 and assigned to the corresponding closer set. The ambiguity in the assignment of fragments to both consensus strings is broken based on the distance $D'$.
+% Once all fragments are assigned, the consensus strings H1 and H2 are updated and the algorithm iterates. The procedure loops until a stable haplotype pair is found (i.e. when the consensus haplotypes are the same before and after the update).
+% 
+% There were some approaches to solve other objective functions such as MFR and MSR.
+% They mainly used graphs, dynamic programming and other heuristic methods to solve haplotyping problem.
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{Figure2}.pdf}
+\caption{Integration of global and local haplotypes by the WhatsHap algorithm. 
+An example solution of the weighted minimal error correction problem (wMEC) using WhatsHap algorithm is shown. For simplicity base qualities used as weights are omitted from the picture. 
+(a)The columns of the matrix represent 34 heterozygous variants (SNVs). Continuous stretches of zeros and ones indicate alleles supported by respective reads (0 -- reference allele, 1 -- alternative allele). 
+First two rows of the wMEC matrix are represented by Strand-seq haplotypes, illustrated as one 'super read' connecting alleles along the whole length of the chromosome. 
+(1st row haplotype 1 alleles, 2nd row haplotype 2 alleles). 
+Subsequent rows of the matrix are represented by reads that map to the reference assembly in short overlapping segments.  
+Sequencing errors (shown in red in read 2 and 7) are corrected when the cost for flipping the alleles is minimized. (b) Reads are then partitioned into two haplotype groups (Haplotype 1 -- dark blue, Haplotype 2 -- light blue) 
+such that a minimal number of alleles are corrected (in red). As an illustration of long haplotype contiguity facilitated by Strand-seq 'super reads', 
+we depict two non-overlapping groups of reads (gray rectangles) that can be stitched together by Strand-seq (dashed lines). (c) Final haplotypes are exported for both groups of optimally partitioned reads.}
+\label{fig:fig2}
+\end{figure}
+\section{Using MEC for data integration}
+In this section, we address the problem of haplotype phasing from multiple sequencing datasets.
+To this end, we present MEC instances to jointly include the read alignment or initial haplotypes from different technologies.
+For example, partial haplotypes might have been generated using Strand-seq data or 10x Genomics. Furthermore, the read alignments over the variants using different technologies such as PacBio or Illumina are then additionally incorporated in $\mathcal{F}$.
+As before, the goal is to partition the rows in $\mathcal{F}$ into two non-conflicting sets.
+The input matrix and the bipartition of the rows are illustrated in Figure~\ref{fig:fig2}.
+The matrix is filled with 0, 1 and ‘-’ entries, where 0 and 1 indicate that the corresponding read supports the reference or alternative allele, respectively,  and ‘-’ means the information is missing 
+(e.g. because a read does not cover this variant site). We apply the WhatsHap algorithm \citep{Patterson2015} on the MEC instance from multiple sequencing technologies.
+WhatsHap selects a subset of rows and solves the wMEC problem optimally on these rows. 
+The result is a maximum likelihood bipartition of rows, which corresponds to the two sought haplotypes.
+For all analyses, WhatsHap was provided with a reference genome (option --reference) to enable re-alignment-based allele detection when constructing the fragment matrix from sequencing reads. 
+This has been shown to significantly improve performance for PacBio reads \citep{martin2016whatshap}.
+
+
+% Based on Definition~\ref{def:feasible-mec}, we would like to generate a conflict-free MEC instance such that we can create a bipartition of rows into two sets. 
+% \todo{explain MEC matrix and its goal using example above.}
+% 
+% \todo{1. present MEC matrix example for different technologies like pacbio, illumina, 10xG haps, SS haps. 2. Now state the common observation from all the examples. 3. Then provide a intuition to solve it. 
+% 4. Finally provide the DP algorithm like in book DPChange of chapter 6.}
+% \subsection{StrandPhaseR pipeline}
+% % 	To build whole genome haplotypes from Strand-seq data we used 
+% 	A new sorting-based pipeline, called StrandPhaseR, is developed to generating whole genome haplotypes from Strand-seq data.
+% 	In StrandPhaseR phasing algorithm, a binary sorting based strategy of parallel matrices is used, in order to storing haplotype information obtained from single cell Strand-seq libraries. 
+% % 	StrandPhaseR implements an improved phasing algorithm based on a binary sorting strategy of two parallel matrices, storing haplotype information obtained from single cell Strand-seq libraries.
+% 	Due to sequencing errors, there are conflicts in each matrix and the goal of sorting is to minimizing these conflicts in each matrix.
+% % 	The goal of sorting is to minimize the conflicts at variable positions in each matrix.
+%         The whole genome is divided into windows of equal size and WC regions for every Strand-seq library were identified by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads.
+% % 	Haplotype informative WC regions were localized in every Strand-seq library  by counting the number of Crick (forward, ‘+’) and Watson (reverse, ‘-’) reads in equally sized regions (default 1 Mb). 
+% % 	We used Fisher's exact test to calculate the probability that a region contained approximately equal numbers of Crick and Watson reads and agreed with the expected 50:50 ratio of a WC region \citep{sanders2016characterizing}. 
+% 	We identify alleles at SNVs for W and C reads in every informative region to generate haplotypes and then the sorting algorithm is performed.
+% 	Alleles at variable positions (supplied as set of SNVs obtained from Illumina platinum haplotypes) were identified separately for W and C reads 
+% 	in every informative region to generate low density single cell haplotypes 
+% 	that are then sorted by the phasing algorithm. 
+ 
+	
 \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth]{{quality_measures}.pdf}
 \caption{Hypothetical phasing of 10 single nucleotide variants (SNVs) along a defined chromosomal region is shown
@@ -281,43 +434,38 @@ Hamming distances across all phased segments}
 \label{fig:quality}
 \end{figure}
 
-In a similar manner, we can compute the cost for other possible bipartitions.
-
-Since this example is very small, it is do-able in a brute-force manner. For large input instances, we explain the FPT algorithm implemented in WhatsHap with parameter as ``coverage''.
-As explained above, the initialization for first column can be computed as follows. We consider all possible bipartitions and store the best possible allele assignment for different bipartitions.
-
-For instance, the DP column cell for the above example for different bipartitions, $\Delta_C(1,.)$ can be filled as follows:
-\[C(1, (\{r_1,r_2,r_3\},\emptyset)) =\min\{3+0,13+0\} = 3\]
-
-Similarly, we can compute $\Delta_C(1,.)$ for other bipartitions $(\{r_1,r_2\},\{r_3\}),(\{r_1,r_3\},\{r_2\}),$\\
-$(\emptyset,\{r_1,r_2,r_3\}), (\{r_3\},\{r_1,r_2\}), (\{r_2\},\{r_1,r_3\})$.
-
-Now, let us consider second column and see how to compute DP column cell $C(2,.)$ for different bipartitions:
-\[C(2, (\{r_1,r_2,r_3\},\emptyset)) = \min\{11+0, 5+0\}  + \min\{C(1, (\{r_1,r_2,r_3\},\emptyset)\} = 5+3 = 8 \]
-
-In the above recurrence, we make sure that we follow the conditions imposed by Definition~\ref{def:bipartite-extend}.
-To fill DP column $C(2,.)$, we can analogously compute the cost for the remaining bipartitions $(\{r_1,r_2\},\{r_3\})$,
-$(\{r_1,r_3\},\{r_2\})$, $(\emptyset,\{r_1,r_2,r_3\})$, $(\{r_3\},\{r_1,r_2\})$, and $(\{r_2\},\{r_1,r_3\})$.
-
-Finding optimal haplotypes is similar to finding the optimal bipartition of reads. Once we reach the last column and know the optimal bipartition, we can backtrace to get the optimal haplotypes.
-We obverse that the running time is linear in the number of variants, so therefore, it is independent of read length.
-
 \section{Evaluation metrics}
-To assess the quality of assembled haplotypes in this study, we calculated different metrics described in the following.
+To assess the quality of assembled haplotypes, we calculated different metrics described in the following.
 
 \begin{itemize}
- \item Completeness: The process of haplotyping establishes phase relations between pairs of consecutive heterozygous variants. We call each such pair a 'phase connection'. For each haplotype segment produced by a combination of technologies, we therefore count the number of phase connections, which is equal to the number of heterozygous markers in the haplotype segment minus one. 
+ \item Completeness: The process of haplotyping establishes phase relations between pairs of consecutive heterozygous variants. We call each such pair a 'phase connection'. 
+ We define haplotype segment or haplotype block as a connected component of reads. For each haplotype segment produced by a combination of technologies, we therefore count the number of phase connections, which is equal to the number of heterozygous markers in the haplotype segment minus one. 
 To measure the completeness of a phasing, we sum the number of phase connections across all haplotype segments and divide by the maximum possible number of phase connections, which is equal to the number of heterozygous variants in the chromosome minus one.
-\item Switch error rate: The switch error rate is the fraction of phase connections for which the phasing between the two involved heterozygous variants is wrong (see Figure~\ref{fig:quality})).
-\item Largest haplotype segment: In this study we are interested in haplotypes that span the whole length of the chromosomes. To measure the completeness of phasing, we report the fraction of heterozygous variants that are part of the largest haplotype segment.
+\item Switch error rate: The switch error rate is the fraction of phase connections for which the phasing between the two involved heterozygous variants is wrong (see Figure~\ref{fig:quality}).
+\item Largest haplotype segment: We are interested in haplotypes that span the whole length of the chromosomes. To measure extend to which we achieved this, we report the fraction of heterozygous variants that are part of the largest haplotype segment.
+\vspace{10cm}
 \item Largest haplotype segment Hamming rate: To assess whether haplotypes are correct over long genomic distances, we only consider the largest haplotype segment and compute the Hamming distance between true and predicted haplotypes (see Figure~\ref{fig:quality}),
 divided by the total number of heterozygous variants in this haplotype segment. 
-That is,the Hamming error rate is equal to the fraction of wrongly phased heterozygous variants. 
-Note that, a switch error (e.g. in the middle of a chromosome) can result  into a very high Hamming distance and hence the Hamming distance is a much more stringent quality measure. 
+That is, the Hamming error rate is equal to the fraction of wrongly phased heterozygous variants. 
+Note that, a single switch error (e.g. in the middle of a chromosome) can give rise to a very large Hamming distance and hence the Hamming distance is a much more stringent quality measure. 
 While the switch error rate assesses whether haplotypes are correct locally, i.e. between pairs of neighboring heterozygous variants, the Hamming distance assesses whether haplotypes are correct globally.
 \end{itemize}
 
 \section{Results}
+\subsection{Experimental design and dataset description}
+	To explore a new integrative phasing strategy, with the aim of obtaining dense and accurate chromosome-length haplotypes, we used sequencing data available for a well-studied individual (NA12878). 
+	The NA12878 genome has been extensively sequenced using multiple technologies, providing high-coverage public sources of sequence information.	
+	In this study, we focused on read-based phasing data generated from Illumina short-read sequencing and PacBio technology, as they represent current standards for short- and long-read sequencing, 
+	respectively (Illumina short-read sequencing is for simplicity referred to as “Illumina data”). 
+	The Illumina dataset was sequenced to an average depth of 49.5x coverage with a median insert size of 433bp, and the PacBio dataset was sequenced to 39.6x coverage with an average read length of 15kb.
+	In addition, we evaluated the performance of 10X Genomics, an emerging linked-read technology. Since none of these technologies alone provides chromosome-length haplotype information, 
+	we additionally incorporated single cell Strand-seq data \citep{Porubsky2016}, which has the capacity to scaffold haplotype fragments obtained from other data types (Figure~\ref{fig:fig1}(a)). 
+	Here we used 134 single cell libraries sequenced to an average depth of 0.037x coverage per library using a paired-end sequencing protocol. 
+	To evaluate the phasing accuracy of haplotypes reported in this study, we used the publicly available Illumina platinum haplotypes generated for the same individual (NA12878) as a 'reference' standard.
+	NA12878 'reference haplotypes’ were completed by genetic haplotyping using highly accurate genotypes from seventeen individuals of a three-generation pedigree \citep{eberle2017reference}, which renders it an ideal gold-standard set for haplotype comparisons. 
+	We confirmed that sites and genotypes are in very good agreement with Genome in a Bottle calls.
+	However, it should be noted that, due to stemming from short reads, this SNV set most likely lacks some variants at repetitive or complex genomic loci (e.g. recent segmental duplications).
+
 \subsection{Datasets} 
 Illumina reads \citep{sudmant2015integrated, 10002015global} were obtained from the 1000 Genome Project Consortium \footnote{\url{ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/NA12878/high_coverage_alignment/}}. 
 PacBio reads \citep{giab} were obtained from Genome in a Bottle Consortium (GIAB) \footnote{\url{ftp://ftp trace.ncbi.nlm.nih.gov/giab/ftp/data/NA12878/NA12878_PacBio_MtSinai/sorted_final_merged.bam}}. 
@@ -327,19 +475,6 @@ Strand-seq libraries \citep{Porubsky2016}: We downloaded them from the European 
 The same data can also be obtained at the Zenodo site \footnote{\url{doi:10.5281/zenodo.830278}}. 
 Reference haplotypes \citep{eberle2017reference}: In this study we use as a gold standard, we downloaded reference triopedigree- based haplotypes of NA12878 obtained released as part of the Illumina platinum genomes (Version: 2016-1.0 from 6 June 2016) \footnote{http://www.illumina.com/platinumgenomes/}.
 
-\subsection{Experimental design and dataset description}
-	To explore a new integrative phasing strategy, with the aim of obtaining dense and accurate chromosome-length haplotypes, we used sequencing data available for a well-studied individual (NA12878). 
-	The NA12878 genome has been extensively sequenced using multiple technologies, providing high-coverage public sources of sequence information (see “Methods” section). 	
-	In this study, we focused on read-based phasing data generated from Illumina short-read sequencing and PacBio technology, as they represent current standards for short- and long-read sequencing, 
-	respectively (Illumina short-read sequencing is for simplicity referred to as “Illumina data”). 
-	The Illumina dataset was sequenced to an average depth of 49.5x coverage with a median insert size of 433bp, and the PacBio dataset was sequenced to 39.6x coverage with an average read length of ~15kb.
-	In addition, we evaluated the performance of 10X Genomics, an emerging linked-read technology. Since none of these technologies alone provides chromosome-length haplotype information, 
-	we additionally incorporated single cell Strand-seq data \citep{Porubsky2016}, which has the capacity to scaffold haplotype information obtained from other data types (Fig.~\ref{fig:fig1}(a)). 
-	Here we used 134 single cell libraries sequenced to an average depth of 0.037x coverage per library using a paired-end sequencing protocol. 
-	To evaluate the phasing accuracy of haplotypes reported in this study, we used the publicly available Illumina platinum haplotypes generated for the same individual (NA12878) as a 'reference' standard.
-	NA12878 'reference haplotypes’ were completed by genetic haplotyping using highly accurate genotypes from seventeen individuals of a three-generation pedigree \citep{eberle2017reference}, which renders it an ideal gold-standard set for haplotype comparisons. 
-	We confirmed that sites and genotypes are in very good agreement with Genome in a Bottle calls.
-	However, it should be noted that, due to stemming from short reads, this SNV set most likely lacks some variants at repetitive or complex genomic loci (e.g. recent segmental duplications).
 
 \subsubsection{Downsampling of sequencing datasets}
 	To assess different combinations of Strand-seq libraries (w.r.t. number of single cell libraries) with read data (w.r.t. depth of coverage), 
@@ -351,31 +486,31 @@ Reference haplotypes \citep{eberle2017reference}: In this study we use as a gold
 	The downsampling was performed for 5 independent trials to account for variability in downsampled datasets, and the average phasing performance across all trials was reported (as described below).
 
 \subsection{Phasing performance of individual technologies}
-	To independently assess the phasing performance of each technology we assembled haplotypes directly from sequencing reads (Illumina or PacBio) using WhatsHap (see Methods). 
-	The main advantage of this algorithm is that it solves the Minimum Error Correction (MEC) problem optimally with a run-time that scales linearly in the number of variants (alleles) and is independent of the read length. 
+	To independently assess the phasing performance of each technology we assembled haplotypes directly from sequencing reads (Illumina or PacBio) using WhatsHap. 
+	As discussed above (Section~\ref{sec:algorithm}), this algorithm is that it solves the Minimum Error Correction (MEC) problem optimally with a run-time that scales linearly in the number of variants (alleles) and is independent of the read length. 
 	Therefore, it performs well with short-read technologies (Illumina) and is especially suited for use with long reads (PacBio, Oxford Nanopore). 10X Genomics haplotype segments were assembled by the vendor using the 10X LongRanger pipeline. 
-	To phase multiple Strand-seq libraries we have developed a new phasing algorithm, implemented in the R package StrandPhaseR.
-	In comparison to our previously published phasing algorithm \citep{Porubsky2016}, the current algorithm is provided as an easy to use R package and implements more robust heuristic approach to solve the MEC problem in Strand-seq data.
+	To phase multiple Strand-seq libraries we used the R package StrandPhaseR\footnote{\url{https://github.com/daewoooo/StrandPhaseR}} developed by David Porubsky.
+% 	In comparison to our previously published phasing algorithm \citep{Porubsky2016}, the current algorithm is provided as an easy to use R package and implements more robust heuristic approach to solve the MEC problem in Strand-seq data.
 	The haplotypes generated by each technology (i.e. Illumina, PacBio, 10X Genomics and Strand-seq) were compared to the Illumina platinum reference haplotypes, to establish the density, completeness and accuracy of the phase blocks delivered by each platform independently. 
 	For a more streamlined exposition, we focus on the results obtained for Chromosome 1 in the following analysis and present numbers aggregated across all chromosomes in a concluding discussion.	
 	
 	We found both PacBio and 10X Genomics technologies capable of phasing nearly the complete set of variants listed in the reference haplotypes (98.8\% and 97.2\%, respectively), 
-	whereas Illumina alone phased only 77.8\% and Strand-seq only 57.6\% of the reference SNVs (Fig.~\ref{fig:fig1}(b)). 
+	whereas Illumina alone phased only 77.8\% and Strand-seq only 57.6\% of the reference SNVs (Figure~\ref{fig:fig1}(b)). 
 	Note that for 10X Genomics data, we used the variant set discovered, genotyped, and phased by the 10X LongRanger software and hence variants not discovered decrease our estimate of completeness.
-	The comparatively low percentage for Strand-seq can be explained by the relatively low sequencing coverage employed, combined with a slight unevenness in genomic coverage (see Figure~\ref{fig:quality}). 
-	For all technologies except Strand-seq, only short-range haplotypes were assembled using the read-based phasing, with a limited number of alleles phased per haplotype segment (Fig.~\ref{fig:fig1}(c)). 
+	The comparatively low percentage for Strand-seq can be explained by the relatively low sequencing coverage employed, combined with a slight unevenness in genomic coverage. 
+	For all technologies except Strand-seq, only short-range haplotypes were assembled using the read-based phasing, with a limited number of alleles phased per haplotype segment (Figure~\ref{fig:fig1}(c)). 
 	For instance, we found >30,000 unconnected haplotype segments assembled from Illumina data, with the largest segment of 16kb (median ~500bp) harboring only 0.06\% of the phased variants. 
 	This is because heterozygous variants that are further apart than the length of the sequenced DNA fragments cannot be connected, resulting in multiple disjoint haplotype segments with an unknown phase between them. 
 	Improvements were achieved using longer sequencing reads from PacBio technology, which effectively decreased the number of phased haplotype segments (1,927) and increased their size; the largest segment of 1.7Mb (median ~21kb) 
-	containing 1.25\% of all SNVs on Chromosome 1 (Fig.~\ref{fig:fig1}(c)). 10X Genomics produced even longer haplotype segments than both Illumina and PacBio data (Fig.~\ref{fig:fig1}(c)). 
+	containing 1.25\% of all SNVs on Chromosome 1 (Figure~\ref{fig:fig1}(c)). 10X Genomics produced even longer haplotype segments than both Illumina and PacBio data (Figure~\ref{fig:fig1}(c)). 
 	The largest haplotype segment contained almost 5\% of the heterozygous SNVs and spanned more than 8.5Mb (median ~241kb). Still, the haplotypes of Chromosome 1 came in 199 disconnected segments and, 
-	hence, an end-to-end phasing was not achieved (Fig.~\ref{fig:fig1}(c)). That is, the linked reads from the 10X Genomics were not able to connect distant neighboring heterozygous sites, for instance at centromeres, 
-	genome assembly gaps or regions of low heterozygosity (Fig.~\ref{fig:fig1}(a)). 
+	hence, an end-to-end phasing was not achieved (Figure~\ref{fig:fig1}(c)). That is, the linked reads from the 10X Genomics were not able to connect distant neighboring heterozygous sites, for instance at centromeres, 
+	genome assembly gaps or regions of low heterozygosity (Figure~\ref{fig:fig1}(a)). 
 	This is in contrast to the global, albeit sparse, haplotypes produced by Strand-seq. 
-	Although the completeness of Strand-seq haplotypes was lower compared to the other technologies, all phased variants were placed into a single haplotype segment spanning the entire length of Chromosome 1 (Fig.~\ref{fig:fig1}(b), and (c)).	
+	Although the completeness of Strand-seq haplotypes was lower compared to the other technologies, all phased variants were placed into a single haplotype segment spanning the entire length of Chromosome 1 (Figure~\ref{fig:fig1}(b), and (c)).	
 	
 	Finally, we assessed the accuracy of each technology by calculating the extent of switch errors in comparison to the reference haplotypes. High phasing accuracy of each technology was exemplified by the low percentage (<0.4\%) 
-	of switch errors (Fig.~\ref{fig:fig1}(d)) with PacBio and 10X Genomics being the most accurate. 
+	of switch errors (Figure~\ref{fig:fig1}(d)) with PacBio and 10X Genomics being the most accurate. 
 	Since no single phasing technology was sufficient to generate both global and dense haplotypes, 
 	we explored integrative phasing approaches that combine global, sparse haplotyping as afforded by Strand-seq technology with local high-density haplotypes from read-based phasing.
 \begin{figure}[t!]\centering
@@ -391,28 +526,6 @@ d) Accuracy of each independent phasing approach measured as percentage of short
 \label{fig:fig1}
 \end{figure}
 
-\subsection{Integrative global phasing performance}
-We found that the combination of Strand-seq haplotypes with any of the other data types markedly increased the number of variants that were phased in the largest haplotype segment, albeit to differing degrees (Fig.~\ref{fig:fig3}(a)). 
-Specifically, for the Illumina data we observed the completeness of each haplotype increased gradually with the number of Strand-seq libraries used in the experiment, 
-whereas the depth of coverage of Illumina data had only a minor but noticeable effect (Fig.~\ref{fig:fig3}(a)). 
-In contrast, the PacBio data showed a significant improvement in haplotype completeness at 10-fold genomic coverage, 
-regardless of the number of Strand-seq libraries used (Fig.~\ref{fig:fig3}(a), black arrowhead). 
-Similar results were seen when we combined Strand-seq with the 10X Genomics haplotypes (Fig.~\ref{fig:fig3}(a)). 
-In all cases, integration of Strand-seq phasing drastically improved the contiguity of the haplotype spanning Chromosome 1 (Fig.~\ref{fig:fig3}(b)). 
-When combining Illumina data with 40 Strand-seq libraries >65\% of the reference variants could be phased accurately (Fig.~\ref{fig:fig3}(b), black asterisk); 
-5497 haplotype segments (collectively representing 19.7\% of the phased SNVs), however, remained disconnected, even when integrating the complete (N=134) Strand-seq dataset. These results confirm that Illumina data are of limited utility for haplotype phasing.
-    
-    In contrast, as few as 10 Strand-seq cells combined with 10-fold PacBio coverage were sufficient to phase more than 95\% of all heterozygous SNVs into a single haplotype segment (Fig.~\ref{fig:fig3}(b), black asterisk), 
-    and merely 5 Strand-seq single cell libraries were required to connect all 10X Genomics haplotypes. 
-    However, we recommend at least 10 Strand-seq libraries (Fig.~\ref{fig:fig3}(b), black asterisk) to ensure that at least one haplotype-informative (i.e. Watson-Crick-type) cell exists for every chromosome with high probability (p=0.978).
-    This global haplotyping was unique to Strand-seq, as the combination of 10X Genomics with PacBio reads proved inefficient to join locally phased segments (Fig.~\ref{fig:fig3}(b)). 
-    That is, the added value of combining these two technologies is limited as the haplotype segments tend to break at similar locations.
-    
-    Finally, we assessed the phasing accuracy of the assembled haplotypes (the longest phased segment only) (Fig.~\ref{fig:fig3}(c)). 
-    Similar to the completeness of the haplotype, the accuracy of Illumina phasing gradually increased with sequencing depth and Strand-seq library number, indicating that Illumina coverage of 30-fold and higher is advisable (Fig.~\ref{fig:fig3}(c)). 
-    We further observed slightly elevated switch error rates at lower PacBio depths, which plateaued at 10-fold coverage (Fig.~\ref{fig:fig3}(c), black arrowhead). 
-    This is likely caused by allele uncertainty resulting from error-prone PacBio reads, especially at lower sequencing depths (Fig.~\ref{fig:fig3}(c)). 
-    The lowest switch error rate (< 0.2\%) was achieved by the combination of Strand-seq with 10X Genomics data (Fig.~\ref{fig:fig3}(c), switch error rate).
   \begin{figure}[t!]\centering
 \includegraphics[width=\columnwidth, height = \columnwidth]{{Figure3}.pdf}
 \caption{Various combinations of Strand-seq and read-based phasing (Illumina, PacBio, 10X Genomics) - Chromosome 1 as an example.
@@ -426,23 +539,47 @@ Black asterisks point to a recommended depth of coverage of a given technology i
 c) Assessment of the accuracy of the largest haplotype segment as the level of agreement with the ‘reference’ standard. 
 Black arrowheads highlight Illumina and PacBio sequencing depth where accuracy of final haplotypes do not substantially improve.}
 \label{fig:fig3}
+\vspace{1cm}
 \end{figure}
+
+\subsection{Integrative global phasing performance}
+We found that the combination of Strand-seq haplotypes with any of the other data types markedly increased the number of variants that were phased in the largest haplotype segment, albeit to differing degrees (Figure~\ref{fig:fig3}(a)). 
+Specifically, for the Illumina data we observed the completeness of each haplotype increased gradually with the number of Strand-seq libraries used in the experiment, 
+whereas the depth of coverage of Illumina data had only a minor but noticeable effect (Figure~\ref{fig:fig3}(a)). 
+In contrast, the PacBio data showed a significant improvement in haplotype completeness at 10-fold genomic coverage, 
+regardless of the number of Strand-seq libraries used (Figure~\ref{fig:fig3}(a), black arrowhead). 
+Similar results were seen when we combined Strand-seq with the 10X Genomics haplotypes (Figure~\ref{fig:fig3}(a)). 
+In all cases, integration of Strand-seq phasing drastically improved the contiguity of the haplotype spanning Chromosome 1 (Figure~\ref{fig:fig3}(b)). 
+When combining Illumina data with 40 Strand-seq libraries >65\% of the reference variants could be phased accurately (Figure~\ref{fig:fig3}(b), black asterisk); 
+5497 haplotype segments (collectively representing 19.7\% of the phased SNVs), however, remained disconnected, even when integrating the complete (N=134) Strand-seq dataset. These results confirm that Illumina data are of limited utility for haplotype phasing.
+
+    In contrast, as few as 10 Strand-seq cells combined with 10-fold PacBio coverage were sufficient to phase more than 95\% of all heterozygous SNVs into a single haplotype segment (Figure~\ref{fig:fig3}(b), black asterisk), 
+    and merely 5 Strand-seq single cell libraries were required to connect all 10X Genomics haplotypes. 
+    However, we recommend at least 10 Strand-seq libraries (Figure~\ref{fig:fig3}(b), black asterisk) to ensure that at least one haplotype-informative (i.e. Watson-Crick-type) cell exists for every chromosome with high probability (p=0.978).
+    This global haplotyping was unique to Strand-seq, as the combination of 10X Genomics with PacBio reads proved inefficient to join locally phased segments (Figure~\ref{fig:fig3}(b)). 
+    That is, the added value of combining these two technologies is limited as the haplotype segments tend to break at similar locations.
+    
+    Finally, we assessed the phasing accuracy of the assembled haplotypes (the longest phased segment only) (Figure~\ref{fig:fig3}(c)). 
+    Similar to the completeness of the haplotype, the accuracy of Illumina phasing gradually increased with sequencing depth and Strand-seq library number, indicating that Illumina coverage of 30-fold and higher is advisable (Figure~\ref{fig:fig3}(c)). 
+    We further observed slightly elevated switch error rates at lower PacBio depths, which plateaued at 10-fold coverage (Figure~\ref{fig:fig3}(c), black arrowhead). 
+    This is likely caused by allele uncertainty resulting from error-prone PacBio reads, especially at lower sequencing depths (Figure~\ref{fig:fig3}(c)). 
+    The lowest switch error rate (< 0.2\%) was achieved by the combination of Strand-seq with 10X Genomics data (Figure~\ref{fig:fig3}(c), switch error rate).
 
     Switch error rates reflect local inaccuracies expressed by the number of pairs of consecutive heterozygous variants that are wrongly phased with respect to each other. 
     These error rates are not necessarily informative about global haplotype accuracy, which largely depend on how switch errors are spatially distributed. 
     Note that one single switch error implies that all following alleles (up to the next switch error) are assigned to the wrong haplotype. 
     Since our goal is to generate dense and global haplotypes, we additionally report the Hamming error rate of the largest haplotype segment in comparison to the reference haplotypes. 
-    Illumina reads are highly accurate and therefore we observed lower impact of sequencing depth on the global accuracy of the largest phased haplotypes (Fig.~\ref{fig:fig3}(c), Hamming error rate). 
+    Illumina reads are highly accurate and therefore we observed lower impact of sequencing depth on the global accuracy of the largest phased haplotypes (Figure~\ref{fig:fig3}(c), Hamming error rate). 
     In contrast, PacBio reads exhibited higher sequencing error rates, which translated into higher switch error rates at low sequencing depths. 
-    Using 10-fold PacBio coverage combined with at least 10 Strand-seq cells yielded highly accurate global haplotypes (Fig.~\ref{fig:fig3}(c), black arrowhead), 
+    Using 10-fold PacBio coverage combined with at least 10 Strand-seq cells yielded highly accurate global haplotypes (Figure~\ref{fig:fig3}(c), black arrowhead), 
     while lower coverages led to markedly worse results. Furthermore, the combination of Strand-seq with 10X Genomics haplotypes yielded highly accurate global haplotypes, 
-    already at the minimal amount of Strand-seq libraries (Fig.~\ref{fig:fig3}(c), right panel).
+    already at the minimal amount of Strand-seq libraries (Figure~\ref{fig:fig3}(c), right panel).
     
     Taken together, these results illustrate that Strand-seq can be used to phase existing sequence data and build dense, global and highly accurate haplotypes. 
-    Indeed, we found our approach highly efficient for genome-wide phasing (Fig.~\ref{fig:fig4}(a)). Using a combination of 40 Strand-seq libraries with 30-fold Illumina coverage, 
+    Indeed, we found our approach highly efficient for genome-wide phasing (Figure~\ref{fig:fig4}(a)). Using a combination of 40 Strand-seq libraries with 30-fold Illumina coverage, 
     or 10 Strand-seq libraries with either 10-fold PacBio coverage or the 10X Genomics haplotypes we successfully scaffolded chromosome-length haplotypes for every autosome of NA12878. 
-    The completeness of the genome-wide haplotypes measured for the largest haplotype block reached 95.7\% and 69.1\% using PacBio and Illumina reads, respectively (Fig.~\ref{fig:fig4}(a)). 
-    We further demonstrated the high accuracy of these haplotypes on the local and global scales, which showed low switch (<0.45\%) and Hamming error (<0.99\%) rates for both the PacBio and Illumina combination (Fig.~\ref{fig:fig4}(a)). 
+    The completeness of the genome-wide haplotypes measured for the largest haplotype block reached 95.7\% and 69.1\% using PacBio and Illumina reads, respectively (Figure~\ref{fig:fig4}(a)). 
+    We further demonstrated the high accuracy of these haplotypes on the local and global scales, which showed low switch (<0.45\%) and Hamming error (<0.99\%) rates for both the PacBio and Illumina combination (Figure~\ref{fig:fig4}(a)). 
     Whereas scaffolding the 10X Genomic haplotypes produced the most accurate local haplotypes (switch error rate of 0.05\%), global performance suffered, and the highest Hamming error rate (2.18\%) was calculated for this combination. 
     Nevertheless, using Strand-seq to scaffold any of the datasets remarkably improved the completeness, contiguity and accuracy of phasing for each chromosome, 
     highlighting our integrative phasing strategy as a robust method for building dense and accurate whole genome haplotypes.
@@ -458,12 +595,12 @@ in order to reach global and accurate haplotypes for a depicted number of indivi
 \section{Discussion}
 	Strand-seq has been successfully prepared from a wide range of cell types taken from various organisms \citep{Porubsky2016, falconer2012dna, sanders2017single} and is currently being adopted by an increasing number of researchers. 
 	The integrative phasing strategy, which is a parameterized algorithm, paves the way to leveraging Strand-seq to obtain chromosome-length dense and accurate haplotypes at a manageable cost and labor investment. 
-	Based on the comprehensive evaluation presented above, we recommend three different combinations of Strand-seq with a complementary technology (Fig.~\ref{fig:fig4}(b)).
+	Based on the comprehensive evaluation presented above, we recommend three different combinations of Strand-seq with a complementary technology (Figure~\ref{fig:fig4}(b)).
 	
 	As one option, one can combine Strand-seq with standard Illumina sequencing. Although the power of Illumina data for phasing is limited, mainly due to short insert sizes and read lengths, it still has some merit for adding additional variants to Strand-seq haplotypes. 
 	This might be of interest to many researchers since Illumina sequencing still constitutes the most common technology and there is an abundance of Illumina sequence data currently available for many sample genomes. 
 	To completely phase these preexisting data, we recommend generating at least 40 Strand-seq libraries for the sample genome, which is sufficient to phase >68\% of all heterozygous variants genome-wide with good accuracy 
-	(switch error 0.45\%, Hamming error 0.99\%), see Fig.~\ref{fig:fig4}(a).
+	(switch error 0.45\%, Hamming error 0.99\%), see Figure~\ref{fig:fig4}(a).
 	
 	To build more complete haplotypes, we recommend combining Strand-seq with either PacBio or 10X Genomic technologies. A minimum of 10-fold PacBio coverage coupled with 10 Strand-seq 
 	libraries will phase >95\% of heterozygous variants genome-wide with excellent accuracy (switch error 0.25\%, Hamming error 0.91\%). 
@@ -498,7 +635,15 @@ in order to reach global and accurate haplotypes for a depicted number of indivi
 	This will provide possibilities to generate good quality haplotypes for pedigrees, which will have profound implications to the study of variability of personal genomes in health and disease.
 
 
+\bigskip
 
+\begin{center}{\fbox{\begin{minipage}{35em}
+ This chapter has been published in Nature Communications, 2017 \citep{porubsky2017dense}, which has co-authors as David Porubsky, Ashley Sanders,  Jan O. Korbel, Victor Guryev, Peter M. Lansdorp \& Tobias Marschall.
+ The preliminary version of this paper is presented in David's thesis. The figures in this chapter are taken from the paper. 
+ My contribution involves in developing and testing an integrative phasing analysis pipeline. This analysis pipeline outputs data table, which is used for the figures.
+ I also implemented the features in WhatsHap to include Strand-seq haps and 10X Genomics data.
+  I wrote draft for WhatsHap section and the corresponding draft figures. 
+\end{minipage}}\end{center}
 
 % 
 % 

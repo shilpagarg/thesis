@@ -1,7 +1,7 @@
 \chapter{A graph-based approach to diploid genome assembly}
 Constructing high-quality haplotype-resolved \textit{de novo} assemblies of diploid genomes is important to reveal the full extent of structural variation and its role in health and disease.
-Current assembly approaches often put the two sequences into one haploid consensus sequence and, therefore, fail to capture the diploid nature of the organism under study.
-Thus, coming up with an assembler which is able to produce accurate and complete diploid assemblies, while being resource-efficient with respect to sequencing costs, 
+Current assembly approaches often collapse the two sequences into one haploid consensus sequence and, therefore, fail to capture the diploid nature of the organism under study.
+Thus, designing an assembler that is able to produce accurate and complete diploid assemblies, while being resource-efficient with respect to sequencing costs, 
 is a key challenge to be addressed by the bioinformatics community.\\
 
 In this chapter, we present a novel graph-based approach to diploid assembly, which integrates accurate Illumina data and long-read Pacific Biosciences (PacBio) data.
@@ -13,13 +13,18 @@ Additionally, we show that our approach has the ability to detect and phase stru
 \section{Introduction}
 % Determining the two genome sequences per chromosome of diploid organisms is important.
 % Separate determination of the two haplotype sequences can in principle avoid genotyping errors in complex regions of the genome caused by incorrect models of variants at nearby sites being independent.
-As introduced in Chapter~\ref{ref:chp1}, the process of assembling the two genome sequences from sequencing reads in a haplotype-aware manner is known as \textit{diploid} or \textit{haplotype-aware genome assembly} and the generated assemblies are called ``haplotigs''.
-However, the characteristics of next generation sequencing (NGS) reads are variable, short length and have low error rates; therefore, solving the diploid assembly problem is fundamentally challenging.
+In previous chapters, we have studied the problem of reconstructing haplotypes with respect to a given reference genome. 
+Here, we consider de novo assembly where we seek to reconstruct all haplotype sequences without relying on a reference genome.
+As introduced in Chapter~\ref{ref:chp1}, the process of assembling the two genome sequences from sequencing reads in a haplotype-aware manner is known as \textit{diploid} or 
+\textit{haplotype-aware genome assembly}. and the generated fragmented assemblies are called ``haplotigs''.
+However, the characteristics of next generation sequencing (NGS) reads vary depending on the technology employed.
+While reads from second generation platforms are short, third generation platform produce reads with very high error rates, which renders diploid genome assembly fundamentally challenging . 
+% are variable, short length and have low error rates; therefore, solving the diploid assembly problem is fundamentally challenging.
 Additional challenges inherent in the genome assembly problem include dealing with short and long genomic repeats, handling other rearrangements present in the genome, and scaling efficiently considering input size, genome size, and hardware availability.
 
-Across the short, long, and hybrid categories, most current assemblers \citep{sohn2016present, simpson2015theory} require collapsing the two genome sequences of a diploid sample into a single haploid ``consensus'' sequence (or primary contig). 
-The consensus sequence is obtained by merging together the distinct alleles at heterozygous regions into a single allele, and therefore losing a lot of information.
-The resulting haploid de novo assembly does not represent the true characteristics of the diploid input genome. 
+Across the short, long, and hybrid categories (see Section~\ref{sec:dip}), most current assemblers \citep{sohn2016present, simpson2015theory} require collapsing the two genome sequences of a diploid sample into a single haploid ``consensus'' sequence (or primary contig). 
+The consensus sequence is obtained by merging together the distinct alleles at heterozygous regions into a single allele, and therefore losing important information.
+The resulting haploid \textit{de novo} assembly does not represent the true characteristics of the diploid input genome. 
 
 To generate diploid assemblies for heterozygous genomes, there are two standard linear approaches; 
 one uses haploid contig sequences \citep{chin2016phased, pendleton2015assembly, seo2016novo, mostovoy2016hybrid}, 
@@ -28,14 +33,14 @@ while the other partitions the reads while using the reference genome as a backb
 In both approaches, the reads are first aligned (either to the reference genome or the contigs). Second, variants such as SNVs are detected based on the aligned reads. 
 Finally, the detected variants are phased using long reads from a same or different sequencing technology.
 
-For both reference-guided and contig-based assembly, this third step---solving the phasing problem---has been formulated as the minimum error correction (MEC) optimization problem \citep{lippert2002algorithmic,Cilibrasi2007}.
-There are several disadvantages to reference-guided assembly; for example, the reads are initially aligned to the reference genome and therefore the process contains a reference bias. 
-The sequences or structural variations that are specific to the genome are not detected by using these approaches. 
+For both reference-guided and contig-based assembly , this third step---solving the phasing problem--- can be addressed by solving the minimum error correction (MEC) optimization problem discussed in Chapter~\ref{ref:chp3} and Chapter~\ref{ref:chp4}.
+There are several disadvantages to reference-guided assembly; for example, the reads are initially aligned to the reference genome and therefore the process is prone to reference bias. 
+Also, this approach can fail to detect sequences or large structural variants that are unique to the genome being assembled. 
 Thus, we can not find the cause of the disease, which is actually associated with this structural variant in the genome.
 
 However, there are also several reasons why the set of sequences/contigs produced by contig-based assembly is not ideal.
-First, the contigs produced by assemblers ignore the heterozygous variants in complex regions, opting instead to break contiguity to express even moderate complexity. 
-Second, the contigs do not capture end-to-end information in the genome; the ordering or relationships between contigs are required in order to generate end-to-end chromosomal-length assemblies.
+First, the contigs produced by haploid assemblers ignore the heterozygous variants in complex regions, opting instead to break contiguity to express even moderate complexity. 
+Second, the contigs do not capture end-to-end information in the genome; the ordering or relationships between contigs are critical in order to generate end-to-end chromosomal-length assemblies.
 % \todo{TM: I do not understand this sentence. Can you explain / make this more clear?}
 % \sgnote{Done.}
 
@@ -53,7 +58,7 @@ We make some first steps towards performing read-based phasing on graphs.
 
 Figure~\ref{fig:ex_graph_approach} demonstrates the conceptual advantages of our graph-based approach over the Falcon Unzip method.
 Consider four SNVs separated by two large SVs and there are four reads spanning these variants.
-Falcon Unzip can not phase the central region because the reads $r_3$ and $r_4$ do not cover any SNVs, resulting in incomplete haplotigs.
+Falcon Unzip can not phase the central region because the reads $r_3$ and $r_4$ do not cover any SNVs and resulting in incomplete haplotigs.
 In contrast, graph-based approaches attempt to detect all types of SVs and phase all of them.
 
 % Based on the above example, we observe that it is possible to deliver complete and contiguous haplotigs using assembly graph-based approach.
@@ -104,18 +109,19 @@ Finally, we show that we successfully detect and phase large structural variants
 % https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5411783/
 % http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0019175
 \section{Further related work}
-The assembly problem was initially formalized as the shortest common super-string problem \citep{maier1978complexity} to generate consensus sequence.
-The SCS problem turned out to be NP-hard, thus \cite{tarhio1988greedy} followed the greedy approach to find an approximate solution to solve the assembly problem.
+The assembly problem was initially formalized as the shortest common super-string problem (SCS)\citep{maier1978complexity} to generate consensus sequence.
+The SCS problem turned out to be NP-hard, thus \cite{tarhio1988greedy} predominantly followed the greedy approach to find an approximate solution for solving the assembly problem.
+\vspace{2cm}
 The basic idea of this approach is to combine the two reads that overlap to a maximum extent in terms of length or base quality estimates.
 This process is repeated until a predefined minimum quality threshold is reached.
 
-The initial genome assemblers \citep{sutton1995tigr, Green99phrapdocumentation} were based on the greedy strategies and have been used during the Human Genome Project.
+The early genome assemblers \citep{sutton1995tigr, Green99phrapdocumentation} were based on the greedy strategies and have been used during the Human Genome Project.
 Greedy approaches were also explored for datasets generated by second-generation DNA sequencing technologies \citep{warren2006assembling, jeck2007extending}.
 
 The major disadvantage of these greedy approaches is that the shortest common super-string problem neglects an essential feature of complex (e.g.,
 vertebrate) genomes: repeats. This has led to the invention of graph-based models for sequence assembly to handle repeats and other complex genomes.
 Graph-based models form the basis of most current genome sequence assemblers. 
-As introduced in Chapter~\ref{ref:chp1}, there are basically two types of graph models such as de Bruijn and OLC-based string graphs.
+As introduced in Chapter~\ref{ref:chp1}, there are basically two types of graph models such as de Bruijn \citep{pevzner2001eulerian, medvedev2007computability, todd1933combinatorial} and OLC-based string graphs \citep{myers2005fragment}.
 Over the last few years, a lot of effort has been devoted to improving the graph based assemblers. 
 
 The Edena assembler followed the string graph approach for short-read sequencing data \citep{hernandez2008novo}. 
@@ -123,15 +129,7 @@ To efficiently construct the string graph, several assemblers were developed usi
 which led to memory-efficient assemblers for large genomes \citep{li2012exploring, simpson2012efficient}. The latest version of SGA implemented Bloom filter to reduce the running time.
 Furthermore, several fast string graph construction algorithms were developed \citep{dinh2011memory, gonnella2012readjoiner, ben2014string}.
  
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{{cropped_falcon-unzip}.pdf}
-\caption{(a) An initial assembly graph is constructed by FALCON by error-correcting the reads. 
-The bubbles are collapsed into a consensus sequence ``primary contig''.
-(b) Heterozygous SNPs  are identified and phased, thus haplotype of reads is identified. (c) The phased reads are used to incorporate the haplotype-fused path into the initial assembly graph, thus finally a set of primary contigs and associated haplotigs are generated.
-Figure from paper ``Phased diploid genome assembly with single-molecule real-time sequencing''.}
-\label{fig:falcon_unzip}
-\end{figure}
-In the direction of de Bruijn graph, there were also quite a lot of effort involved.
+In the direction of de Bruijn graph, there were also considerable efforts involved.
 The ABySS assembler \citep{simpson2009abyss} introduced a representation of
 the graph as a hash table of k-mers, with each k-mer storing a byte representing the presence or absence of its eight possible
 neighboring k-mers. This representation helped in computational gain by allowing distribution of the hash table across a cluster
@@ -139,8 +137,8 @@ of computers. In recent years, the use of Bloom filters \citep{bloom1970space} h
 The Bloom filter was first applied to k-mer counting by \cite{melsted2011efficient}. 
 The FM-index data structure \cite{ferragina2000opportunistic}, which was basically designed for mapping reads to the reference genome, was also used for
 sequence assembly. 
-The FM-index, with slight modifications, has been recently used for representing de Bruijn graphs \citep{bowe2012succinct, rodland2013compact}.
-The main point that only a fraction of k-mers need to be directly stored as vertices was observed by \cite{ye2012exploiting}. A similar
+The FM-index has also been recently used for representing de Bruijn graphs \citep{bowe2012succinct, rodland2013compact}.
+The key point was that only a fraction of k-mers need to be directly stored as vertices was observed by \cite{ye2012exploiting}. A similar
 technique was used to improve the memory consumption of the popular SOAPdenovo assembler \citep{luo2012soapdenovo2}.
 All steps in SOAPdenovo pipeline can be customized according to users requirements.
 
@@ -156,6 +154,15 @@ More specifically, these reads are long enough to cover the most common repeats 
 Subsequent efforts have been devoted to handling long read lengths and high error rates error rates to generate good quality assemblies.
 Several assembly tools are specifically designed for long-read PacBio and Nanopore data such as Canu \citep{koren2017canu}, HINGE \citep{kamath2017hinge}, Racon \citep{vaser2017fast}, Falcon \citep{chin2016phased}, and Miniasm \citep{li2016minimap}.
 
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{{cropped_falcon-unzip}.pdf}
+\caption{(a) An initial assembly graph is constructed by FALCON by error-correcting the reads. 
+The bubbles are collapsed into a consensus sequence ``primary contig''.
+(b) Heterozygous SNPs  are identified and phased, thus haplotype of reads is identified. (c) The phased reads are used to incorporate the haplotype-fused path into the initial assembly graph, thus finally a set of primary contigs and associated haplotigs are generated.
+Figure from the paper by \citep{chin2016phased}.}
+\label{fig:falcon_unzip}
+\end{figure}
+
 Canu, which is based on Celera Assembler, has been specifically designed for noisy single-molecule sequences.
 Canu followed an adaptive overlapping strategy that involved aligning the PacBio reads based on tf-idf weighted MinHash \citep{berlin2015assembling} and constructed a sparse assembly graph.
 It was mainly designed to support long-read data, while being efficient in terms of run-time and coverage requirements, and additionally performed repetition and haplotype separation.
@@ -163,14 +170,14 @@ Racon corrected assemblies by finding a consensus sequence between reads and the
 After aligning the reads by mapping tools available (e.g. Minimap or Graphmap),
 Racon segmented the sequence and found the best alignment between a POA graph of the reads and the assembly.
 The HGAP (Hierarchical Genome Assembly Process) pipeline
-was developed to assemble PacBio-generated data without requiring correction using short-read
+was developed for assembling PacBio-generated data without requiring correction using short-read
 data \citep{chin2013nonhybrid}. HGAP was a hierarchical pipeline; it selected the longest PacBio reads to form the basis
 of the assembly and performed their error-correction using multiple sequence alignment. The corrected
 long reads were then assembled, and a consensus sequence was generated using the complete data
 set. This method often generated single-contig assemblies of bacterial genomes.
 The FALCON assembler followed the design of the hierarchical genome assembly process (HGAP) but used more computationally optimized components. 
 It used string graph algorithm for genome assembly and being best suited for PacBio reads.
-It included several important steps: error correction of raw reads, pre-assembly error correction, overlap filtering, graph construction from overlaps and contig construction from graph.
+It included several important steps such as error correction of raw reads, pre-assembly error correction, overlap filtering, graph construction from overlaps and contig construction from graph.
 
 \paragraph{Hybrid assemblers.}
 Besides short and long-read assemblers, the hybrid approaches to combine different sequencing datasets provide another avenue for generating accurate, contiguous and complete assemblies. 
@@ -229,11 +236,17 @@ Nodes may be traversed in either the forward or reverse direction, with the sequ
 % \todo{There was a left/right in the definition at some point. Where did it go (and why)?} \sgnote{Richard and I prefer to write in the language of n and n', it is easier and more mathematical. What do you think? TM: That's ok with me. (Although I disagree that it's more mathematical.)}
 \end{definition}
 
+\begin{figure}[t!]\centering
+\includegraphics[width=\columnwidth]{wmecfig.pdf}
+\caption{For a subgraph of $G_s$, the example shows two bubbles $l_1$ and $l_2$, and their corresponding alleles. Reads $r_1,r_2,r_3,r_4$ traverse the bubbles.}
+\label{fig:wmec}
+\end{figure}
+
 In words, edges represent adjacencies between the sequences of the nodes they connect.
 Thus, the graph implicitly encodes longer sequences as the concatenated sequences of the nodes along walks through the graph.
 
 To illustrate this, we consider an example sequence graph $G_s$ in Figure~\ref{fig:wmec}. It consists of a node set $N_s = \{1, 1', 2, 2', 3, 3', \ldots\}$
-and an edge set $E_s = \{1 \rightarrow 2', 1 \rightarrow 3' \ldots\}$.
+and an edge set $E_s = \{1 \rightarrow 2, 1 \rightarrow 3' \ldots\}$.
 
 To generate the sequence graph $G_s$, we first employ SPAdes \citep{bankevich2012spades}, which constructs and simplifies a de Bruijn graph, and we subsequently remove the overlaps between the nodes in the resulting graph in a process we call \textit{bluntification}, explained in the Supplement.
 
@@ -266,10 +279,10 @@ Formally, a bubble is represented as a collection of allele paths
 \end{definition}
 
 
-For example, Figure~\ref{fig:wmec} shows a set of two bubbles $L=\{l_2, l_1\}$, and the set of allele paths for the
+For example, Figure~\ref{fig:wmec} shows a set of two bubbles $L=\{l_1, l_2\}$, and the set of allele paths for the
 % \todo{TM: did you define ``complex bubble'' already?} 
 bubble $l_2$ is $\{a_1, a_2, a_3\}$,
-where $a_1 = (6, 7', 8', 11')$, $a_2 = (6, 9', 11')$, $a_3=  (6, 10, 11')$.
+where $a_1 = (6, 7, 8', 11)$, $a_2 = (6, 9, 11)$, $a_3=  (6, 10, 11)$.
 
 \subsection{PacBio alignments} 
 For phasing bubbles, we consider long reads from third generation sequence technologies such as PacBio.
@@ -283,7 +296,7 @@ SNPs often occur near larger variants such as insertions and deletions. SNPs are
 We define a set of read alignments as $R=\{r_1, r_2, \ldots, r_j\}$, where each read alignment $r_{j}$ is given by a path of oriented nodes in graph $G_s$, written $r_{j}=(n_1, \ldots, n_m)$.
 \end{definition}
 For example, in Figure~\ref{fig:wmec}, $R = \{r_1, r_2, r_3, r_4\}$ and the read alignment path $r_1$ can be written as 
-$r_1 = (1, 2', 5', 6, 7', 8', 11' ) $
+$r_1 = (1, 2, 5, 6, 7, 8', 11 )$.
 
 
 \subsection{Bubble ordering}
@@ -358,12 +371,6 @@ We are now ready to present the problem formulation.
 The main insight is that solving phasing for bubble chains is similar to solving the phasing problem for multi-allelic SNVs in reference-based haplotype reconstruction.
 Therefore, we build on the previous formulation of the Minimum Error Correction (MEC) problem \citep{Lancia2001} and its weighted version (wMEC) \citep{lippert2002algorithmic,Patterson2015} and further adapt it to work on a subgraph consisting of a chain of bubbles, defining the \emph{Minimum Error Correction for graphs} (gMEC) problem.
 
-\begin{figure}[t!]\centering
-\includegraphics[width=\columnwidth]{wmecfig.pdf}
-\caption{For a subgraph of $G_s$, the example shows two bubbles $l_1$ and $l_2$, and their corresponding alleles. Reads $r_1,r_2,r_3,r_4$ traverse the bubbles.}
-\label{fig:wmec}
-\end{figure}
-
 % \begin{definition}[Distance] 
 % The quality of a solution relies on the measure $d(r_1,r_2)$ based on the Hamming distance between any two rows $r_1,r_2$. Formally,
 % \[d(p_1,p_2):=\sum_{k=1}^{|L|} \big|\big\{k\,\big|\,r_1(k)\neq -\ \wedge\ r_2(k)\neq -\ \wedge\ r_1(k)\neq r_2(k)\big\}\big|.\]
@@ -382,22 +389,22 @@ We want to find two paths through $L$, each of which consists of a sequence of a
 % For simplicity, we represent the $i^{th}$ element of tuple $\mathcal{W}(j,k)$ as $\mathcal{W}(j,k,i)$.
 Note that the wMEC problem constitutes a special case of gMEC, where the input graph is a chain of bi-allelic bubbles.
 % In its linear counterpart, wMEC with each entry in $\mathcal{F}(j,k) \in \{0,1\}$ works for bi-allelic cases.
-Next, we describe how to solve gMEC via dynamic programming (DP).
+Next, we describe how to solve gMEC via dynamic programming (DP), which is build upon the WhatsHap approach by \cite{Patterson2015} described in Section~\ref{sec:algorithm}.
 
-In the WhatsHap algorithm \citep{Patterson2015}, wMEC is solved in an exact manner for bi-allelic variants using a dynamic programming approach.
-It runs in $\mathcal{O}(2^c\cdot |L|)$ time, where $|L|$ is the number of variants to be phased and $c$ is the maximum physical coverage.
-The basic idea is to proceed column-wise from left to right over a set of active reads.
-Each read remains active from its first non-dash position to its last non-dash position in $\mathcal{F}$.
-In column $k$, we denote the set of active reads as $A(k)$, particularly, $c=\max_{k}\{|A(k)|\}$.
-The algorithm now considers all \emph{bipartitions} of $A(k)$, that is, all pairs $B=(P,Q)$ of disjoint sets $P$ and $Q$ such that $P\cup Q=A(k)$.
-We fill a DP table column wise and for each column $k$ of $\mathcal{F}$, we fill a DP table column $C(k,\cdot)$ with $2^\abs{A(k)}$ entries corresponding to these bipartitions of $A(k)$.
-Each entry $C(k,B)$ is equal to the cost of solving wMEC on the partial matrix consisting of columns $1$ to $k$ of $\mathcal{F}$ such that the bipartition of the full read set $A(1)\cup\ldots\cup A(k)$ \emph{extends} $B$ according to the below definition.
-\begin{definition}[Bipartition extension]
-For a given set $A$ and a subset $A'\subset A$, a bipartition $B=(P,Q)$ of $A$ is said to \emph{extend} a bipartition $B'=(P',Q')$ of $A'$ if $P'\subset P$ and $Q'\subset Q$.
-\end{definition}
-
-Once all entries of the DP table have been computed, the minimum of the last column $\min_B\{C(|L|,B)\}$ indicates the optimal wMEC cost and the optimal bipartition can be obtained by backtracing.
-We refer the reader to \cite{Patterson2015} for a more detailed explanation of this algorithm.
+% In the WhatsHap algorithm \citep{Patterson2015}, wMEC is solved in an exact manner for bi-allelic variants using a dynamic programming approach.
+% It runs in $\mathcal{O}(2^c\cdot |L|)$ time, where $|L|$ is the number of variants to be phased and $c$ is the maximum physical coverage.
+% The basic idea is to proceed column-wise from left to right over a set of active reads.
+% Each read remains active from its first non-dash position to its last non-dash position in $\mathcal{F}$.
+% In column $k$, we denote the set of active reads as $A(k)$, particularly, $c=\max_{k}\{|A(k)|\}$.
+% The algorithm now considers all \emph{bipartitions} of $A(k)$, that is, all pairs $B=(P,Q)$ of disjoint sets $P$ and $Q$ such that $P\cup Q=A(k)$.
+% We fill a DP table column wise and for each column $k$ of $\mathcal{F}$, we fill a DP table column $C(k,\cdot)$ with $2^\abs{A(k)}$ entries corresponding to these bipartitions of $A(k)$.
+% Each entry $C(k,B)$ is equal to the cost of solving wMEC on the partial matrix consisting of columns $1$ to $k$ of $\mathcal{F}$ such that the bipartition of the full read set $A(1)\cup\ldots\cup A(k)$ \emph{extends} $B$ according to the below definition.
+% \begin{definition}[Bipartition extension]
+% For a given set $A$ and a subset $A'\subset A$, a bipartition $B=(P,Q)$ of $A$ is said to \emph{extend} a bipartition $B'=(P',Q')$ of $A'$ if $P'\subset P$ and $Q'\subset Q$.
+% \end{definition}
+% 
+% Once all entries of the DP table have been computed, the minimum of the last column $\min_B\{C(|L|,B)\}$ indicates the optimal wMEC cost and the optimal bipartition can be obtained by backtracing.
+% We refer the reader to \cite{Patterson2015} for a more detailed explanation of this algorithm.
 
 \textit{Solving gMEC for bubble chains}. The basic idea is to now extend the dynamic program to consider all possible path-pairs through each bubble. 
 In the bi-allelic case, we have only two paths in every bubble and, therefore, there is only one pair of distinct paths.
@@ -479,7 +486,8 @@ $(\{r_1,r_3\},\{r_2\}), (\emptyset,\{r_1,r_2,r_3\}), (\{r_3\},\{r_1,r_2\}), (\{r
 Due to the use of the Gray code order, we can perform this operation for one DP column in $\mathcal{O}( {|l_k| \choose 2} \cdot 2^{|A(k)|})$ time.
 
 \textit{DP column recurrence}.
-Note that $C(k,B)$ is the cost of an optimal solution of Problem~\ref{prob:gMEC} for input matrices restricted to the first $k$ columns under the additional constraint that the solution's bipartition of the full read set extends $B$.
+Note that $C(k,B)$ is the cost of an optimal solution of Problem~\ref{prob:gMEC} for input matrices restricted to the first $k$ columns 
+under the additional constraint that the solution's bipartition of the full read set extends $B$.
 Since column $k$ lists all bipartitions, the optimal solution to the input matrix consisting of the first $k$ columns would be given by the minimum in that column.
 To compute entries in column $C(k+1,\cdot)$, we add up local costs incurred in column $k+1$ and costs from the previous column (see Algorithm~\ref{alg:dp-table}).
 To adhere to the semantics of $C(k+1,B)$ described above, only entries in column $k$ whose bipartitions are \emph{compatible} with $B$ are to be considered as possible ``predecessors'' of $C(k+1, B)$.
@@ -507,7 +515,7 @@ $(\{r_1,r_3\},\{r_2\})$, $(\emptyset,\{r_1,r_2,r_3\})$, $(\{r_3\},\{r_1,r_2\})$,
             Combine it with cost from column $k-1$ to obtain cost for column $k$:
             \[C(k,B)= \Delta_C(k,B) + \min_{\substack{B'\in\mathcal{B}(A(k-1)):B\simeq B'}}C(k-1,B')\]
         }
-        where $\mathcal{B}\big(A(k)\big)$ denotes the set of all bipartitions of $A(k)$.
+        where $\mathcal{B}\big(A(k)\big)$ denotes the set of all bipartitions of $A(k)$ and $B\simeq B'$ follows Definition~\ref{def:bipartite-extend}.
     }
 \end{algorithm}
 
@@ -566,7 +574,7 @@ After graph simplification, the resulting sequence graph has 158,567 nodes and 1
 This resulted in 21,868, 43,459 and 73,129 PacBio alignments for input coverages of $10\times$, $20\times$ and $30\times$, respectively.
 
 \textit{Bubble ordering}. To obtain an ordering of bubbles, we perform \textit{de novo} assembly using Canu v1.5 \citep{koren2017canu} on each PacBio dataset.
-As suggested by \cite{giordano2017novo}, we use Canu v1.5 with the following parameter values: \texttt{corMhapSensitivity=high,} \texttt{corMinCoverage=2,} \texttt{correctedErrorRate=0.10,}\\
+As suggested by \cite{giordano2017novo}, we use Canu v1.5 with the following parameter values: \texttt{corMhapSensitivity=high,} \texttt{corMinCoverage=2,} \texttt{correctedErrorRate=0.10,}
 \texttt{minOverlapLength=499,} \texttt{corMaxEvidenceErate=0.3}.
 Next, we align these Canu contigs to the sequence graph to obtain the bubble ordering, which we define as the sequence of bubbles encountered by each aligned contig.
 Note that we use Canu solely for bubble ordering.
@@ -576,7 +584,7 @@ The coverage depth threshold used is 1.67 times the average coverage.
 This results in 148, 80, and 71 bubble chains, and 26,576, 27,556 and 27,741 bubbles, at coverages of $10\times$, $20\times$, and $30\times$ respectively.
 
 % \todo{What is the definition of ``ordered bubble''? How many bubble chains and how many bubbles per chain on average?} 
-
+\vspace{2cm}
 \textit{Graph-based phasing}. For each of the coverage conditions, we take as input the ordered bubbles, the long-read PacBio alignments and the sequence graph, and solve the gMEC problem by assuming constant weights in the weight matrix $\mathcal{W}$.
 The optimal bipartition is computed via backtracing and the final haplotigs are generated by concatenating the node labels of the two optimal paths.
 These steps have been implemented in our WhatsHap software as a subcommand \texttt{phasegraph}\footnote{Presently this functionality resides in the \texttt{MAV} branch, which will be merged to the \texttt{master} branch in the near future and will be part of future WhatsHap releases.}.
@@ -620,45 +628,6 @@ For each whole diploid assembly, we compute the average of the best-alignment pe
 
 \textit{Assembly completeness}. We consider two assembly completeness statistics: first, the total length of haplotigs assembled by each method, and second, the total number of unphased contigs.
 
-% \begin{center}
-\begin{table}[!ht]
-\centering
-\begin{tabular}{ |l|c|c|c| } 
- \hline
- Statistics & PacBio & Graph-based  & Falcon Unzip \\ 
- & coverage &  approach &  \\ 
-  \hline
-  \multicolumn{4}{|c|}{Diploid assemblies Quality}\\
-  \hline
- Average Identity[\%] & 10$\times$& 99.50 & \textemdash\\
-   & 20$\times$& 99.61  &\textemdash\\
-   & 30$\times$& 99.80 &99.4 \\
- Phasing error rate[\%] & 10$\times$& 2.5 & \textemdash\\
-   & 20$\times$& 1.5  &\textemdash\\
-   & 30$\times$& 0.7 & 3.8 \\
-  \hline
-  \multicolumn{4}{|c|}{Contiguity}\\
-  \hline
-   N50 haplotig size [bp]& 10$\times$& 40k &\textemdash\\
-   & 20$\times$& 42k &\textemdash\\
-   & 30$\times$& 43k &32k\\ 
-     \hline
-  \multicolumn{4}{|c|}{Completeness}\\
-  \hline
-  Haplotig size [Mbp] & 10$\times$& 20.7 &\textemdash\\
-   & 20$\times$& 21.1 &\textemdash\\
-   & 30$\times$& 23.9 &16.6\\
-   \# Unphased contigs  & 10$\times$& 2 &\textemdash\\
-   & 20$\times$& 2 &\textemdash\\
-   & 30$\times$& 2 &77\\
- \hline
-\end{tabular}
-\\[10pt]
- \caption{Comparison of two phasing methods, Falcon Unzip and our graph-based approach, at different PacBio coverage levels. For computing the ``haplotig N50'', we only consider those portions of a contig for which two haplotypes are available, i.e.\ those regions where Falcon reports both a primary contig and an alternative haplotig.
- For ``haplotig size'', we sum the length of contigs on both haplotypes (``primary contigs'' plus ``haplotigs'' in terms of Falcon's output), so the target size is twice the genome size (24.3Mbp in case of yeast).}
-\label{table:graph_unzip}
-\end{table}
-% \end{center}
 \section{Results}
 In this section, we present the results of our analysis of the diploid assemblies generated by our method and by Falcon Unzip on the data sets described above.
 
@@ -673,10 +642,57 @@ We believe that one reason for this is that we use an Illumina-based graph as a 
 Furthermore, optimally solving the gMEC formulation of the phasing problem most likely contributes to generating accurate haplotigs.
 Overall, our analysis supports the conclusion that our approach delivers accurate haplotype sequences even at a long read coverage as low as 10$\times$.
 
+\begin{table}[!ht]
+\centering
+\begin{tabular}{ lccc } 
+ \hline
+ Statistics & PacBio & Graph-based  & Falcon Unzip \\ 
+ & coverage &  approach &  \\ 
+  \hline
+  \multicolumn{4}{c}{Diploid assemblies Quality}\\
+  \hline
+ Average Identity[\%] & 10$\times$& 99.50 & \textemdash\\
+   & 20$\times$& 99.61  &\textemdash\\
+   & 30$\times$& 99.80 &99.4 \\
+ Phasing error rate[\%] & 10$\times$& 2.5 & \textemdash\\
+   & 20$\times$& 1.5  &\textemdash\\
+   & 30$\times$& 0.7 & 3.8 \\
+  \hline
+  \multicolumn{4}{c}{Contiguity}\\
+  \hline
+   N50 haplotig size [bp]& 10$\times$& 40k &\textemdash\\
+   & 20$\times$& 42k &\textemdash\\
+   & 30$\times$& 43k &32k\\ 
+     \hline
+  \multicolumn{4}{c}{Completeness}\\
+  \hline
+  Haplotig size [Mbp] & 10$\times$& 20.7 &\textemdash\\
+   & 20$\times$& 21.1 &\textemdash\\
+   & 30$\times$& 23.9 &16.6\\
+   \# Unphased contigs  & 10$\times$& 2 &\textemdash\\
+   & 20$\times$& 2 &\textemdash\\
+   & 30$\times$& 2 &77\\
+ \hline
+\end{tabular}
+\\[10pt]
+ \caption{Comparison of two phasing methods, Falcon Unzip and our graph-based approach, at different PacBio coverage levels. For computing the ``haplotig N50'', we only consider those portions of a contig for which two haplotypes are available, i.e.\ those regions where Falcon reports both a primary contig and an alternative haplotig.
+ For ``haplotig size'', we sum the length of contigs on both haplotypes (``primary contigs'' plus ``haplotigs'' in terms of Falcon's output), so the target size is twice the genome size (24.3Mbp in case of yeast).}
+\label{table:graph_unzip}
+\end{table}
+
 To analyse the effect of different coverages of the Illumina short-read datasets on the quality of our haplotigs, we went back to the original, high coverage Illumina dataset (which we had been using downsampled to 50$\times$ coverage) and downsampled it to 100$\times$ coverage, i.e.\ twice the amount of reads used above.
 We observed that increasing the coverage did not have a drastic effect on the quality of haplotigs.
 The average phasing identity rose to 99.81\% and the total haplotig size was 23.9\,Mbp, which is virtually identical to the results for 50$\times$ as reported in Table~\ref{table:graph_unzip}.
 
+With an increase in average PacBio coverage from 10$\times$ to 30$\times$, the haplotype contiguity achievable by using our approach improves from 40\,kbp to 43\,kbp.
+By way of comparison, Falcon Unzip delivers haplotigs with a N50 length of 32\,kbp at the same coverage level. This highlights the fact that our approach generates more contiguous haplotypes compared to Falcon Unzip.
+In terms of haplotype completeness, our approach yields diploid assemblies of length 20.7\,Mbp, 21.1\,Mbp and 23.9\,Mbp at average PacBio coverages of 10$\times$, 20$\times$ and 30$\times$ respectively.
+At coverage 30$\times$, Falcon Unzip delivers a total assembly size of 16.6\,Mbp, while the total length of both haplotypes of the pseudo-diploid yeast genome is 24.3\,Mbp.
+Our approach therefore delivers more complete haplotypes at a long-read coverage of 10$\times$ compared to Falcon Unzip at a coverage of 30$\times$.
+There are 2 haplotigs that are not phased by our approach; this is due to the lack of heterozygosity over those regions.
+In comparison, there are 77 (out of 123) contigs that are not phased by Falcon Unzip.
+% We believe that the haplotig completeness and contiguity using the graph-based approach is mainly derived from aligning PacBio reads to the sequence graph, and additionally performing bubble calling and phasing them (as illustrated in Figure~\ref{fig:ex_graph_approach}).
+In summary, our graph-based approach delivers complete and contiguous haplotype sequences even at a relatively low coverage of 10$\times$.
 \begin{figure*}[t!]
 \begin{center}
 \includegraphics[width=\textwidth]{bubble-breakdown}%
@@ -690,15 +706,6 @@ With a higher substitution rate, the bubble has more substitutions, and with a l
 }
 \label{fig:bubble_breakdown}
 \end{figure*}
-With an increase in average PacBio coverage from 10$\times$ to 30$\times$, the haplotype contiguity achievable by using our approach improves from 40\,kbp to 43\,kbp.
-By way of comparison, Falcon Unzip delivers haplotigs with a N50 length of 32\,kbp at the same coverage level. This highlights the fact that our approach generates more contiguous haplotypes compared to Falcon Unzip.
-In terms of haplotype completeness, our approach yields diploid assemblies of length 20.7\,Mbp, 21.1\,Mbp and 23.9\,Mbp at average PacBio coverages of 10$\times$, 20$\times$ and 30$\times$ respectively.
-At coverage 30$\times$, Falcon Unzip delivers a total assembly size of 16.6\,Mbp, while the total length of both haplotypes of the pseudo-diploid yeast genome is 24.3\,Mbp.
-Our approach therefore delivers more complete haplotypes at a long-read coverage of 10$\times$ compared to Falcon Unzip at a coverage of 30$\times$.
-There are 2 haplotigs that are not phased by our approach; this is due to the lack of heterozygosity over those regions.
-In comparison, there are 77 (out of 123) contigs that are not phased by Falcon Unzip.
-% We believe that the haplotig completeness and contiguity using the graph-based approach is mainly derived from aligning PacBio reads to the sequence graph, and additionally performing bubble calling and phasing them (as illustrated in Figure~\ref{fig:ex_graph_approach}).
-In summary, our graph-based approach delivers complete and contiguous haplotype sequences even at a relatively low coverage of 10$\times$.
 
 \textit{Bubble characterization}.
 We attempted to characterize the nature of the heterozygous genomic variation encoded in the phased bubbles.
@@ -711,6 +718,8 @@ This analysis reveals, on the one hand, that many longer pure substitutions have
 For the 1,489 bubbles not classified as pure substitutions, which we refer to as ``mixed bubbles'', Figure~\ref{fig:bubble_breakdown}b shows the absolute length difference between the two alleles.
 While this difference is small for most bubbles, there are 93 bubbles with a length difference of 21\,bp or more.
 To further elucidate the nature of the sequence differences, Figure~\ref{fig:bubble_breakdown}c presents the joint distribution of length of the longer allele and substitution rate, which is defined as the fraction of substitutions among all edit operations done to align the two sequences. (That is, a pure insertion or deletion has a substitution rate of 0.)
+
+
 
 % the x-axis represents the edit distance between the two allele (haplotype) paths,
 % % \todo{I wouldn't call this type and talk of edit distance right away. Confusing otherwise.} 
@@ -732,8 +741,7 @@ To further elucidate the nature of the sequence differences, Figure~\ref{fig:bub
 % \caption{Structural variation analysis of phased bubbles from Falcon Unzip. The x axis and y axis show edit distance and maximum size for the two haplotype paths going through each bubble. The color shows the density of bubbles.}
 % \label{fig:sv_scatter_falcon}
 % \end{figure}
-
-
+\vspace{1cm}
 \section{Discussion}
 The Falcon Unzip method \citep{chin2016phased} is based purely on PacBio reads, which exhibit a high error rate; it is therefore not suitable for lower coverages.
 By using (costly) high coverage PacBio data, Falcon Unzip can generate good quality assemblies with an average haplotig identity of up to 99.99\% \citep{chin2016phased}.
@@ -754,6 +762,13 @@ Resolving repeats and polyploids phasing are closely related problems, as pointe
 Therefore, we will aim to solve heterozygous variants and repeats in a joint phasing framework, in order to obtain even more contiguous diploid genome assemblies that include both types of features.
 The machinery we plan to develop for this purpose would also remove the need to run an external assembler (Canu) for bubble ordering.
 Finally, our framework allows, in principle, for incorporating additional data from other sequencing technologies, such as chromatin conformation capture \citep{burton2013chromosome}, linked read sequencing \citep{weisenfeld2017direct}, and single-cell template strand sequencing (Strand-seq; \citealp{Porubsky2016}).
-In previous studies on reference-based haplotyping, we have shown such integrative approaches to be very powerful when inferring chromosome-scale haplotypes \citep{porubsky2017dense,chaisson2017multi}; we believe similar results can be obtained for \textit{de novo} diploid genome assemblies.
-Moreover, studying the biological implications of the phased structural variation we can now detect also constitute an exciting future research direction.
+Chapter~\ref{ref:chp4} on reference-based haplotyping, we have shown such integrative approaches to be very powerful when inferring chromosome-scale haplotypes; we believe similar results can be obtained for \textit{de novo} diploid genome assemblies.
+% Moreover, studying the biological implications of the phased structural variation we can now detect also constitute an exciting future research direction.
+
+\bigskip
+
+\begin{center}{\fbox{\begin{minipage}{35em}
+ This chapter will appear at ISMB Proceedings/Bioinformatics 2018, which has co-authors as Mikko Rautiainen, Adam M Novak, Erik Garrison, Richard Durbin \& Tobias Marschall. 
+ The figures in this chapter are taken from the paper. My contribution involves in developing the phasing method and writing the paper. 
+\end{minipage}}\end{center}
 
